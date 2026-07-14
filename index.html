@@ -69,7 +69,7 @@
         </section>
 
         <section id="registro" class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">ATTIVITÀ</p><h3>Registro del mese</h3></div><button class="section-collapse" data-collapse-target="registroBody" type="button" aria-expanded="true">⌃</button></div>
+          <div class="panel-heading"><div class="section-title-toggle" data-collapse-target="registroBody" role="button" tabindex="0"><p class="eyebrow">ATTIVITÀ</p><h3>Registro del mese</h3></div><button class="section-collapse" data-collapse-target="registroBody" type="button" aria-expanded="true">⌃</button></div>
           <div id="registroBody" class="table-wrap collapsible-section">
             <table><thead><tr><th>Data</th><th>Servizio</th><th>Ore</th><th>Straordinario</th><th>Banca ore</th><th>BP</th><th>Imbarco</th><th>Diaria</th><th></th></tr></thead><tbody id="entriesBody"></tbody></table>
             <div id="emptyState" class="empty-state"><span>⚓</span><strong>Nessuna giornata registrata</strong><p>Aggiungi il primo turno usando il modulo qui sopra.</p></div>
@@ -77,7 +77,7 @@
         </section>
 
         <section id="consultivo" class="panel total-summary-panel">
-          <div class="panel-heading"><div><p class="eyebrow">RIEPILOGO TOTALE</p><h3>Consultivo per settimana</h3></div><button class="section-collapse" data-collapse-target="consultivoBody" type="button" aria-expanded="true">⌃</button></div>
+          <div class="panel-heading"><div class="section-title-toggle" data-collapse-target="consultivoBody" role="button" tabindex="0"><p class="eyebrow">RIEPILOGO TOTALE</p><h3>Consultivo per settimana</h3></div><button class="section-collapse" data-collapse-target="consultivoBody" type="button" aria-expanded="true">⌃</button></div>
           <div id="consultivoBody" class="table-wrap collapsible-section"><table class="total-summary-table"><thead><tr><th>Settimana</th><th>Giorni</th><th>Ore</th><th>Straordinari</th><th>Banca ore</th><th>BP</th><th>Imbarchi</th><th>Diarie</th></tr></thead><tbody id="totalSummaryBody"></tbody></table></div>
         </section>
 
@@ -90,7 +90,7 @@
         </section>
 
         <section id="adminPanel" class="panel admin-pin-panel" hidden>
-          <div class="panel-heading"><div><p class="eyebrow">AMMINISTRAZIONE</p><h3>PIN registrati</h3></div><div class="heading-actions"><button id="refreshPinList" class="secondary-button" type="button">Aggiorna</button><button class="section-collapse" data-collapse-target="adminPinList" type="button" aria-expanded="true">⌃</button></div></div>
+          <div class="panel-heading"><div class="section-title-toggle" data-collapse-target="adminPinList" role="button" tabindex="0"><p class="eyebrow">AMMINISTRAZIONE</p><h3>PIN registrati</h3></div><div class="heading-actions"><button id="refreshPinList" class="secondary-button" type="button">Aggiorna</button><button class="section-collapse" data-collapse-target="adminPinList" type="button" aria-expanded="true">⌃</button></div></div>
           <div id="adminPinList" class="admin-pin-list collapsible-section"></div>
         </section>
       </section>
