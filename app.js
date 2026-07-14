@@ -29,7 +29,6 @@ SHIFTS.forEach(s=>{if(Number(s.allowanceRate)===25)s.allowanceRate=24;if(![0,9,1
 const GROUND_SHIFTS=new Set(['AGB','POND','DT','PT','AGM','AGT','PONM','LD','MALATTIA','RIPOSO']);
 SHIFTS.forEach(s=>{if(s.embark===undefined)s.embark=!GROUND_SHIFTS.has(String(s.code).toUpperCase())});
 const TURNS_URL='https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec';
-const ODS_VARIATIONS_URL='https://docs.google.com/spreadsheets/d/16NZO-WxXVx5YlEbX2xsYx8wCcV1qazytw1ww2seFXr8/gviz/tq';
 const fmt=new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'short',weekday:'short'});
 let entries=JSON.parse(localStorage.getItem(STORAGE)||'[]');
 const MEAL_DEFAULT_VERSION='used-by-default-v1';
@@ -39,7 +38,6 @@ if(migrateMeals){localStorage.setItem(mealVersionKey,MEAL_DEFAULT_VERSION);local
 const EMBARK_VERSION='competence-based-v1',embarkVersionKey=`navidiaria.embarkVersion.${activeAgent?.id||'guest'}`;if(localStorage.getItem(embarkVersionKey)!==EMBARK_VERSION){entries.forEach(e=>{if(e.imported)e.embark=!!shiftFor(e.shift).embark});localStorage.setItem(embarkVersionKey,EMBARK_VERSION);localStorage.setItem(STORAGE,JSON.stringify(entries))}
 let editingId=null;
 let agentsDirectory=[];
-let odsVariations=null;
 const $=id=>document.getElementById(id);
 
 function minutesToText(value){const sign=value<0?'-':'';const m=Math.abs(Math.round(value));return `${sign}${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`}
@@ -65,12 +63,9 @@ const GRADE_INFO={
 function formatAgentName(name){return String(name||'').trim().split(/\s+/).map(part=>/^[A-ZÀ-ÖØ-Ý]+[.,]?$/.test(part)&&part.replace(/[.,]/g,'').length>1?part.charAt(0)+part.slice(1).toLowerCase():part).join(' ')}
 function updateWelcome(){if(!activeAgent)return;const grade=GRADE_INFO[String(activeAgent.qualifica||'marinaio').trim().toLowerCase()]||GRADE_INFO.marinaio;$('welcomeName').innerHTML=`Buon giorno <span class="grade-label ${grade.className}">${grade.label}</span> ${escapeHtml(formatAgentName(activeAgent.name))}`}
 function normalizeScheduleShift(raw){return /^rip$/i.test(raw)?'Riposo':/^mal/i.test(raw)?'Malattia':raw}
-function loadOdsVariations(){
-  if(String(activeAgent?.id)!==ADMIN_AGENT_ID)return Promise.resolve(new Map());
-  if(odsVariations)return Promise.resolve(odsVariations);
-  return new Promise((resolve,reject)=>{const callback=`navidiariaOds${Date.now()}`,script=document.createElement('script'),timer=setTimeout(()=>finish(new Error('Variazioni ODS non raggiungibili')),12000);const finish=(error,data)=>{clearTimeout(timer);delete window[callback];script.remove();if(error)reject(error);else resolve(data)};window[callback]=response=>{if(response?.status==='error'){finish(new Error('Variazioni ODS non disponibili'));return}const variations=new Map(),year=new Date().getFullYear();(response?.table?.rows||[]).forEach(row=>{const dateText=String(row.c?.[0]?.f??row.c?.[0]?.v??''),match=dateText.match(/^(\d{2})\/(\d{2})/),raw=row.c?.[1]?.f??row.c?.[1]?.v;if(!match||raw===null||raw===undefined||String(raw).trim()==='')return;const date=`${year}-${match[2]}-${match[1]}`,shift=/^0(?:[.,]0+)?$/.test(String(raw).trim())?'Riposo':normalizeScheduleShift(String(raw).trim());variations.set(date,shift)});odsVariations=variations;finish(null,variations)};script.onerror=()=>finish(new Error('Variazioni ODS non raggiungibili'));script.src=`${ODS_VARIATIONS_URL}?sheet=variazioni_ods&tqx=responseHandler:${callback}&t=${Date.now()}`;document.head.appendChild(script)})
-}
-async function getScheduledShift(date){const [response,variations]=await Promise.all([fetch(`${TURNS_URL}?t=${Date.now()}`),loadOdsVariations().catch(()=>new Map())]);if(!response.ok)throw new Error('NaviTurni non raggiungibile');const data=await response.json();let agent=null;Object.values(data.residenze||{}).some(list=>{agent=(list||[]).find(a=>String(a.id)===String(activeAgent?.id));return !!agent});const raw=variations.get(date)??agent?.turni?.[date];if(!raw)throw new Error('Nessun turno assegnato per questa data');return normalizeScheduleShift(raw)}
+function comparableAgentName(value){return String(value||'').toLocaleUpperCase('it').replace(/[^A-ZÀ-ÖØ-Ý\s]/g,' ').split(/\s+/).filter(part=>part.length>1).join(' ').trim()}
+function variationsForAgent(data){const activeName=comparableAgentName(activeAgent?.name),variations=new Map();(data?.variazioni_ods||[]).filter(item=>item.attiva!==false&&comparableAgentName(item.agente)===activeName).forEach(item=>{if(item.data&&item.turno_nuovo)variations.set(String(item.data),normalizeScheduleShift(String(item.turno_nuovo).replace(/\*$/,''))) });return variations}
+async function getScheduledShift(date){const response=await fetch(`${TURNS_URL}?t=${Date.now()}`);if(!response.ok)throw new Error('NaviTurni non raggiungibile');const data=await response.json(),variations=variationsForAgent(data);let agent=null;Object.values(data.residenze||{}).some(list=>{agent=(list||[]).find(a=>String(a.id)===String(activeAgent?.id));return !!agent});const raw=variations.get(date)??agent?.turni?.[date];if(!raw)throw new Error('Nessun turno assegnato per questa data');return normalizeScheduleShift(raw)}
 async function restoreFormFromSchedule(){const button=$('restoreFromShift');button.disabled=true;try{const shift=await getScheduledShift($('entryDate').value);$('entryShift').value=shift;applyCompetenceDefaults();notify(`Ripristinato il turno ${shift}`)}catch(error){notify(error.message)}finally{button.disabled=false}}
 function isAdmin(){return String(activeAgent?.id||'')===ADMIN_AGENT_ID}
 function renderTodaySummary(){
@@ -121,7 +116,7 @@ async function syncCurrentAgent(){
     const response=await fetch(`${TURNS_URL}?t=${Date.now()}`);if(!response.ok)throw new Error(response.status);
     const data=await response.json();let agent=null;
     Object.values(data.residenze||{}).some(list=>{agent=(list||[]).find(a=>String(a.id)===String(activeAgent.id));return !!agent});
-    if(!agent)throw new Error('Agente non trovato');const variations=await loadOdsVariations().catch(error=>{console.warn(error);return new Map()});let added=0,updated=0;
+    if(!agent)throw new Error('Agente non trovato');const variations=variationsForAgent(data);let added=0,updated=0;
     activeAgent={...activeAgent,name:agent.agente||activeAgent.name,qualifica:agent.qualifica||'marinaio'};localStorage.setItem(SESSION_KEY,JSON.stringify(activeAgent));updateWelcome();
     Object.entries(agent.turni||{}).forEach(([date,raw])=>{
       const baseShift=normalizeScheduleShift(raw),odsShift=variations.get(date),shift=odsShift??baseShift,variationFrom=odsShift&&odsShift!==baseShift?baseShift:null,existing=entries.find(e=>e.date===date);
