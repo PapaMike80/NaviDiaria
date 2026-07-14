@@ -75,6 +75,7 @@ function renderTodaySummary(){
   $('openToday').hidden=true;
   const shift=shiftFor(entry.shift),bp=shift.meal?(entry.mealUsed?'USATO':'DA ACCREDITARE'):'—',diaria=entry.allowanceRate!==null&&entry.allowanceRate!==undefined?`${entry.allowanceRate}%`:'—',bankTotal=(Number(entry.bank)||0)+refuelCredit(entry),id=escapeHtml(String(entry.id));
   $('todaySummary').innerHTML=`<div class="today-date"><span>OGGI</span>${entry.variationFrom?`<em class="variation-badge">VAR. ${escapeHtml(shortShiftLabel(entry.variationFrom))}&gt;${escapeHtml(shortShiftLabel(entry.variationTo||entry.shift))}</em>`:''}${entry.manualModified?`<em class="manual-badge">MOD. ${escapeHtml(shortShiftLabel(entry.manualFrom))}&gt;${escapeHtml(shortShiftLabel(entry.manualTo||entry.shift))}</em>`:''}<strong>${dateLabel}</strong></div><div class="today-table-wrap"><table class="today-edit-table"><thead><tr><th>Servizio</th><th>Ore</th><th>Straordinario</th><th>Banca ore</th><th>BP</th><th>Imbarco</th><th>Diaria</th></tr></thead><tbody><tr><td class="inline-edit-cell" data-entry-id="${id}" data-inline="shift"><span class="shift-badge ${shiftClass(entry.shift)}">${entry.shift}</span></td><td>${dataPill(minutesToText(Math.round(shift.hours*60)+Number(entry.delay||0)),shiftClass(entry.shift))}</td><td class="inline-edit-cell" data-entry-id="${id}" data-inline="delay">${dataPill(entry.delay?entry.delay+' min':'—','pill-overtime')}</td><td class="inline-edit-cell" data-entry-id="${id}" data-inline="bank">${dataPill(bankTotal?minutesToText(bankTotal):'—','pill-bank')}</td><td class="inline-edit-cell" data-entry-id="${id}" data-inline="mealUsed">${dataPill(bp,'pill-bp')}</td><td class="inline-edit-cell" data-entry-id="${id}" data-inline="embark">${dataPill(entry.embark?'Sì':'—','pill-embark')}</td><td class="inline-edit-cell" data-entry-id="${id}" data-inline="allowanceRate">${dataPill(diaria,'pill-allowance')}</td></tr></tbody></table></div>`;
+  const todayLabels=['Servizio','Ore','Straordinario','Banca ore','BP','Imbarco','Diaria'];$('todaySummary').querySelectorAll('.today-edit-table tbody td').forEach((cell,index)=>cell.dataset.label=todayLabels[index]);
   $('todaySummary').onclick=event=>{const cell=event.target.closest('.inline-edit-cell');if(cell)startInlineEdit(cell)}
 }
 function renderWeeklyOvertime(monthEntries){
@@ -183,6 +184,7 @@ async function initializeAccess(){
 
 refreshShiftSelect();renderShiftSettings();
 const today=new Date();$('monthFilter').value=todayIso().slice(0,7);$('entryDate').value=todayIso();
+document.addEventListener('gesturestart',event=>event.preventDefault());document.addEventListener('touchmove',event=>{if(event.touches.length>1)event.preventDefault()},{passive:false});
 applyCompetenceDefaults();
 $('entryShift').addEventListener('change',applyCompetenceDefaults);
 $('entryDate').addEventListener('change',()=>{const existing=entries.find(e=>e.date===$('entryDate').value);if(existing&&existing.id!==editingId)startEdit(existing.id)});
