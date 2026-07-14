@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NaviDiaria</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="naviturni-theme.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#"><span class="brand-mark">N</span><span>NaviDiaria</span></a>
+      <nav>
+        <a class="nav-link active" href="#dashboard"><span>◫</span> Dashboard</a>
+        <a class="nav-link" href="#registro"><span>≡</span> Registro</a>
+        <a id="competencyNav" class="nav-link" href="#competenze"><span>◇</span> Competenze</a>
+        <a id="adminNav" class="nav-link" href="#adminPanel" hidden><span>♙</span> Gestione PIN</a>
+      </nav>
+      <div class="sidebar-note">
+        <span class="status-dot"></span>
+        <div><strong>Dati al sicuro</strong><small>Salvati su questo dispositivo</small></div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-button" aria-label="Apri menu">☰</button>
+        <div>
+          <p class="eyebrow">IL TUO REGISTRO DI BORDO</p>
+          <h1 id="welcomeName">NaviDiaria</h1>
+        </div>
+        <button id="pinSettingsButton" class="secondary-button logout-button" type="button" hidden>PIN</button>
+        <button id="logoutButton" class="secondary-button logout-button" type="button" hidden>Esci</button>
+        <div class="sync-box"><button id="syncShifts" class="sync-button">↻ Sincronizza turni</button><small id="syncStatus">NaviTurni</small></div>
+        <label class="month-picker"><span>Mese</span><input id="monthFilter" type="month"></label>
+      </header>
+
+      <section id="dashboard" class="content">
+        <div class="hero">
+          <div>
+            <p class="eyebrow light">RIEPILOGO MENSILE</p>
+            <h2 id="heroMonth">Luglio 2026</h2>
+            <p>Tutto quello che hai maturato, in un colpo d'occhio.</p>
+            <div id="todaySummary" class="today-summary"></div>
+            <button id="openToday" class="today-button" type="button"><span>✎</span> Modifica oggi</button>
+          </div>
+          <div class="hero-wave" aria-hidden="true">≈</div>
+        </div>
+
+        <section class="panel total-summary-panel">
+          <div class="panel-heading"><div><p class="eyebrow">RIEPILOGO TOTALE</p><h3>Consuntivo per settimana</h3></div></div>
+          <div class="table-wrap"><table class="total-summary-table"><thead><tr><th>Settimana</th><th>Giorni</th><th>Ore</th><th>Straordinari</th><th>Banca ore</th><th>BP</th><th>Imbarchi</th><th>Diarie</th></tr></thead><tbody id="totalSummaryBody"></tbody></table></div>
+        </section>
+
+        <section id="dayEditor" class="panel quick-entry" hidden>
+          <div class="panel-heading"><div><p class="eyebrow">GIORNATA</p><h3 id="dayEditorTitle">Aggiungi o modifica</h3></div><button id="toggleForm" class="secondary-button">Chiudi</button></div>
+          <form id="entryForm" hidden>
+            <label>Data<input id="entryDate" type="date" required></label>
+            <label>Servizio<select id="entryShift"></select></label>
+            <label>Straordinario (min)<input id="entryDelay" type="number" min="0" step="1" value="0"></label>
+            <label>Altra banca ore (min)<input id="entryBank" type="number" step="5" value="0"></label>
+            <label>Diaria<select id="entryAllowanceRate"><option value="">Non prevista</option><option value="0">0%</option><option value="9">9%</option><option value="12">12%</option><option value="24">24%</option></select></label>
+            <label class="check-label"><input id="entryEmbark" type="checkbox" checked><span>Giorno d'imbarco</span></label>
+            <label class="check-label"><input id="entryRefuel" type="checkbox"><span id="refuelLabel">Rifornimento (+30 min)</span></label>
+            <label class="check-label"><input id="entryMeal" type="checkbox"><span>Buono pasto usato</span></label>
+            <label>Note<input id="entryNote" type="text" placeholder="Facoltative"></label>
+            <div class="form-actions"><button id="restoreFromShift" class="secondary-button" type="button">↻ Ripristina da turno</button><button id="cancelEdit" class="secondary-button" type="button" hidden>Annulla</button><button id="submitEntry" class="primary-button" type="submit">Aggiungi giornata</button></div>
+          </form>
+        </section>
+
+        <section id="registro" class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">ATTIVITÀ</p><h3>Registro del mese</h3></div><button id="exportCsv" class="secondary-button">Esporta CSV</button></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Data</th><th>Servizio</th><th>Ore</th><th>Straordinario</th><th>Banca ore</th><th>BP</th><th>Imbarco</th><th>Diaria</th><th></th></tr></thead><tbody id="entriesBody"></tbody></table>
+            <div id="emptyState" class="empty-state"><span>⚓</span><strong>Nessuna giornata registrata</strong><p>Aggiungi il primo turno usando il modulo qui sopra.</p></div>
+          </div>
+        </section>
+
+        <section id="competenze" class="panel competencies">
+          <button id="toggleCompetencies" class="panel-heading competency-toggle" type="button" aria-expanded="false"><div><p class="eyebrow">CONFIGURAZIONE</p><h3>Competenze e servizi</h3></div><span><small>Modifica ore, diaria e buoni</small><b id="competencyChevron">⌄</b></span></button>
+          <div id="competencyBody" class="competency-body" hidden>
+            <div id="shiftCards" class="shift-grid"></div>
+            <div class="competency-footer"><button id="resetShifts" class="secondary-button" type="button">Ripristina valori PDF</button><button id="saveAllShifts" class="primary-button" type="button">Salva tutte le competenze</button></div>
+          </div>
+        </section>
+
+        <section id="adminPanel" class="panel admin-pin-panel" hidden>
+          <div class="panel-heading"><div><p class="eyebrow">AMMINISTRAZIONE</p><h3>PIN registrati</h3></div><button id="refreshPinList" class="secondary-button" type="button">Aggiorna</button></div>
+          <div id="adminPinList" class="admin-pin-list"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <div id="loginOverlay" class="login-overlay" hidden>
+    <form id="loginForm" class="login-card">
+      <div class="login-logo">⚓</div>
+      <p class="eyebrow">ACCESSO PERSONALE</p>
+      <h2>NaviDiaria</h2>
+      <p class="login-copy">Seleziona il tuo nome dall’elenco. Al primo accesso, il PIN scelto verrà associato al tuo profilo.</p>
+      <label>Cerca cognome<input id="loginAgentSearch" type="text" autocomplete="family-name" placeholder="Inizia subito a digitare…"></label>
+      <label>Agente<select id="loginAgentChoice" required><option value="">Caricamento agenti…</option></select></label>
+      <label>PIN personale<input id="loginPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="current-password" placeholder="Da 4 a 8 cifre" required></label>
+      <p id="loginMessage" class="login-message"></p>
+      <button id="loginSubmit" class="primary-button" type="submit">Accedi</button>
+      <small>Il PIN viene memorizzato soltanto su questo dispositivo.</small>
+    </form>
+  </div>
+  <div id="pinOverlay" class="login-overlay" hidden>
+    <form id="pinForm" class="login-card">
+      <div class="login-logo">••••</div>
+      <p class="eyebrow">SICUREZZA</p>
+      <h2>Modifica PIN</h2>
+      <label>PIN attuale<input id="currentPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required></label>
+      <label>Nuovo PIN<input id="newPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required></label>
+      <label>Conferma nuovo PIN<input id="confirmPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required></label>
+      <p id="pinMessage" class="login-message"></p>
+      <div class="pin-actions"><button id="closePinSettings" class="secondary-button" type="button">Annulla</button><button class="primary-button" type="submit">Salva nuovo PIN</button></div>
+      <button id="resetOwnPin" class="reset-pin-button" type="button">Resetta il mio PIN</button>
+    </form>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
