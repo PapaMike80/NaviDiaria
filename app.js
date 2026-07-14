@@ -156,7 +156,8 @@ async function loadAgentDirectory(){
   agentsDirectory.sort((a,b)=>a.name.localeCompare(b.name,'it'));
   renderAgentChoices();
 }
-function renderAgentChoices(){const query=$('loginAgentSearch').value.trim().toLocaleLowerCase('it'),matches=agentsDirectory.filter(agent=>agent.name.toLocaleLowerCase('it').includes(query));$('loginAgentChoice').innerHTML=`<option value="">${matches.length?'Seleziona il tuo nome…':'Nessun agente trovato'}</option>`+matches.map(agent=>`<option value="${escapeHtml(agent.id)}">${escapeHtml(agent.name)} · ${escapeHtml(agent.residence)}</option>`).join('');if(matches.length===1)$('loginAgentChoice').value=matches[0].id}
+function renderAgentChoices(){const query=$('loginAgentSearch').value.trim().toLocaleLowerCase('it'),matches=agentsDirectory.filter(agent=>agent.name.toLocaleLowerCase('it').includes(query));$('loginAgentSuggestions').innerHTML=matches.map(agent=>`<option value="${escapeHtml(agent.name)}">${escapeHtml(agent.residence)}</option>`).join('')}
+function selectedLoginAgent(){const query=$('loginAgentSearch').value.trim().toLocaleLowerCase('it');if(!query)return null;const exact=agentsDirectory.find(agent=>agent.name.toLocaleLowerCase('it')===query);if(exact)return exact;const matches=agentsDirectory.filter(agent=>agent.name.toLocaleLowerCase('it').includes(query));return matches.length===1?matches[0]:null}
 function renderAdminPinList(){
   if(!isAdmin())return;const registered=[];
   for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key?.startsWith('navidiaria.pin.')){const id=key.slice('navidiaria.pin.'.length),agent=agentsDirectory.find(item=>item.id===id);registered.push({id,name:agent?.name||`Agente ${id}`,qualifica:agent?.qualifica||'',residence:agent?.residence||''})}}
@@ -172,7 +173,7 @@ async function loginAgent(agentId,pin){
 }
 async function initializeAccess(){
   if(activeAgent){updateWelcome();$('pinSettingsButton').hidden=false;$('logoutButton').hidden=false;$('syncStatus').textContent=activeAgent.name;$('competenze').hidden=!isAdmin();$('competencyNav').hidden=!isAdmin();$('adminPanel').hidden=!isAdmin();$('adminNav').hidden=!isAdmin();syncCurrentAgent();if(isAdmin()){try{await loadAgentDirectory();renderAdminPinList()}catch(error){$('adminPinList').innerHTML='<div class="weekly-empty">Impossibile caricare l’elenco agenti.</div>'}}}
-  else{$('loginOverlay').hidden=false;document.body.classList.add('login-open');$('loginAgentSearch').focus();try{await loadAgentDirectory()}catch(error){showLoginMessage('Impossibile caricare gli agenti. Ricarica la pagina.');$('loginAgentChoice').innerHTML='<option value="">Elenco non disponibile</option>'}}
+  else{$('loginOverlay').hidden=false;document.body.classList.add('login-open');$('loginAgentSearch').focus();try{await loadAgentDirectory()}catch(error){showLoginMessage('Impossibile caricare gli agenti. Ricarica la pagina.');$('loginAgentSearch').placeholder='Elenco non disponibile';$('loginAgentSearch').disabled=true}}
 }
 
 refreshShiftSelect();renderShiftSettings();
@@ -189,7 +190,7 @@ $('saveAllShifts').addEventListener('click',()=>{if(!isAdmin()){notify('Operazio
 $('resetShifts').addEventListener('click',()=>{if(!isAdmin()){notify('Operazione riservata all’amministratore');return}SHIFTS=DEFAULT_SHIFTS.map(s=>({...s,embark:!GROUND_SHIFTS.has(String(s.code).toUpperCase())}));localStorage.setItem(SHIFTS_STORAGE,JSON.stringify(SHIFTS));refreshShiftSelect();renderShiftSettings();render();notify('Competenze ripristinate')});
 $('monthFilter').addEventListener('change',render);
 $('syncShifts').addEventListener('click',syncCurrentAgent);
-$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginSubmit');button.disabled=true;showLoginMessage('Verifica in corso…');try{await loginAgent($('loginAgentChoice').value,$('loginPin').value)}catch(error){showLoginMessage(error.message);button.disabled=false}});
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginSubmit'),agent=selectedLoginAgent();if(!agent){showLoginMessage('Scegli il tuo nominativo tra i suggerimenti');return}button.disabled=true;showLoginMessage('Verifica in corso…');try{await loginAgent(agent.id,$('loginPin').value)}catch(error){showLoginMessage(error.message);button.disabled=false}});
 $('loginAgentSearch').addEventListener('input',()=>{if(agentsDirectory.length)renderAgentChoices()});
 $('pinSettingsButton').addEventListener('click',()=>{$('pinForm').reset();$('pinMessage').textContent='';$('pinOverlay').hidden=false;document.body.classList.add('login-open')});
 $('closePinSettings').addEventListener('click',()=>{$('pinOverlay').hidden=true;document.body.classList.remove('login-open')});

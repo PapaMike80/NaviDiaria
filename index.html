@@ -100,9 +100,9 @@
       <div class="login-logo">⚓</div>
       <p class="eyebrow">ACCESSO PERSONALE</p>
       <h2>NaviDiaria</h2>
-      <p class="login-copy">Seleziona il tuo nome dall’elenco. Al primo accesso, il PIN scelto verrà associato al tuo profilo.</p>
-      <label>Cerca cognome<input id="loginAgentSearch" type="text" autocomplete="family-name" placeholder="Inizia subito a digitare…"></label>
-      <label>Agente<select id="loginAgentChoice" required><option value="">Caricamento agenti…</option></select></label>
+      <p class="login-copy">Inserisci il cognome e scegli il tuo nominativo tra i suggerimenti. Al primo accesso, il PIN verrà associato al tuo profilo.</p>
+      <label>Cognome<input id="loginAgentSearch" type="text" list="loginAgentSuggestions" autocomplete="off" placeholder="Inizia a digitare il cognome…" required></label>
+      <datalist id="loginAgentSuggestions"></datalist>
       <label>PIN personale<input id="loginPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="current-password" placeholder="Da 4 a 8 cifre" required></label>
       <p id="loginMessage" class="login-message"></p>
       <button id="loginSubmit" class="primary-button" type="submit">Accedi</button>
