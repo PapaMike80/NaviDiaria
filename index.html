@@ -43,9 +43,15 @@
       <section id="dashboard" class="content">
         <div class="hero">
           <div>
-            <p class="eyebrow light">RIEPILOGO MENSILE</p>
-            <h2 id="heroMonth">Luglio 2026</h2>
-            <p>Tutto quello che hai maturato, in un colpo d'occhio.</p>
+            <div class="hero-month-overview">
+              <div class="hero-month-copy"><p class="eyebrow light">RIEPILOGO MENSILE</p><h2 id="heroMonth">Luglio 2026</h2><p>Tutto quello che hai maturato, in un colpo d'occhio.</p></div>
+              <div class="hero-matured-grid" aria-label="Totale maturato">
+                <div><small>Straordinari</small><strong id="heroOvertime">—</strong></div>
+                <div><small>Banca ore</small><strong id="heroBank">—</strong></div>
+                <div><small>BP</small><strong id="heroBp">—</strong></div>
+                <div><small>Diaria</small><strong id="heroAllowance">—</strong></div>
+              </div>
+            </div>
             <div id="oggi" class="section-mini-heading"><strong>Oggi</strong></div>
             <div><div id="todaySummary" class="today-summary"></div><button id="openToday" class="today-button" type="button"><span>✎</span> Modifica oggi</button></div>
           </div>
