@@ -15,9 +15,9 @@
     <aside class="sidebar">
       <a class="brand" href="#"><span class="brand-mark">N</span><span>NaviDiaria</span></a>
       <nav>
-        <a class="nav-link active" href="#dashboard"><span>◫</span> Dashboard</a>
+        <a class="nav-link active" href="#oggi"><span>◫</span> Oggi</a>
         <a class="nav-link" href="#registro"><span>≡</span> Registro</a>
-        <a class="nav-link" href="#consuntivo"><span>≈</span> Consuntivo</a>
+        <a class="nav-link" href="#consultivo"><span>≈</span> Consultivo</a>
         <a id="competencyNav" class="nav-link" href="#competenze"><span>◇</span> Competenze</a>
         <a id="adminNav" class="nav-link" href="#adminPanel" hidden><span>♙</span> Gestione PIN</a>
       </nav>
@@ -29,7 +29,7 @@
 
     <main>
       <header class="topbar">
-        <button class="menu-button" aria-label="Apri menu" aria-expanded="false">›</button>
+        <button class="menu-button" aria-label="Apri menu" aria-expanded="false">‹</button>
         <div>
           <p class="eyebrow">IL TUO REGISTRO DI BORDO</p>
           <h1 id="welcomeName">NaviDiaria</h1>
@@ -46,8 +46,8 @@
             <p class="eyebrow light">RIEPILOGO MENSILE</p>
             <h2 id="heroMonth">Luglio 2026</h2>
             <p>Tutto quello che hai maturato, in un colpo d'occhio.</p>
-            <div id="todaySummary" class="today-summary"></div>
-            <button id="openToday" class="today-button" type="button"><span>✎</span> Modifica oggi</button>
+            <div id="oggi" class="section-mini-heading"><strong>Oggi</strong><button class="section-collapse" data-collapse-target="todaySectionBody" type="button" aria-expanded="true">⌃</button></div>
+            <div id="todaySectionBody" class="collapsible-section"><div id="todaySummary" class="today-summary"></div><button id="openToday" class="today-button" type="button"><span>✎</span> Modifica oggi</button></div>
           </div>
           <div class="hero-wave" aria-hidden="true">≈</div>
         </div>
@@ -69,16 +69,16 @@
         </section>
 
         <section id="registro" class="panel">
-          <div class="panel-heading"><div><p class="eyebrow">ATTIVITÀ</p><h3>Registro del mese</h3></div><button id="exportCsv" class="secondary-button">Esporta CSV</button></div>
-          <div class="table-wrap">
+          <div class="panel-heading"><div><p class="eyebrow">ATTIVITÀ</p><h3>Registro del mese</h3></div><div class="heading-actions"><button id="exportCsv" class="secondary-button">Esporta CSV</button><button class="section-collapse" data-collapse-target="registroBody" type="button" aria-expanded="true">⌃</button></div></div>
+          <div id="registroBody" class="table-wrap collapsible-section">
             <table><thead><tr><th>Data</th><th>Servizio</th><th>Ore</th><th>Straordinario</th><th>Banca ore</th><th>BP</th><th>Imbarco</th><th>Diaria</th><th></th></tr></thead><tbody id="entriesBody"></tbody></table>
             <div id="emptyState" class="empty-state"><span>⚓</span><strong>Nessuna giornata registrata</strong><p>Aggiungi il primo turno usando il modulo qui sopra.</p></div>
           </div>
         </section>
 
-        <section id="consuntivo" class="panel total-summary-panel">
-          <div class="panel-heading"><div><p class="eyebrow">RIEPILOGO TOTALE</p><h3>Consuntivo per settimana</h3></div></div>
-          <div class="table-wrap"><table class="total-summary-table"><thead><tr><th>Settimana</th><th>Giorni</th><th>Ore</th><th>Straordinari</th><th>Banca ore</th><th>BP</th><th>Imbarchi</th><th>Diarie</th></tr></thead><tbody id="totalSummaryBody"></tbody></table></div>
+        <section id="consultivo" class="panel total-summary-panel">
+          <div class="panel-heading"><div><p class="eyebrow">RIEPILOGO TOTALE</p><h3>Consultivo per settimana</h3></div><button class="section-collapse" data-collapse-target="consultivoBody" type="button" aria-expanded="true">⌃</button></div>
+          <div id="consultivoBody" class="table-wrap collapsible-section"><table class="total-summary-table"><thead><tr><th>Settimana</th><th>Giorni</th><th>Ore</th><th>Straordinari</th><th>Banca ore</th><th>BP</th><th>Imbarchi</th><th>Diarie</th></tr></thead><tbody id="totalSummaryBody"></tbody></table></div>
         </section>
 
         <section id="competenze" class="panel competencies">
@@ -90,8 +90,8 @@
         </section>
 
         <section id="adminPanel" class="panel admin-pin-panel" hidden>
-          <div class="panel-heading"><div><p class="eyebrow">AMMINISTRAZIONE</p><h3>PIN registrati</h3></div><button id="refreshPinList" class="secondary-button" type="button">Aggiorna</button></div>
-          <div id="adminPinList" class="admin-pin-list"></div>
+          <div class="panel-heading"><div><p class="eyebrow">AMMINISTRAZIONE</p><h3>PIN registrati</h3></div><div class="heading-actions"><button id="refreshPinList" class="secondary-button" type="button">Aggiorna</button><button class="section-collapse" data-collapse-target="adminPinList" type="button" aria-expanded="true">⌃</button></div></div>
+          <div id="adminPinList" class="admin-pin-list collapsible-section"></div>
         </section>
       </section>
     </main>
