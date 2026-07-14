@@ -203,7 +203,7 @@ $('adminPinList').addEventListener('click',e=>{const button=e.target.closest('.r
 $('logoutButton').addEventListener('click',()=>{localStorage.removeItem(SESSION_KEY);location.reload()});
 $('openToday').addEventListener('click',openTodayEditor);
 $('toggleForm').addEventListener('click',()=>{resetEntryForm();closeEntryForm()});
-document.querySelector('.menu-button').addEventListener('click',()=>document.querySelector('.sidebar').classList.toggle('open'));
+const sidebar=document.querySelector('.sidebar'),menuButton=document.querySelector('.menu-button');function setSidebar(open){sidebar.classList.toggle('open',open);document.body.classList.toggle('sidebar-open',open);menuButton.textContent=open?'‹':'›';menuButton.setAttribute('aria-expanded',String(open));menuButton.setAttribute('aria-label',open?'Chiudi menu':'Apri menu')}menuButton.addEventListener('click',()=>setSidebar(!sidebar.classList.contains('open')));sidebar.querySelectorAll('.nav-link').forEach(link=>link.addEventListener('click',()=>setSidebar(false)));
 $('exportCsv').addEventListener('click',()=>{const rows=[['Data','Servizio','Ore','Straordinario min','Banca ore min','Imbarco','Buono pasto','Note'],...filtered().map(e=>[e.date,e.shift,shiftFor(e.shift).hours,e.delay,e.bank,e.embark?'Sì':'No',e.mealUsed?'Sì':'No',e.note])];const csv=rows.map(r=>r.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(';')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=`navidiaria-${currentMonth()}.csv`;a.click();URL.revokeObjectURL(a.href)});
 render();
 initializeAccess();
