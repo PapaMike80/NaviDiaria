@@ -25,5 +25,5 @@
   sidebar.addEventListener('click',event=>{const link=event.target.closest('a[data-navi-tab]');if(!link)return;event.preventDefault();const target=window.open(link.href,link.dataset.naviTab);if(target)target.focus()});
   const toggle=document.createElement('button');toggle.className='sidebar-collapse-button';toggle.type='button';document.body.appendChild(toggle);
   function setCollapsed(value){document.body.classList.toggle('menu-collapsed',value);toggle.setAttribute('aria-expanded',String(!value));toggle.setAttribute('aria-label',value?'Mostra menu':'Nascondi menu');toggle.textContent=value?'›':'‹'}
-  toggle.addEventListener('click',()=>setCollapsed(!document.body.classList.contains('menu-collapsed')));sidebar.querySelector('nav')?.addEventListener('click',event=>{if(window.innerWidth<=800&&event.target.closest('a'))setCollapsed(true)});setCollapsed(false);
+  toggle.addEventListener('click',()=>setCollapsed(!document.body.classList.contains('menu-collapsed')));sidebar.querySelector('nav')?.addEventListener('click',event=>{if(window.innerWidth<=800&&event.target.closest('a'))setCollapsed(true)});setCollapsed(true);
 })();
