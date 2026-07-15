@@ -73,6 +73,7 @@
             <label>Diaria<select id="entryAllowanceRate"><option value="">Non prevista</option><option value="0">0%</option><option value="9">9%</option><option value="12">12%</option><option value="24">24%</option></select></label>
             <label class="check-label"><input id="entryEmbark" type="checkbox" checked><span>Giorno d'imbarco</span></label>
             <label class="check-label"><input id="entryRefuel" type="checkbox"><span id="refuelLabel">Rifornimento (+30 min)</span></label>
+            <label class="check-label"><input id="entryTravel" type="checkbox"><span>Trasferta (+2h banca ore)</span></label>
             <label class="check-label"><input id="entryMeal" type="checkbox"><span>Buono pasto usato</span></label>
             <label>Note<input id="entryNote" type="text" placeholder="Facoltative"></label>
             <div class="form-actions"><button id="restoreFromShift" class="secondary-button" type="button">↻ Ripristina da turno</button><button id="cancelEdit" class="secondary-button" type="button" hidden>Annulla</button><button id="submitEntry" class="primary-button" type="submit">Aggiungi giornata</button></div>
@@ -87,7 +88,7 @@
         <section id="registro" class="panel">
           <div class="panel-heading"><div class="section-title-toggle" data-collapse-target="registroBody" role="button" tabindex="0"><p class="eyebrow">ATTIVITÀ</p><h3>Registro del mese</h3></div><button class="section-collapse" data-collapse-target="registroBody" type="button" aria-expanded="true">⌃</button></div>
           <div id="registroBody" class="table-wrap collapsible-section">
-            <table><thead><tr><th><span class="header-pill">Data</span></th><th><span class="header-pill">Servizio</span></th><th><span class="header-pill">Ore</span></th><th><span class="header-pill">Straordinario</span></th><th><span class="header-pill">Banca ore</span></th><th><span class="header-pill">BP</span></th><th><span class="header-pill">Imbarco</span></th><th><span class="header-pill">Diaria</span></th><th></th></tr></thead><tbody id="entriesBody"></tbody></table>
+            <table><thead><tr><th><span class="header-pill">Data</span></th><th><span class="header-pill">Servizio</span></th><th><span class="header-pill">Straordinario</span></th><th><span class="header-pill">Banca ore</span></th><th><span class="header-pill">Trasferta</span></th><th><span class="header-pill">BP</span></th><th><span class="header-pill">Imbarco</span></th><th><span class="header-pill">Diaria</span></th><th></th></tr></thead><tbody id="entriesBody"></tbody></table>
             <div id="emptyState" class="empty-state"><span>⚓</span><strong>Nessuna giornata registrata</strong><p>Aggiungi il primo turno usando il modulo qui sopra.</p></div>
           </div>
         </section>
