@@ -1,0 +1,16 @@
+const DIRECTORY_URL='https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec';
+const DIARIA_SESSION='navidiaria.activeAgent';
+const TURNI_SESSION='naviturni_logged_agent';
+let agents=[];
+const $=id=>document.getElementById(id);
+const formatName=name=>String(name||'').trim().split(/\s+/).map(part=>part.length>1?part[0]+part.slice(1).toLocaleLowerCase('it'):part).join(' ');
+document.addEventListener('click',event=>{const link=event.target.closest('a[data-navi-tab]');if(!link)return;event.preventDefault();const target=window.open(link.href,link.dataset.naviTab);if(target)target.focus()});
+async function hashPin(pin){const bytes=new TextEncoder().encode(`NaviDiaria:${pin}`);const hash=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(hash)].map(value=>value.toString(16).padStart(2,'0')).join('')}
+function renderSuggestions(){const query=$('agentSearch').value.trim().toLocaleLowerCase('it');$('agentSuggestions').innerHTML=agents.filter(agent=>agent.name.toLocaleLowerCase('it').includes(query)).map(agent=>`<option value="${agent.name.replace(/"/g,'&quot;')}">${agent.residence}</option>`).join('')}
+function selectedAgent(){const query=$('agentSearch').value.trim().toLocaleLowerCase('it'),exact=agents.find(agent=>agent.name.toLocaleLowerCase('it')===query);if(exact)return exact;const matches=agents.filter(agent=>agent.name.toLocaleLowerCase('it').includes(query));return matches.length===1?matches[0]:null}
+function showChoice(agent){$('loginForm').hidden=true;$('appChoice').hidden=false;$('welcomeUser').textContent=`Ciao ${formatName(agent.name)}, dove vuoi andare?`}
+async function loadAgents(){agents=NaviSharedData.directory()||[];if(!agents.length){await NaviSharedData.load(DIRECTORY_URL);agents=NaviSharedData.directory()||[]}renderSuggestions()}
+document.addEventListener('DOMContentLoaded',async()=>{const active=JSON.parse(localStorage.getItem(DIARIA_SESSION)||'null')||JSON.parse(localStorage.getItem(TURNI_SESSION)||'null');if(active){showChoice(active);NaviSharedData.load(DIRECTORY_URL).catch(()=>{});return}try{await loadAgents()}catch{$('loginMessage').textContent='Impossibile caricare gli agenti. Controlla la connessione e ricarica.';$('loginSubmit').disabled=true}});
+$('agentSearch').addEventListener('input',renderSuggestions);
+$('loginForm').addEventListener('submit',async event=>{event.preventDefault();const agent=selectedAgent(),pin=$('agentPin').value;if(!agent){$('loginMessage').textContent='Seleziona un agente dai suggerimenti.';return}const digest=await hashPin(pin),pinKey=`navidiaria.pin.${agent.id}`,saved=localStorage.getItem(pinKey);if(saved&&saved!==digest){$('loginMessage').textContent='PIN non corretto.';return}if(!saved)localStorage.setItem(pinKey,digest);localStorage.setItem(DIARIA_SESSION,JSON.stringify(agent));localStorage.setItem(TURNI_SESSION,JSON.stringify({id:agent.id,name:agent.name,residence:agent.residence}));showChoice(agent);NaviSharedData.load(DIRECTORY_URL).catch(()=>{})});
+$('logoutButton').addEventListener('click',()=>{localStorage.removeItem(DIARIA_SESSION);localStorage.removeItem(TURNI_SESSION);location.reload()});

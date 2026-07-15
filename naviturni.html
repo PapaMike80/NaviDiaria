@@ -1,0 +1,3829 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R59ZS3YB4Q"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-R59ZS3YB4Q');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NaviTurni</title>
+  <style>
+    :root {
+      --bg: #0b1c26;
+      --bg-panel: #102733;
+      --bg-card: #143140;
+      --line: #1f4250;
+      --ink: #eaf2f4;
+      --ink-dim: #9fb8c2;
+      --accent: #2dd4bf;
+      --accent-dim: #0e3a3a;
+      --bad: #ef4444;
+      --bad-bg: #3a1414;
+      --good: #22c55e;
+      --good-bg: #10301d;
+      --warn: #f59e0b;
+      --radius: 10px;
+      --d1: #3b6bcc;
+      --d1-bg: #1a2a4a;
+      --d2: #2d9e6b;
+      --d2-bg: #142a22;
+      --d3: #e07b3a;
+      --d3-bg: #2a1a0e;
+      --d4: #c45cba;
+      --d4-bg: #2a122a;
+      --dt: #e6d44a;
+      --dt-bg: #282200;
+      --bis: #5ec4d4;
+      --bis-bg: #102a2e;
+      --pond: #f08080;
+      --pond-bg: #2a1212;
+      --rip: #6b7280;
+      --rip-bg: #1a1c22;
+      --cong: #a78bfa;
+      --cong-bg: #1e1530;
+      --agb: #60a5fa;
+      --agb-bg: #102040;
+      --fp: #94a3b8;
+      --fp-bg: #1a1e28;
+      --other: #94a3b8;
+      --other-bg: #1e2230;
+      --edit-mode-bg: #221616;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(1200px 600px at 10% -10%, #123544 0%, transparent 60%),
+        radial-gradient(900px 500px at 110% 10%, #0e2a36 0%, transparent 55%),
+        var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 0;
+      overflow-x:hidden;
+    }
+    html { scroll-behavior:smooth; }
+
+    .page-header {
+      padding: 18px 24px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 28, 38, 0.92);
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .company-name {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .doc-title {
+      font-size: 20px;
+      margin: 0;
+      letter-spacing: 0.3px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .doc-title .wave {
+      color: var(--accent);
+    }
+
+    .doc-subtitle {
+      color: var(--ink-dim);
+      font-size: 13px;
+      font-variant: small-caps;
+      margin-left: auto;
+    }
+
+    .toolbar-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 28px 10px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .resistence-block {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .res-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      color: var(--ink-dim);
+      padding: 7px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: .15s;
+      text-transform: uppercase;
+    }
+
+    .res-btn:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    .res-btn.active {
+      background: var(--accent);
+      color: #06201c;
+      border-color: var(--accent);
+    }
+
+    .admin-panel {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      color: var(--ink-dim);
+      padding: 7px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: .15s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    .btn-pdf {
+      background: #1a2a3a;
+      border-color: #c53030;
+      color: #fc8181;
+    }
+
+    .btn-pdf:hover {
+      border-color: #fc8181;
+      color: #fff;
+    }
+
+    .btn-mode {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      color: var(--ink-dim);
+      padding: 7px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: .15s;
+    }
+
+    .btn-mode:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    .btn-mode.editing {
+      background: var(--bad-bg);
+      border-color: var(--bad);
+      color: var(--bad);
+    }
+
+    .btn-save-action {
+      background: var(--good-bg);
+      border: 1px solid var(--good);
+      color: var(--good);
+      padding: 7px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: .15s;
+      display: none;
+    }
+
+    .btn-save-action:hover {
+      background: var(--good);
+      color: #06201c;
+    }
+
+    .btn-download-action {
+      background: #1a1a3a;
+      border: 1px solid #a78bfa;
+      color: #a78bfa;
+      padding: 7px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: .15s;
+      display: none;
+    }
+
+    .btn-download-action:hover {
+      background: #a78bfa;
+      color: #06201c;
+    }
+
+    main {
+      max-width: 100%;
+      margin: 0;
+      padding: 16px 12px 40px;
+    }
+
+    #welcome-notice {
+      background: var(--bg-card);
+      border: 1px dashed var(--accent);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #welcome-notice h3 {
+      color: var(--accent);
+      margin-bottom: 6px;
+      font-size: 18px;
+    }
+
+    #welcome-notice p {
+      font-size: 13px;
+      color: var(--ink-dim);
+    }
+
+    #welcome-notice code {
+      color: var(--accent);
+      background: var(--bg-panel);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 12px;
+      border: 3px solid var(--line);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: loading-spin .8s linear infinite;
+    }
+
+    #welcome-notice.is-error {
+      border-color: var(--bad);
+    }
+
+    #welcome-notice.is-error h3 {
+      color: var(--bad);
+    }
+
+    @keyframes loading-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .loading-spinner { animation-duration: 1.8s; }
+    }
+
+    .shifts-filter-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--bg-panel);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .filter-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    .shift-buttons-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .shift-filter-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      color: var(--ink-dim);
+      padding: 5px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      transition: .15s;
+    }
+
+    .shift-filter-btn:hover {
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    .shift-filter-btn.active {
+      background: var(--accent);
+      color: #06201c;
+      border-color: var(--accent);
+    }
+
+    #day-panel {
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg-panel);
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    #day-panel.open {
+      max-height: 800px;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      margin-top:96px;
+      scroll-margin-top:72px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-date {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+      text-transform: uppercase;
+    }
+
+    .panel-date span {
+      color: var(--accent);
+      margin-right: 6px;
+    }
+
+    .panel-close {
+      background: none;
+      border: 1px solid var(--line);
+      color: var(--ink-dim);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      transition: .15s;
+    }
+
+    .panel-close:hover {
+      color: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .panel-navigation {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin:0;
+      flex:0 0 auto;
+    }
+
+    .panel-arrow {
+      min-width: 42px;
+      height: 38px;
+      border-radius: 10px;
+      border: 2px solid var(--accent);
+      background: rgba(45,212,191,.12);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 22px;
+      font-weight: 900;
+      box-shadow:0 4px 12px rgba(0,0,0,.18);
+    }
+
+    .panel-today {
+      width:58px;
+      min-width:58px;
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 900;
+      background:var(--accent);
+      color:#05221e;
+    }
+
+    .panel-arrow:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .panel-arrow:disabled {
+      opacity: .3;
+      cursor: default;
+    }
+
+    .shift-duration {
+      margin-left: 5px;
+      color: var(--ink);
+      background: rgba(255,255,255,.07);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .service-summary {
+      display:grid;
+      grid-template-columns:minmax(170px,1fr) minmax(145px,auto);
+      grid-template-rows:auto auto;
+      align-items:start;
+      gap: 10px;
+      width: 100%;
+      padding: 4px 2px;
+    }
+
+    .service-code {
+      font-size: 27px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: .03em;
+      color: var(--accent);
+    }
+    .service-identity {
+      grid-column:1;
+      grid-row:1;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:7px;
+    }
+    .service-name-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .ship-day-info { grid-column:2; grid-row:1 / 3; display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:0; }
+    .service-summary > .panel-navigation { grid-column:1; grid-row:2; justify-self:start; }
+    .ship-day-badge { display:flex; align-items:center; gap:5px; min-height:28px; padding:4px 8px; border-radius:8px; background:rgba(255,255,255,.07); border:1px solid var(--line); color:var(--ink); font-size:11px; font-weight:800; }
+    .ship-day-badge strong { color:var(--ink-dim); font-size:9px; letter-spacing:.06em; text-transform:uppercase; }
+    .ship-day-badge.refuel { color:#fbbf24; border-color:rgba(245,158,11,.45); background:rgba(245,158,11,.10); }
+    .ship-day-badge.mooring { color:#93c5fd; border-color:rgba(96,165,250,.36); background:rgba(96,165,250,.09); }
+    .shift-navigation {
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .shift-arrow {
+      width:42px;
+      min-width:42px;
+      height:38px;
+      border:2px solid var(--accent);
+      border-radius:10px;
+      background:rgba(45,212,191,.12);
+      color:var(--ink);
+      font-size:22px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow:0 4px 12px rgba(0,0,0,.18);
+    }
+    .shift-arrow:hover { color:var(--accent); }
+    .shift-nav-label {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:58px;
+      min-width:58px;
+      height:38px;
+      border-radius:10px;
+      background:var(--accent);
+      color:#05221e;
+      font-family:inherit;
+      font-size:13px;
+      font-weight:900;
+      text-transform:none;
+    }
+    .crew-alert {
+      margin-bottom:8px;
+      padding:10px 12px;
+      border:1px solid rgba(239,68,68,.7);
+      border-radius:8px;
+      background:rgba(239,68,68,.16);
+      color:#fecaca;
+      font-size:12px;
+      font-weight:850;
+      line-height:1.35;
+    }
+    .crew-alert strong { color:#fff; }
+
+    .colleague-card.instructor-card {
+      background: rgba(245, 158, 11, .09);
+      box-shadow: inset 0 0 0 1px rgba(245, 158, 11, .28);
+    }
+
+    .colleague-card.transfer-card {
+      background: rgba(96, 165, 250, .10);
+      box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .30);
+    }
+
+    .colleague-card.instructor-card.transfer-card {
+      background: linear-gradient(90deg, rgba(245,158,11,.12), rgba(96,165,250,.10));
+      box-shadow: inset 0 0 0 1px rgba(245,158,11,.34);
+    }
+
+    .instructor-mark {
+      color: var(--warn);
+      background: transparent;
+      border: 0;
+      padding-left: 0;
+      padding-right: 0;
+      margin-left: 6px;
+    }
+
+    .panel-groups {
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .ods-crew-variations { margin-top:8px; padding:8px 10px; border-left:3px solid #a855f7; border-radius:8px; background:rgba(168,85,247,.09); }
+    .ods-crew-title { margin-bottom:5px; color:#d8b4fe; font-size:10px; font-weight:900; letter-spacing:.07em; text-transform:uppercase; }
+    .ods-crew-list { display:flex; flex-direction:column; gap:5px; }
+    .ods-crew-item { display:flex; align-items:center; flex-wrap:wrap; gap:5px; color:var(--ink); font-size:11px; }
+    .ods-crew-agent { font-weight:800; }
+    .ods-crew-change { color:var(--ink-dim); }
+    .ods-crew-link { margin-left:auto; padding:2px 6px; border:1px solid rgba(168,85,247,.48); border-radius:7px; color:#e9d5ff; text-decoration:none; font-weight:800; white-space:nowrap; }
+    .ods-crew-link:hover { background:rgba(168,85,247,.18); }
+    .agent-ods-badge { display:inline-flex; align-items:center; margin-left:7px; padding:2px 6px; border:1px solid rgba(168,85,247,.48); border-radius:7px; background:rgba(168,85,247,.12); color:#e9d5ff; font-size:9px; font-weight:900; text-decoration:none; white-space:nowrap; vertical-align:middle; }
+    .agent-ods-badge:hover { background:rgba(168,85,247,.24); }
+
+    .shift-group {
+      min-width: 140px;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .shift-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin-bottom: 6px;
+    }
+
+    .colleague-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .colleague-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      background: var(--bg-card);
+      border-radius: 4px;
+      border-left: 3px solid transparent;
+    }
+
+    .colleague-card .c-num {
+      font-size: 10px;
+      color: var(--ink-dim);
+      font-family: 'DM Mono', monospace;
+      min-width: 20px;
+    }
+
+    .colleague-card .c-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .colleague-card .c-res {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: var(--accent);
+      margin-left: 6px;
+    }
+
+    .colleague-card .c-grade {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-left: auto;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 12px;
+      color: var(--ink-dim);
+      margin: 10px 0 16px;
+      font-family: 'DM Mono', monospace;
+      display: none;
+    }
+
+    .scroll-wrap {
+      overflow: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      display: none;
+      background: var(--bg-panel);
+      width: 100%;
+      max-height: calc(100vh - 170px);
+    }
+
+    .scroll-wrap table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
+      font-size: 12px;
+      table-layout: fixed;
+      min-width: 0;
+    }
+
+    /* Prime due colonne fisse: numero + nome */
+    .scroll-wrap table td:nth-child(1),
+    .scroll-wrap table th:nth-child(1) {
+      width: 104px;
+      min-width: 104px;
+      max-width: 104px;
+      position: sticky;
+      left: 0;
+      z-index: 9;
+      box-shadow: 2px 0 0 var(--line);
+    }
+
+    /* Colonne dei giorni più strette possibile */
+    .scroll-wrap table td:nth-child(n+2),
+    .scroll-wrap table th:nth-child(n+2) {
+      width: 40px;
+      min-width: 40px;
+      max-width: 40px;
+    }
+
+    /* Settimane alternate: lun-dom a blocchi */
+    .week-even { background-color: rgba(45, 212, 191, 0.035); }
+    .week-odd { background-color: rgba(255, 255, 255, 0.025); }
+    .week-start { border-left: 2px solid rgba(45, 212, 191, 0.55) !important; }
+    .week-end { border-right: 2px solid rgba(255, 255, 255, 0.12) !important; }
+
+    .today-col {
+      box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent);
+      background-color: rgba(45, 212, 191, 0.11) !important;
+    }
+
+    thead tr th {
+      background: var(--bg-card);
+      color: var(--ink-dim);
+      font-weight: 600;
+      text-align: center;
+      padding: 6px 4px;
+      border-bottom: 2px solid var(--line);
+      font-size: 11px;
+    }
+
+    .week-header th {
+      font-weight: 700;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line);
+      font-size: 11px;
+      padding: 4px 3px;
+    }
+
+    .week-header .wk-even {
+      background: rgba(45, 212, 191, 0.08);
+      color: var(--accent);
+    }
+
+    .week-header .wk-odd {
+      background: rgba(45, 212, 191, 0.04);
+      color: var(--accent);
+    }
+
+    .day-header th {
+      font-size: 10px;
+      color: var(--ink-dim);
+      background: var(--bg-card);
+      padding: 3px 2px;
+    }
+
+    .date-header th {
+      font-weight: 700;
+      background: var(--bg-card);
+      cursor: pointer;
+      user-select: none;
+      transition: .15s;
+      font-size: 12px;
+      padding: 4px 2px;
+    }
+
+    /* Quando scorri in verticale resta visibile solo la riga con le date */
+    .date-header th {
+      position: sticky;
+      top: 0;
+      z-index: 6;
+      box-shadow: 0 2px 0 var(--line);
+    }
+
+    /* Celle Nr e Agente: ferme sia in alto sia a sinistra */
+    .date-header th:nth-child(1) {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: var(--bg-card) !important;
+      color: var(--ink);
+      box-shadow: 0 2px 0 var(--line), 2px 0 0 var(--line);
+    }
+
+    .date-head-day {
+      display: block;
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--ink-dim);
+      line-height: 1;
+    }
+
+    .date-head-num {
+      display: block;
+      font-size: 13px;
+      line-height: 1.15;
+    }
+
+    .date-header th:not(:nth-child(1)):hover {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .date-header th.selected-day {
+      background: var(--accent) !important;
+      color: #06201c !important;
+    }
+
+    .date-header .d-sab {
+      color: var(--warn);
+    }
+
+    .date-header .d-dom {
+      color: var(--bad);
+    }
+
+    .date-header .d-sab,
+    .date-header .d-dom {
+      color: var(--ink);
+    }
+
+    /* Colori per grado - Variante equilibrata: più colore nelle righe, senza diventare pesante */
+    tr.grado-capitano { --grade-rgb: 250, 204, 21; --grade-text: var(--ink); }
+    tr.grado-capo { --grade-rgb: 251, 146, 60; --grade-text: var(--ink); }
+    tr.grado-timoniere { --grade-rgb: 34, 197, 94; --grade-text: var(--ink); }
+    tr.grado-aiuto { --grade-rgb: 59, 130, 246; --grade-text: var(--ink); }
+    tr.grado-motorista { --grade-rgb: 168, 85, 247; --grade-text: var(--ink); }
+    tr.grado-marinaio { --grade-rgb: 156, 163, 175; --grade-text: var(--ink); }
+
+    tr td.td-num,
+    tr td.td-name {
+      background: rgba(var(--grade-rgb), 0.22) !important;
+      color: var(--grade-text) !important;
+    }
+
+    tr td:not(.td-num):not(.td-name) {
+      background: rgba(var(--grade-rgb), 0.14) !important;
+    }
+
+    td.today-col, th.today-col {
+      box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent) !important;
+    }
+
+    td.col-selected {
+      outline: 2px solid rgba(45, 212, 191, 0.65);
+      outline-offset: -2px;
+    }
+
+    td.td-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    tr td.td-name {
+      font-weight: 800;
+      letter-spacing: -0.2px;
+    }
+
+    tbody tr {
+      transition: background 0.3s ease;
+    }
+
+    tbody tr.pinned-row {
+      background: rgba(45, 212, 191, 0.12) !important;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    tbody tr.pinned-row td {
+      border-bottom: 20px solid var(--bg-panel) !important;
+      font-size: 16px !important;
+      padding-top: 9px;
+      padding-bottom: 9px;
+    }
+
+    tbody tr.pinned-row .cell-pill {
+      font-size: 14px !important;
+      padding: 5px 9px;
+    }
+
+    tbody tr.pinned-row td.td-name {
+      color: var(--grade-text) !important;
+      font-weight: 900;
+      outline: 2px solid rgba(45, 212, 191, 0.65);
+      outline-offset: -2px;
+    }
+
+    tbody tr.pinned-row td.td-name::before {
+      content: "📌 ";
+      font-size: 10px;
+    }
+
+    tbody tr td.td-name {
+      cursor: pointer;
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+
+    .agent-cell {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .agent-badge {
+      flex: 0 0 auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--accent);
+      background: rgba(45, 212, 191, 0.10);
+      border: 1px solid rgba(45, 212, 191, 0.22);
+      border-radius: 4px;
+      padding: 1px 3px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .agent-name-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .transfer-table-label {
+      display:block;
+      margin-top:2px;
+      color:#93c5fd;
+      font-size:8px;
+      font-weight:800;
+      letter-spacing:.035em;
+      text-transform:uppercase;
+    }
+
+    tr.temporary-transfer-row td.td-name {
+      box-shadow:inset 3px 0 0 #60a5fa, 2px 0 0 var(--line);
+    }
+
+    tbody tr td.td-name:hover {
+      filter: brightness(1.15);
+    }
+
+    tbody.has-selection tr:not(.pinned-row) {
+      opacity: 0.25;
+    }
+
+    tbody.has-selection tr.row-match {
+      opacity: 1 !important;
+      filter: brightness(1.1);
+    }
+
+    tbody.has-selection tr.grado-capitano.row-match {
+      background: rgba(250, 204, 21, 0.15) !important;
+    }
+    tbody.has-selection tr.grado-timoniere.row-match {
+      background: rgba(34, 197, 94, 0.15) !important;
+    }
+    tbody.has-selection tr.grado-motorista.row-match {
+      background: rgba(168, 85, 247, 0.15) !important;
+    }
+    tbody.has-selection tr.grado-marinaio.row-match {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    td {
+      padding: 4px 4px;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      font-size: 11px;
+    }
+
+    td.td-name {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    td.sab {
+      background: rgba(245, 158, 11, 0.03);
+    }
+
+    td.dom {
+      background: rgba(239, 68, 68, 0.04);
+    }
+
+    td.col-selected {
+      background: rgba(45, 212, 191, 0.08) !important;
+    }
+
+    .cell-pill {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .c-d1 {
+      color: var(--d1);
+      background: var(--d1-bg);
+    }
+    .c-d2 {
+      color: var(--d2);
+      background: var(--d2-bg);
+    }
+    .c-d3 {
+      color: var(--d3);
+      background: var(--d3-bg);
+    }
+    .c-d4 {
+      color: var(--d4);
+      background: var(--d4-bg);
+    }
+    .c-dt {
+      color: var(--dt);
+      background: var(--dt-bg);
+    }
+    .c-bis {
+      color: var(--bis);
+      background: var(--bis-bg);
+    }
+    .c-pond {
+      color: var(--pond);
+      background: var(--pond-bg);
+    }
+    .c-rip {
+      color: var(--rip);
+      background: var(--rip-bg);
+    }
+    .c-cong {
+      color: var(--cong);
+      background: var(--cong-bg);
+    }
+    .c-agb {
+      color: var(--agb);
+      background: var(--agb-bg);
+    }
+    .c-fp {
+      color: var(--fp);
+      background: var(--fp-bg);
+    }
+    .c-other {
+      color: var(--other);
+      background: var(--other-bg);
+    }
+
+    .edit-input {
+      width: 50px;
+      background: var(--edit-mode-bg);
+      border: 1px solid var(--bad);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      text-align: center;
+      padding: 2px 4px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .edit-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .grado-capitano td:first-child {
+      border-left: 3px solid #facc15;
+    }
+    .grado-capo td:first-child {
+      border-left: 3px solid #fb923c;
+    }
+    .grado-timoniere td:first-child {
+      border-left: 3px solid #22c55e;
+    }
+    .grado-aiuto td:first-child {
+      border-left: 3px solid #3b82f6;
+    }
+    .grado-motorista td:first-child {
+      border-left: 3px solid #a855f7;
+    }
+    .grado-marinaio td:first-child {
+      border-left: 3px solid #9ca3af;
+    }
+
+    .grado-capo {
+      background: rgba(251, 146, 60, 0.02) !important;
+    }
+    .grado-capitano {
+      background: rgba(250, 204, 21, 0.03);
+    }
+    .grado-capo {
+      background: rgba(251, 146, 60, 0.03);
+    }
+    .grado-timoniere {
+      background: rgba(34, 197, 94, 0.03);
+    }
+    .grado-aiuto {
+      background: rgba(59, 130, 246, 0.03);
+    }
+    .grado-motorista {
+      background: rgba(168, 85, 247, 0.03);
+    }
+    .grado-marinaio {
+      background: rgba(156, 163, 175, 0.02);
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    tbody tr.pinned-row {
+      background: rgba(45, 212, 191, 0.12) !important;
+    }
+
+    .upload-container {
+      background: var(--bg-panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-top: 20px;
+    }
+
+    .upload-header {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .upload-header:hover {
+      color: var(--ink);
+    }
+
+    .csv-textarea {
+      width: 100%;
+      height: 60px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      resize: vertical;
+    }
+
+    .csv-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    #upload-body {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 10px;
+    }
+
+    .upload-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .upload-actions input[type="file"] {
+      font-size: 12px;
+      color: var(--ink-dim);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #06201c;
+      border-color: var(--accent);
+      padding: 6px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid;
+      transition: .15s;
+    }
+
+    .btn-primary:hover {
+      background: transparent;
+      color: var(--accent);
+    }
+
+    .btn-danger {
+      background: var(--bad-bg);
+      color: var(--bad);
+      border-color: var(--bad);
+      padding: 6px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid;
+      transition: .15s;
+    }
+
+    .btn-danger:hover {
+      background: var(--bad);
+      color: #fff;
+    }
+
+    #upload-status {
+      font-size: 11px;
+      color: var(--ink-dim);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--ink-dim);
+      font-size: 11.5px;
+      padding: 30px 10px;
+      border-top: 1px solid var(--line);
+      margin-top: 20px;
+    }
+
+    @media (max-width: 640px) {
+      .page-header {
+        padding: 16px 14px 10px;
+      }
+      .toolbar-container {
+        padding: 10px 14px;
+      }
+      main {
+        padding: 10px 4px 40px;
+      }
+      .doc-subtitle {
+        margin-left: 0;
+        width: 100%;
+      }
+      .admin-panel {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .scroll-wrap table td:nth-child(1),
+      .scroll-wrap table th:nth-child(1) {
+        width: 92px;
+        min-width: 92px;
+        max-width: 92px;
+      }
+      .scroll-wrap table td:nth-child(n+2),
+      .scroll-wrap table th:nth-child(n+2) {
+        width: 34px;
+        min-width: 34px;
+        max-width: 34px;
+      }
+      td {
+        font-size: 9px;
+        padding: 2px 2px;
+      }
+      .cell-pill {
+        font-size: 8px;
+        padding: 1px 3px;
+      }
+      .date-header th {
+        font-size: 10px;
+        padding: 2px 1px;
+      }
+
+    }
+    /* Variante alternativa: plancia chiara, più leggibile e operativa */
+    :root {
+      --bg: #f3f6f5; --bg-panel: #ffffff; --bg-card: #f7faf9;
+      --line: #d9e3e0; --ink: #17312e; --ink-dim: #657b77;
+      --accent: #087f72; --accent-dim: #dff3ef; --radius: 14px;
+    }
+    body { background: linear-gradient(180deg,#e6f2ef 0,#f5f7f6 260px); color:var(--ink); }
+    .page-header { background:#073b36; border:0; padding:22px 30px 20px; color:white; }
+    .company-name { color:#8ee5d8; }
+    .doc-title { color:white; font-size:25px; }
+    .doc-subtitle { color:#c5ded9; }
+    .toolbar-container { background:white; padding:12px 28px; position:sticky; top:0; z-index:50; box-shadow:0 8px 28px rgba(7,59,54,.08); }
+    .res-btn,.btn,.shift-filter-btn { border-radius:9px; background:#fff; color:var(--ink-dim); }
+    .res-btn.active,.shift-filter-btn.active { color:white; background:var(--accent); }
+    main { padding:20px 24px 48px; max-width:1800px; margin:auto; }
+    .ops-bar { display:grid; grid-template-columns:minmax(240px,1.5fr) repeat(3,minmax(110px,.5fr)); gap:12px; margin-bottom:16px; }
+    .search-box,.stat-card { background:white; border:1px solid var(--line); border-radius:12px; box-shadow:0 5px 18px rgba(17,55,49,.05); }
+    .search-box { display:flex; align-items:center; gap:10px; padding:8px 12px; }
+    .search-box input { width:100%; border:0; outline:0; background:transparent; color:var(--ink); font-size:14px; }
+    .stat-card { padding:9px 12px; }
+    .stat-card span { display:block; color:var(--ink-dim); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+    .stat-card strong { font-size:17px; }
+    .view-actions { display:flex; gap:8px; margin-left:auto; }
+    .compact-toggle { border:1px solid var(--line); background:white; color:var(--ink); border-radius:8px; padding:7px 12px; cursor:pointer; }
+    .scroll-wrap { border-radius:14px; box-shadow:0 12px 35px rgba(17,55,49,.08); background:white; max-height:calc(100vh - 245px); }
+    thead tr th,.date-header th,.date-header th:nth-child(1),.date-header th:nth-child(2) { background:#eef5f3 !important; color:var(--ink); }
+    tr td.td-num,tr td.td-name { color:var(--ink)!important; }
+    .cell-pill { border-radius:999px; }
+    #day-panel.open { box-shadow:0 10px 30px rgba(17,55,49,.08); }
+    .compact .scroll-wrap table td { padding-top:2px; padding-bottom:2px; }
+    .compact .cell-pill { padding:1px 5px; font-size:9px; }
+    .compact .scroll-wrap { max-height:calc(100vh - 205px); }
+    tr.agent-hidden { display:none; }
+    footer { color:var(--ink-dim); }
+    @media(max-width:800px){
+      .page-header{padding:16px}.doc-subtitle{width:100%;margin:4px 0 0}.toolbar-container{padding:10px 12px;position:static}
+      main{padding:12px}.ops-bar{grid-template-columns:1fr 1fr}.search-box{grid-column:1/-1}.admin-panel{overflow:auto;flex-wrap:nowrap;width:100%}.admin-panel .btn{white-space:nowrap}
+      .stat-card:last-child{display:none}.scroll-wrap{max-height:68vh}.doc-title{font-size:20px}
+    }
+    /* Revisione scura e semplificata */
+    :root { --bg:#07131b; --bg-panel:#0d202b; --bg-card:#122b37; --line:#234452; --ink:#edf6f7; --ink-dim:#9bb4bc; --accent:#38d6bf; --accent-dim:#103c3a; }
+    body { background:radial-gradient(1000px 500px at 15% -10%,#123846 0,transparent 62%),var(--bg); color:var(--ink); }
+    .page-header { background:#091c25; }
+    .toolbar-container {
+      background:#0b1c25;
+      box-shadow:0 8px 28px rgba(0,0,0,.25);
+      position:static;
+    }
+    .res-btn,.btn,.shift-filter-btn,.compact-toggle { background:var(--bg-card); color:var(--ink-dim); border-color:var(--line); }
+    .res-btn.active,.shift-filter-btn.active { background:var(--accent); color:#05221e; }
+    .ops-bar,.upload-container { display:none !important; }
+    .scroll-wrap {
+      background:var(--bg-panel);
+      box-shadow:0 12px 35px rgba(0,0,0,.25);
+      max-height:none;
+      overflow:visible;
+      width:max-content;
+      min-width:100%;
+    }
+    .compact .scroll-wrap { max-height:none; }
+    thead tr th,.date-header th,.date-header th:nth-child(1),.date-header th:nth-child(2) { background:#15313d !important; color:var(--ink); }
+    tr td.td-num,tr td.td-name { color:var(--ink)!important; }
+    main { padding-top:14px; }
+    .scroll-wrap table { font-size:15px; }
+    td, td.td-name, tbody tr td.td-name { font-size:14px; padding-top:6px; padding-bottom:6px; }
+    td.td-num { font-size:12px; }
+    .cell-pill { font-size:12.5px; padding:4px 8px; }
+    .date-head-num { font-size:15px; }
+    .compact .scroll-wrap table { font-size:13px; }
+    .compact td,
+    .compact td.td-name,
+    .compact tbody tr td.td-name { font-size:12.5px; padding-top:4px; padding-bottom:4px; }
+    .compact td.td-num { font-size:11px; }
+    .compact .cell-pill { font-size:11px; padding:3px 7px; }
+    .compact .date-head-num { font-size:14px; }
+    .date-header th {
+      position:sticky;
+      top:0;
+      z-index:40;
+      box-shadow:0 2px 0 var(--line),0 7px 16px rgba(0,0,0,.22);
+    }
+    .date-header th:nth-child(1) {
+      position:sticky;
+      top:0;
+      z-index:45;
+    }
+
+    /* Menu operativo compatto */
+    .page-header { padding:13px 22px 11px; }
+    .company-name { font-size:10px; letter-spacing:.16em; }
+    .doc-title { font-size:19px; }
+    .doc-subtitle { font-size:11px; }
+    .toolbar-container {
+      min-height:48px;
+      padding:7px 18px;
+      gap:12px;
+      border-top:1px solid rgba(255,255,255,.035);
+      background:rgba(9,28,37,.96);
+    }
+    .toolbar-group { display:flex; align-items:center; gap:7px; min-width:0; }
+    .toolbar-label {
+      color:var(--ink-dim);
+      font-size:9px;
+      font-weight:800;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .resistence-block { gap:4px; }
+    .res-btn,.admin-panel .btn {
+      min-height:30px;
+      padding:5px 10px;
+      border-radius:7px;
+      font-size:11px;
+      line-height:1;
+      letter-spacing:.015em;
+      white-space:nowrap;
+    }
+    .res-btn { font-weight:750; }
+    .admin-panel {
+      gap:4px;
+      padding-left:12px;
+      margin-left:auto;
+      border-left:1px solid var(--line);
+    }
+    .admin-panel .btn-icon { color:var(--accent); font-size:12px; line-height:1; }
+    .admin-panel .btn-pdf {
+      color:#fda4af;
+      background:rgba(190,24,93,.10);
+      border-color:rgba(251,113,133,.30);
+    }
+    @media (max-width:800px) {
+      .page-header { padding:11px 13px 9px; }
+      .company-name { display:none; }
+      .doc-title { font-size:17px; }
+      .doc-subtitle { font-size:9px; }
+      .toolbar-container {
+        padding:6px 9px;
+        flex-wrap:nowrap;
+        overflow-x:auto;
+        scrollbar-width:none;
+      }
+      .toolbar-container::-webkit-scrollbar { display:none; }
+      .toolbar-label { display:none; }
+      .admin-panel { width:auto; overflow:visible; padding-left:8px; }
+    }
+
+    tr.grado-operaio { --grade-rgb: 20, 184, 166; --grade-text: var(--ink); }
+    .grado-operaio td:first-child { border-left: 3px solid #14b8a6; }
+    .grado-operaio { background: rgba(20, 184, 166, 0.03); }
+
+    th.bozza-col, td.bozza-col {
+      background-image: linear-gradient(rgba(245,158,11,.075), rgba(245,158,11,.075)) !important;
+    }
+    th.bozza-start, td.bozza-start {
+      border-left: 3px solid #f59e0b !important;
+    }
+    .date-head-draft {
+      display:block;
+      width:7px;
+      height:7px;
+      margin:3px auto 0;
+      border-radius:50%;
+      background:#f59e0b;
+      box-shadow:0 0 0 2px rgba(245,158,11,.16);
+    }
+
+    .coverage-section {
+      display:none;
+      margin-top:24px;
+      scroll-margin-top:12px;
+    }
+    .coverage-title {
+      margin:0 0 10px;
+      color:var(--accent);
+      font-size:14px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .coverage-shift-controls {
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:8px;
+      margin:0 0 10px;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:var(--bg-panel);
+      scroll-margin-top:12px;
+    }
+    #coverage-section #day-panel.open {
+      margin-top:10px;
+      margin-bottom:10px;
+    }
+    .coverage-shift-label {
+      color:var(--ink-dim);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+    .coverage-shift-buttons { display:flex; flex-wrap:wrap; gap:6px; }
+    .top-filter-controls {
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:12px;
+      width:100%;
+    }
+    .top-filter-group { display:flex; flex-direction:column; gap:8px; }
+    .top-residence-controls {
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-left:auto;
+    }
+    .coverage-residence-controls {
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-left:auto;
+      padding-left:12px;
+      border-left:1px solid var(--line);
+    }
+    .coverage-residence-buttons { display:flex; flex-wrap:wrap; gap:6px; }
+    .coverage-residence-btn {
+      padding:7px 11px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--bg-card);
+      color:var(--ink-dim);
+      font-size:11px;
+      font-weight:850;
+      text-transform:uppercase;
+      cursor:pointer;
+    }
+    .coverage-residence-btn.active {
+      border-color:var(--accent);
+      background:var(--accent);
+      color:#06201c;
+    }
+    .crew-minimum-toggle {
+      padding:7px 11px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--bg-card);
+      color:var(--ink);
+      font-size:11px;
+      font-weight:850;
+      cursor:pointer;
+    }
+    .crew-minimum-toggle.active { border-color:var(--accent); color:var(--accent); }
+    .crew-minimum-panel {
+      display:none;
+      margin:-2px 0 10px;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:var(--bg-panel);
+    }
+    .crew-minimum-panel.open { display:block; }
+    .crew-minimum-title {
+      display:block;
+      margin-bottom:8px;
+      color:var(--ink-dim);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+    .crew-minimum-grid { display:flex; flex-wrap:wrap; gap:8px; }
+    .crew-minimum-item {
+      display:flex;
+      align-items:center;
+      gap:7px;
+      padding:6px 8px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:var(--bg-card);
+      color:var(--ink);
+      font-size:12px;
+      font-weight:850;
+    }
+    .crew-minimum-input {
+      width:48px;
+      padding:5px;
+      border:1px solid var(--line);
+      border-radius:7px;
+      background:var(--bg);
+      color:var(--ink);
+      text-align:center;
+      font:inherit;
+    }
+    .coverage-shift-btn {
+      min-width:48px;
+      padding:7px 12px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:var(--bg-card);
+      color:var(--ink);
+      font-size:13px;
+      font-weight:850;
+      cursor:pointer;
+    }
+    .coverage-shift-btn.active {
+      border-color:var(--accent);
+      background:var(--accent);
+      color:#06201c;
+      box-shadow:0 0 0 2px rgba(45,212,191,.18);
+    }
+    .coverage-legend {
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin:0 0 10px;
+      color:var(--ink-dim);
+      font-size:11px;
+    }
+    .coverage-wrap + .coverage-legend { margin:10px 0 0; }
+    .coverage-legend span::before {
+      content:"";
+      display:inline-block;
+      width:9px;
+      height:9px;
+      margin-right:5px;
+      border-radius:50%;
+    }
+    .coverage-legend .complete::before { background:#22c55e; }
+    .coverage-legend .incomplete::before { background:#ef4444; }
+    .coverage-legend .overstaffed::before { background:#f59e0b; }
+    .coverage-legend .transfer::before { background:#60a5fa; }
+    .coverage-legend .ods::before { background:#a855f7; }
+    .coverage-wrap {
+      width:100vw;
+      margin-left:calc(50% - 50vw);
+      overflow:auto;
+      border:0;
+      border-radius:0;
+      background:transparent;
+    }
+    .coverage-table {
+      width:max-content;
+      min-width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      table-layout:fixed;
+    }
+    .coverage-table th,
+    .coverage-table td {
+      width:40px;
+      min-width:40px;
+      height:44px;
+      padding:5px 3px;
+      border-right:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      text-align:center;
+      font-size:11px;
+    }
+    .coverage-table th:first-child,
+    .coverage-table td:first-child {
+      position:sticky;
+      left:0;
+      z-index:3;
+      width:104px;
+      min-width:104px;
+      background:#15313d;
+      color:var(--ink);
+      font-weight:900;
+      box-shadow:2px 0 0 var(--line);
+    }
+    .coverage-table thead th {
+      background:#15313d;
+      color:var(--ink-dim);
+      font-weight:750;
+    }
+    .coverage-count {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:34px;
+      padding:5px 6px;
+      border-radius:8px;
+      font-weight:900;
+    }
+    .coverage-cell.complete .coverage-count {
+      color:var(--coverage-shift-color, #86efac);
+      background:var(--coverage-shift-bg, rgba(34,197,94,.15));
+      border:1px solid var(--coverage-shift-color, rgba(34,197,94,.38));
+    }
+    .coverage-cell.incomplete .coverage-count {
+      color:#fca5a5;
+      background:rgba(239,68,68,.18);
+      border:1px solid rgba(239,68,68,.48);
+    }
+    .coverage-cell.overstaffed .coverage-count {
+      color:var(--coverage-shift-color, #fbbf24);
+      background:var(--coverage-shift-bg, rgba(245,158,11,.17));
+      border:1px solid var(--coverage-shift-color, rgba(245,158,11,.46));
+    }
+    .coverage-cell.unconfigured .coverage-count {
+      color:var(--coverage-shift-color, var(--ink-dim));
+      background:var(--coverage-shift-bg, var(--bg-card));
+      border:1px solid var(--coverage-shift-color, var(--line));
+    }
+    /* Stesso linguaggio visivo della tabella principale: fondo neutro e bolla della corsa. */
+    .coverage-table .coverage-cell {
+      background-color:#10222c !important;
+    }
+    .coverage-table .coverage-cell.week-odd {
+      background-color:#10222c !important;
+    }
+    .coverage-table .coverage-cell.today-col {
+      background-color:rgba(45,212,191,.11) !important;
+    }
+    .coverage-table .coverage-cell .coverage-count {
+      color:var(--coverage-shift-color, var(--ink));
+      background:var(--coverage-shift-bg, var(--bg-card));
+      border:0;
+    }
+    .coverage-table .coverage-cell.incomplete .coverage-count {
+      color:#fca5a5;
+      background:rgba(239,68,68,.20);
+    }
+    td.has-crew-indicators { position:relative; }
+    .upper-cell-indicators {
+      position:absolute;
+      top:4px;
+      left:4px;
+      display:flex;
+      gap:3px;
+      pointer-events:none;
+    }
+    .upper-cell-indicator {
+      display:block;
+      width:7px;
+      height:7px;
+      border-radius:50%;
+    }
+    .upper-cell-indicator.incomplete { background:#ef4444; }
+    .upper-cell-indicator.overstaffed { background:#facc15; }
+    .upper-cell-indicator.transfer { background:#60a5fa; }
+    .upper-cell-indicator.ods { background:#a855f7; }
+    td.has-refuel-indicator { position:relative; }
+    .upper-cell-refuel { position:absolute; left:4px; bottom:4px; width:7px; height:7px; border-radius:50%; background:#f59e0b; box-shadow:0 0 0 1px rgba(245,158,11,.25); pointer-events:none; }
+    .coverage-table tbody tr td:first-child {
+      color:var(--coverage-shift-color, var(--ink));
+      background:var(--coverage-shift-bg, #15313d);
+      border-left:4px solid var(--coverage-shift-color, var(--line));
+    }
+    .coverage-cell { position:relative; }
+    .coverage-indicators {
+      position:absolute;
+      top:4px;
+      left:4px;
+      display:flex;
+      align-items:center;
+      gap:3px;
+    }
+    .coverage-indicator {
+      display:block;
+      width:7px;
+      height:7px;
+      border-radius:50%;
+    }
+    .coverage-indicator.complete { background:#22c55e; }
+    .coverage-indicator.incomplete { background:#ef4444; }
+    .coverage-indicator.overstaffed { background:#facc15; }
+    .coverage-indicator.transfer { background:#60a5fa; }
+    .coverage-indicator.ods { background:#a855f7; }
+    .coverage-cell.coverage-selected {
+      outline:3px solid var(--accent);
+      outline-offset:-3px;
+      filter:brightness(1.25);
+    }
+    .coverage-cell { cursor:pointer; transition:filter .15s, transform .15s; }
+    .coverage-cell:hover { filter:brightness(1.18); }
+    .coverage-cell:active { transform:scale(.96); }
+
+    @media (max-width:640px) {
+      .service-summary { grid-template-columns:minmax(160px,1fr) minmax(125px,.9fr); }
+      .ship-day-badge { padding:4px 6px; }
+      .service-identity,
+      .panel-navigation {
+        justify-self:start;
+      }
+      .coverage-table th,
+      .coverage-table td { width:34px; min-width:34px; }
+      .coverage-table th:first-child,
+      .coverage-table td:first-child { width:92px; min-width:92px; }
+    }
+
+    /* Mobile: residenze e azioni su due righe indipendenti, senza sovrapposizioni. */
+    @media (max-width:800px) {
+      .toolbar-container {
+        display:block;
+        padding:7px 0;
+        overflow:visible;
+      }
+      .toolbar-group,
+      .admin-panel {
+        width:100%;
+        max-width:100%;
+        margin:0;
+        padding:0 10px;
+        border:0;
+        overflow-x:auto;
+        overflow-y:hidden;
+        flex-wrap:nowrap;
+        scrollbar-width:none;
+        -webkit-overflow-scrolling:touch;
+      }
+      .toolbar-group::-webkit-scrollbar,
+      .admin-panel::-webkit-scrollbar {
+        display:none;
+      }
+      .resistence-block {
+        flex-wrap:nowrap;
+        width:max-content;
+      }
+      .admin-panel {
+        margin-top:7px;
+        padding-top:7px;
+        border-top:1px solid var(--line);
+      }
+      .res-btn,
+      .admin-panel .btn {
+        flex:0 0 auto;
+      }
+    }
+
+    /* Collegamenti operativi allineati al titolo della pagina. */
+    .toolbar-container {
+      justify-content:flex-start;
+      padding-left:22px;
+      padding-right:22px;
+    }
+    .admin-panel {
+      margin-left:0;
+      padding-left:0;
+      border-left:0;
+    }
+    @media (max-width:800px) {
+      .toolbar-container { padding:7px 0; }
+      .toolbar-container .admin-panel {
+        margin-top:0;
+        padding:0 13px;
+        border-top:0;
+      }
+    }
+
+    /* Un'unica superficie larga: niente barre separate sotto le due matrici. */
+    body { overflow-x:auto; }
+    #matrix-scroll-wrap,
+    #coverage-matrix-wrap {
+      width:max-content;
+      min-width:100%;
+      max-width:none;
+      margin-left:0;
+      overflow:visible;
+    }
+    #matrix-scroll-wrap table,
+    #coverage-matrix-wrap table {
+      width:max-content;
+      min-width:0;
+    }
+
+    /* Mantiene testi e bolle centrati senza farli sconfinare nelle celle vicine. */
+    #matrix-scroll-wrap th,
+    #matrix-scroll-wrap td,
+    #coverage-matrix-wrap th,
+    #coverage-matrix-wrap td {
+      box-sizing:border-box;
+      text-align:center;
+      vertical-align:middle;
+    }
+    #matrix-scroll-wrap .cell-pill {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      max-width:calc(100% - 2px);
+      margin-inline:auto;
+      overflow:hidden;
+    }
+    #matrix-scroll-wrap .cell-pill.c-pond {
+      padding-inline:3px;
+      font-size:11px;
+      letter-spacing:0;
+    }
+    #coverage-matrix-wrap td:first-child,
+    #coverage-matrix-wrap th:first-child {
+      text-align:center;
+      overflow:hidden;
+    }
+    #coverage-matrix-wrap .coverage-count {
+      box-sizing:border-box;
+      max-width:100%;
+      margin-inline:auto;
+    }
+
+    /* Evita il doppio tocco interpretato come zoom, mantenendo lo zoom a due dita. */
+    button,
+    a,
+    input,
+    .coverage-cell,
+    #tbody td[data-col],
+    .date-header th[data-col] {
+      touch-action:manipulation;
+      -webkit-tap-highlight-color:rgba(56,214,191,.18);
+    }
+
+    .login-overlay {
+      position:fixed;
+      inset:0;
+      z-index:5000;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(3,14,20,.88);
+      backdrop-filter:blur(7px);
+    }
+    .login-overlay.open { display:flex; }
+    .login-card {
+      width:min(420px,100%);
+      padding:24px;
+      border:1px solid #285365;
+      border-radius:18px;
+      background:#0d2531;
+      box-shadow:0 24px 70px rgba(0,0,0,.45);
+    }
+    .login-card h2 { margin:0 0 7px;color:#2dd4bf;font-size:24px; }
+    .login-card p { margin:0 0 18px;color:#a9c0c9;line-height:1.45; }
+    .login-field { display:block;margin:12px 0; }
+    .login-field span { display:block;margin-bottom:6px;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#a9c0c9; }
+    .login-field input,.login-field select {
+      width:100%;box-sizing:border-box;padding:12px 13px;border:1px solid #315b6a;border-radius:10px;
+      background:#071b24;color:#edf7f8;font:inherit;
+    }
+    .login-field select { display:none; }
+    .login-field select.visible { display:block; }
+    .login-message { min-height:20px;margin:8px 0;color:#fca5a5;font-size:13px;font-weight:700; }
+    .login-actions { display:flex;flex-wrap:wrap;gap:9px; }
+    .login-actions button { flex:1 1 120px;padding:11px;border-radius:10px;border:1px solid #315b6a;background:#123442;color:#eaf5f7;font-weight:900;cursor:pointer; }
+    .login-actions .login-submit { border-color:#2dd4bf;background:#2dd4bf;color:#062027; }
+    .login-user-panel { display:none;align-items:center;gap:7px;margin-left:auto; }
+    .login-user-panel.visible { display:flex; }
+    .login-user-name { padding:7px 10px;border:1px solid #397080;border-radius:999px;background:#123b45;color:#dffaf5;font-size:12px;font-weight:900;cursor:pointer; }
+    .login-user-panel button:not(.login-user-name) { padding:7px 9px;border:1px solid #397080;border-radius:8px;background:#0d2c37;color:#dbeef1;font-size:11px;font-weight:800;cursor:pointer; }
+    .portal-switch { padding:7px 11px;border:1px solid #2dd4bf;border-radius:8px;background:#103b3d;color:#dffaf5;font-size:11px;font-weight:900;text-decoration:none;white-space:nowrap; }
+    .portal-switch:hover { background:#2dd4bf;color:#06201c; }
+    @media (max-width:700px) {
+      .login-user-panel { width:100%;margin:7px 0 0; }
+      .login-user-name { margin-right:auto; }
+      .login-card { padding:20px; }
+    }
+
+    .turni-sidebar{position:fixed;inset:0 auto 0 0;z-index:200;width:248px;display:flex;flex-direction:column;padding:28px 18px;background:#071923;border-right:1px solid #173542;color:#eaf5f5}.turni-sidebar-brand{display:flex;align-items:center;gap:11px;margin:0 7px 32px;color:#fff;text-decoration:none;font:800 18px Manrope}.turni-sidebar-brand span{display:grid;place-items:center;width:37px;height:37px;border-radius:11px;background:#2dd4bf;color:#06221f}.turni-sidebar nav{display:grid;gap:6px}.turni-sidebar nav a{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid transparent;border-radius:9px;color:#9fb8c2;text-decoration:none;font-size:13px;font-weight:700}.turni-sidebar nav a span{width:20px;color:#2dd4bf;font-size:17px;text-align:center}.turni-sidebar nav a:hover,.turni-sidebar nav a.active{border-color:#28505a;background:#102d37;color:#fff}.turni-sidebar-note{display:flex;gap:10px;align-items:center;margin-top:auto;padding:14px 10px;border-top:1px solid #193946;color:#8da8b0;font-size:11px}.turni-sidebar-note i{width:8px;height:8px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 0 4px rgba(45,212,191,.1)}.turni-menu-button{display:none;position:fixed;top:12px;left:12px;z-index:220;width:40px;height:40px;border:1px solid #315460;border-radius:10px;background:#0d2c37;color:#fff;font-size:20px;cursor:pointer}body{padding-left:248px}
+    @media(max-width:800px){body{padding-left:0}.turni-sidebar{transform:translateX(-105%);transition:transform .2s;box-shadow:15px 0 35px rgba(0,0,0,.35)}body.turni-menu-open .turni-sidebar{transform:translateX(0)}.turni-menu-button{display:grid;place-items:center}.page-header{padding-left:62px!important}}
+    .turni-sidebar{width:230px;padding:28px 20px}.turni-sidebar .login-user-panel{width:100%;display:none!important;grid-template-columns:1fr 1fr;gap:6px;margin:auto 0 0;padding-top:12px;border-top:1px solid #193946}.turni-sidebar .login-user-panel.visible{display:grid!important}.turni-sidebar .login-user-name{grid-column:1/-1;width:100%;overflow:hidden;text-overflow:ellipsis}.turni-sidebar .login-user-panel button{padding:9px 7px!important;border:1px solid #315460!important;border-radius:8px!important;background:#0d2c37!important;color:#dbeef1!important;font-size:11px!important;font-weight:800!important;cursor:pointer}.turni-sidebar #login-exit-button{color:#fda4af!important}.turni-sidebar nav a,.turni-nav-link{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:#9fb8c2;text-decoration:none;font-family:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer}.turni-nav-link span{width:20px;color:#2dd4bf;font-size:17px;text-align:center}.turni-nav-link:hover{border-color:#28505a;background:#102d37;color:#fff}.turni-menu-label{display:block;margin:16px 12px 3px;color:#66818d;font-size:9px;font-weight:900;letter-spacing:.16em}.turni-header-copy{display:flex;flex-direction:column;gap:1px}.turni-header-label{margin:0;color:#78909d;font-size:10px;font-weight:900;letter-spacing:.16em}.turni-header-context{margin:2px 0 0;color:#70808c;font-size:12px}.page-header .doc-title{margin:0;color:#173042;font-size:25px}.page-header{min-height:98px;display:flex;align-items:center;padding:18px 30px;background:#fff;color:#173042;border-bottom:1px solid #dfe7eb}body{padding-left:230px}@media(max-width:800px){body{padding-left:0}}
+</style>
+  <link rel="stylesheet" href="shared-menu.css">
+</head>
+<body class="turni-page">
+
+  <button class="turni-menu-button" id="turni-menu-button" type="button" aria-label="Apri menu" aria-expanded="false">☰</button>
+  <aside class="turni-sidebar app-sidebar" id="turni-sidebar">
+    <a class="turni-sidebar-brand" href="index.html"><span>N</span> NaviTurni</a>
+    <nav>
+      <a class="active" href="#turni-operativi"><span>▦</span> NaviTurni</a>
+      <a href="navidiaria.html" target="_blank" rel="noopener"><span>≈</span> NaviDiaria</a>
+      <a href="turni.html" target="_blank" rel="noopener"><span>▤</span> ODS / Turni</a>
+      <button class="turni-nav-link" onclick="ricaricaDati()" id="refreshBtn" type="button"><span>↻</span> Aggiorna</button>
+      <span class="turni-menu-label">TURNI</span>
+      <button class="turni-nav-link" onclick="togglePastColumns()" id="togglePastBtn" type="button"><span>◷</span> Mostra passato</button>
+    </nav>
+    <div class="login-user-panel" id="login-user-panel">
+      <button class="login-user-name" id="login-user-name" type="button" onclick="repinLoggedAgent()" title="Rimetti l'agente in cima"></button>
+      <button id="login-exit-button" type="button" onclick="logoutAgent()">Esci</button>
+      <button id="login-change-button" type="button" onclick="location.href='navidiaria.html?pin=1'">Cambia PIN</button>
+    </div>
+  </aside>
+
+  <div class="login-overlay" id="login-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <form class="login-card" id="agent-login-form" onsubmit="handleAgentLogin(event)">
+      <h2 id="login-title">Accesso Naviturni</h2>
+      <p>Inserisci il cognome per trovare subito il tuo turno e restare in cima alla tabella.</p>
+      <label class="login-field"><span>Cognome</span><input id="login-surname" type="text" list="login-surname-options" autocomplete="off" placeholder="Inizia a digitare il cognome…" required></label>
+      <datalist id="login-surname-options"></datalist>
+      <label class="login-field"><span id="login-choice-label" style="display:none;">Scegli agente</span><select id="login-agent-choice"></select></label>
+      <div class="login-message" id="login-message" aria-live="polite"></div>
+      <div class="login-actions">
+        <button class="login-submit" type="submit">Accedi</button>
+        <button type="button" onclick="continueWithoutLogin()">Continua senza accesso</button>
+      </div>
+    </form>
+  </div>
+
+  <header class="page-header">
+    <div class="turni-header-copy">
+      <p class="turni-header-label">NAVITURNI</p>
+      <h1 class="doc-title" id="turniWelcome">Benvenuto</h1>
+      <p class="turni-header-context">Pannello turni dal <strong id="periodLabel">periodo in caricamento</strong></p>
+    </div>
+  </header>
+
+  <main id="turni-operativi">
+
+    <section class="ops-bar" aria-label="Riepilogo operativo">
+      <label class="search-box">
+        <span aria-hidden="true">⌕</span>
+        <input id="agent-search" type="search" placeholder="Cerca agente per nome o numero…" oninput="filterAgents(this.value)">
+      </label>
+      <div class="stat-card"><span>Residenza</span><strong id="stat-residence">—</strong></div>
+      <div class="stat-card"><span>Personale visibile</span><strong id="stat-agents">0</strong></div>
+      <div class="stat-card"><span>Stato dati</span><strong id="stat-status">In attesa</strong></div>
+    </section>
+
+    <div id="welcome-notice">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <h3>Caricamento turni…</h3>
+      <p>Attendi qualche istante mentre recuperiamo i dati aggiornati.</p>
+    </div>
+
+    <div class="shifts-filter-block" id="shift-filter-container">
+      <div class="top-filter-controls">
+        <div class="top-filter-group">
+          <span class="filter-label">Seleziona un Turno per la ricerca Equipaggi:</span>
+          <div class="shift-buttons-grid" id="shift-buttons-wrapper"></div>
+        </div>
+        <div class="top-residence-controls">
+          <span class="filter-label">Residenza:</span>
+          <div class="coverage-residence-buttons" id="top-residence-buttons"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="day-panel">
+      <div class="panel-header">
+        <div class="panel-date" id="panel-date-label"></div>
+        <button class="panel-close" onclick="resetCleanTable()">✕ Chiudi Equipaggio</button>
+      </div>
+      <div class="panel-groups" id="panel-groups"></div>
+    </div>
+
+    <div class="scroll-wrap" id="matrix-scroll-wrap">
+      <table>
+        <thead id="thead-container"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <section class="coverage-section" id="coverage-section" aria-labelledby="coverage-title">
+      <h2 class="coverage-title" id="coverage-title">Completezza equipaggi</h2>
+      <div class="coverage-shift-controls" aria-label="Seleziona corsa per la scheda equipaggio">
+        <span class="coverage-shift-label">Corsa:</span>
+        <div class="coverage-shift-buttons" id="coverage-shift-buttons"></div>
+        <button class="crew-minimum-toggle" id="crew-minimum-toggle" type="button" onclick="toggleCrewMinimumPanel()">⚙ Minimi</button>
+        <div class="coverage-residence-controls">
+          <span class="coverage-shift-label">Residenza:</span>
+          <div class="coverage-residence-buttons" id="coverage-residence-buttons"></div>
+        </div>
+      </div>
+      <div class="crew-minimum-panel" id="crew-minimum-panel">
+        <span class="crew-minimum-title">Numero minimo di componenti per corsa</span>
+        <div class="crew-minimum-grid" id="crew-minimum-grid"></div>
+      </div>
+      <div class="coverage-wrap" id="coverage-matrix-wrap">
+        <table class="coverage-table">
+          <thead id="coverage-thead"></thead>
+          <tbody id="coverage-tbody"></tbody>
+        </table>
+      </div>
+      <div class="coverage-legend" aria-label="Legenda completezza equipaggi">
+        <span class="complete">Completo</span>
+        <span class="incomplete">Incompleto</span>
+        <span class="overstaffed">Sovrannumero</span>
+        <span class="transfer">Trasferta</span>
+        <span class="ods">Variazione ODS</span>
+      </div>
+    </section>
+
+    <div class="upload-container" id="upload-container">
+      <div class="upload-header" onclick="toggleUpload()">
+        <span>📂 Carica / Gestisci dati</span>
+        <span id="upload-toggle-icon">▼ espandi</span>
+      </div>
+      <div id="upload-body">
+        <textarea class="csv-textarea" id="json-paste-input" placeholder="Incolla qui il contenuto di turni_finali.json..."></textarea>
+        <div class="upload-actions">
+          <button class="btn-primary" onclick="loadPastedJSON()">📥 Carica da testo</button>
+          <button class="btn-danger" onclick="clearSavedMemory()">🗑 Cancella memoria</button>
+          <span id="upload-status"></span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    Dati letti dal Foglio Google · turno ufficiale e bozza nella stessa pagina<br>
+    Questa pagina è stata pensata e creata da MP per la gestione dei turni
+  </footer>
+
+  <script src="shared-data.js"></script>
+  <script src="shared-menu.js"></script>
+  <script>
+    let globalData = null;
+    let currentResidence = "";
+    let currentAgentsList = [];
+    let selectedCol = null;
+    let selectedShiftValue = "";
+    let selectedCrewAgent = null;
+    let trElements = [];
+    let pinnedAgentIdx = null;
+    let activeShiftFilter = null;
+    let dayPanelPlacement = "main";
+    let syncingHorizontalScroll = false;
+    let crewCompletenessCache = new Map();
+    let showPastColumns = false;
+    let isEditMode = false;
+    let loggedAgentProfile = null;
+
+    const AGENT_LOGIN_STORAGE_KEY = "naviturni_logged_agent";
+
+    function readLoggedAgentProfile() {
+      try {
+        return JSON.parse(localStorage.getItem(AGENT_LOGIN_STORAGE_KEY) || "null");
+      } catch (e) {
+        localStorage.removeItem(AGENT_LOGIN_STORAGE_KEY);
+        return null;
+      }
+    }
+
+    function updateLoginUserPanel() {
+      const panel = document.getElementById("login-user-panel");
+      const label = document.getElementById("login-user-name");
+      const changeButton = document.getElementById("login-change-button");
+      const welcome = document.getElementById("turniWelcome");
+      if (!panel || !label) return;
+      panel.classList.add("visible");
+      label.textContent = loggedAgentProfile ? loggedAgentProfile.name.toLocaleUpperCase("it") : "SENZA ACCESSO";
+      label.disabled = !loggedAgentProfile;
+      label.title = loggedAgentProfile ? "Rimetti l'agente in cima" : "Accesso non effettuato";
+      if (changeButton) changeButton.style.display = loggedAgentProfile ? "inline-flex" : "none";
+      if (welcome) {
+        const agentData = Object.values(globalData?.residenze || {}).flat().find(agent => String(agent.id || "") === String(loggedAgentProfile?.id || ""));
+        const grade = String(agentData?.qualifica || loggedAgentProfile?.qualifica || "Agente").trim().toLocaleLowerCase("it").replace(/(^|\s)\S/g, letter => letter.toLocaleUpperCase("it"));
+        welcome.textContent = loggedAgentProfile ? `Benvenuto ${grade} ${loggedAgentProfile.name} in NaviTurni` : "Benvenuto in NaviTurni";
+      }
+    }
+
+    function showLoginModal() {
+      const overlay = document.getElementById("login-overlay");
+      const surname = document.getElementById("login-surname");
+      const choice = document.getElementById("login-agent-choice");
+      const choiceLabel = document.getElementById("login-choice-label");
+      document.getElementById("login-message").textContent = "";
+      surname.value = "";
+      choice.innerHTML = "";
+      choice.classList.remove("visible");
+      choiceLabel.style.display = "none";
+      overlay.classList.add("open");
+      setTimeout(() => surname.focus(), 30);
+    }
+
+    function populateLoginSurnameOptions() {
+      const datalist = document.getElementById("login-surname-options");
+      if (!datalist || !globalData?.residenze) return;
+      const surnames = new Map();
+      Object.values(globalData.residenze).flat().forEach(agent => {
+        const surname = String(agent.agente || "").trim().split(/\s+/)[0].replace(/[.,]+$/g, "");
+        const key = normalizeOdsAgentName(surname);
+        if (key && !surnames.has(key)) surnames.set(key, surname.toUpperCase());
+      });
+      datalist.innerHTML = [...surnames.values()]
+        .sort((a, b) => a.localeCompare(b, "it"))
+        .map(surname => `<option value="${escapeAttribute(surname)}"></option>`)
+        .join("");
+    }
+
+    function continueWithoutLogin() {
+      localStorage.removeItem(AGENT_LOGIN_STORAGE_KEY);
+      loggedAgentProfile = null;
+      pinnedAgentIdx = null;
+      updateLoginUserPanel();
+      if (globalData) renderTable();
+      document.getElementById("login-overlay").classList.remove("open");
+    }
+
+    function getLoginMatches(surname) {
+      const query = normalizeOdsAgentName(surname);
+      if (!query || !globalData?.residenze) return [];
+      const matches = [];
+      Object.entries(globalData.residenze).forEach(([residence, agents]) => {
+        (agents || []).forEach(agent => {
+          const normalizedName = normalizeOdsAgentName(agent.agente);
+          const firstNamePart = normalizedName.split(" ")[0];
+          if (normalizedName === query || normalizedName.startsWith(query + " ") || firstNamePart === query) {
+            matches.push({
+              id: String(agent.id || ""),
+              name: agent.agente,
+              residence
+            });
+          }
+        });
+      });
+      return matches;
+    }
+
+    function handleAgentLogin(event) {
+      event.preventDefault();
+      const message = document.getElementById("login-message");
+      const choice = document.getElementById("login-agent-choice");
+      const choiceLabel = document.getElementById("login-choice-label");
+
+      const matches = getLoginMatches(document.getElementById("login-surname").value);
+      if (!matches.length) {
+        message.textContent = "Agente non trovato. Controlla il cognome.";
+        return;
+      }
+
+      if (matches.length > 1 && !choice.classList.contains("visible")) {
+        choice.innerHTML = matches.map((item, index) =>
+          `<option value="${index}">${escapeAttribute(item.name)} — ${escapeAttribute(item.residence)}</option>`
+        ).join("");
+        choice.dataset.matches = JSON.stringify(matches);
+        choice.classList.add("visible");
+        choiceLabel.style.display = "block";
+        message.textContent = "Sono presenti più corrispondenze: scegli il nominativo corretto.";
+        return;
+      }
+
+      let selected = matches[0];
+      if (choice.classList.contains("visible")) {
+        try {
+          const storedMatches = JSON.parse(choice.dataset.matches || "[]");
+          selected = storedMatches[Number(choice.value)] || selected;
+        } catch (e) {
+          selected = matches[0];
+        }
+      }
+
+      loggedAgentProfile = selected;
+      localStorage.setItem(AGENT_LOGIN_STORAGE_KEY, JSON.stringify(selected));
+      document.getElementById("login-overlay").classList.remove("open");
+      updateLoginUserPanel();
+      applyLoggedAgentProfile();
+    }
+
+    function findLoggedAgentIndex(residence = currentResidence) {
+      if (!loggedAgentProfile || residence !== loggedAgentProfile.residence) return -1;
+      return currentAgentsList.findIndex(agent => {
+        const sameId = loggedAgentProfile.id && String(agent.id || "") === loggedAgentProfile.id;
+        return sameId || normalizeOdsAgentName(agent.agente) === normalizeOdsAgentName(loggedAgentProfile.name);
+      });
+    }
+
+    function applyLoggedAgentProfile() {
+      if (!loggedAgentProfile || !globalData?.residenze?.[loggedAgentProfile.residence]) return false;
+      selectResidence(loggedAgentProfile.residence);
+      const index = findLoggedAgentIndex();
+      if (index < 0) return false;
+      pinnedAgentIdx = index;
+      renderTable();
+      const todayCal = dateCalendario.find(cal => isTodayDate(cal.realObj));
+      if (todayCal) {
+        selectDayForPinnedAgent(todayCal);
+        setTimeout(scrollCrewPanelIntoView, 80);
+      }
+      return true;
+    }
+
+    function repinLoggedAgent() {
+      if (!loggedAgentProfile || !globalData) return;
+      if (currentResidence !== loggedAgentProfile.residence) {
+        selectResidence(loggedAgentProfile.residence);
+        return;
+      }
+      const index = findLoggedAgentIndex();
+      if (index < 0) return;
+      pinnedAgentIdx = index;
+      renderTable();
+    }
+
+    function logoutAgent() {
+      localStorage.removeItem(AGENT_LOGIN_STORAGE_KEY);
+      localStorage.removeItem("navidiaria.activeAgent");
+      loggedAgentProfile = null;
+      pinnedAgentIdx = null;
+      location.href = "index.html";
+    }
+
+    const turniMappaResidenze = {
+      "desenzano": ["D1", "D2", "D3", "D4", "BIS"],
+      "maderno": ["T1", "T2", "M1"],
+      "riva": ["R1", "R2", "R3", "R4", "CAR"],
+      "peschiera": ["P1", "P2", "P3", "CAP", "SR1"]
+    };
+
+    const defaultCrewRequirements = {
+      DESENZANO: { D1: 4, D2: 5, D3: 5, D4: 3, BIS: 3, AGB: 1, DT: 1, POND: 1 },
+      MADERNO: { T1: 5, T2: 5, M1: 3 },
+      RIVA: { R1: 4, R2: 5, R3: 5, R4: 4, CAR: 3 },
+      PESCHIERA: { P1: 5, P2: 5, P3: 4, CAP: 3, SR1: 4 }
+    };
+
+    const dateCalendario = [];
+    const settimaneInfo = [];
+
+    const nomiGiorni = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+    const nomiGiorniCompleti = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
+    const mesiNomi = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
+      "novembre", "dicembre"
+    ];
+
+    const gradeInfo = {
+      "grado-capitano": { label: "Capitano", color: "#facc15" },
+      "grado-capo": { label: "Capo Timoniere", color: "#fb923c" },
+      "grado-timoniere": { label: "Timoniere", color: "#22c55e" },
+      "grado-aiuto": { label: "Aiuto Motorista", color: "#3b82f6" },
+      "grado-motorista": { label: "Motorista", color: "#a855f7" },
+      "grado-marinaio": { label: "Marinaio", color: "#9ca3af" },
+      "grado-operaio": { label: "Operaio", color: "#14b8a6" }
+    };
+
+    const shiftBorderColor = {
+      "c-d1": "#3b6bcc",
+      "c-d2": "#2d9e6b",
+      "c-d3": "#e07b3a",
+      "c-d4": "#c45cba",
+      "c-dt": "#e6d44a",
+      "c-bis": "#5ec4d4",
+      "c-pond": "#f08080",
+      "c-rip": "#6b7280",
+      "c-cong": "#a78bfa",
+      "c-agb": "#60a5fa",
+      "c-fp": "#94a3b8",
+      "c-other": "#94a3b8"
+    };
+
+    const shiftDurations = {
+      D1: "13 ore", D2: "11 ore 25 min", D3: "13 ore 20 min", D4: "13 ore 15 min",
+      T1: "13 ore 35 min", T2: "12 ore 29 min", M1: "13 ore 30 min",
+      R1: "13 ore 15 min", R2: "13 ore 15 min", R3: "12 ore 20 min", R4: "12 ore 40 min",
+      CAR: "12 ore 10 min", CAR1: "12 ore 10 min",
+      P1: "12 ore 45 min", P2: "13 ore 5 min", P3: "12 ore 55 min",
+      CAP: "12 ore 55 min", CAP1: "12 ore 55 min", SR1: "12 ore 15 min",
+      BIS: "12 ore 15 min", AGB: "10 ore 25 min", POND: "9 ore 25 min",
+      DT: "9 ore 25 min", PT: "9 ore 30 min", AGM: "9 ore 45 min",
+      AGT: "11 ore 10 min", PONM: "10 ore 25 min"
+    };
+
+    function getShiftDuration(shiftCode, calInfo) {
+      const code = (shiftCode || "").toUpperCase().trim();
+      if (code === "DT" && calInfo && calInfo.giornoSett === "Sab") return "9 ore 55 min";
+      return shiftDurations[code] || "";
+    }
+
+    function inizializzaCalendario() {
+      dateCalendario.length = 0;
+      let colCounter = 3;
+      settimaneInfo.forEach((sett, sIdx) => {
+        const baseDate = new Date(sett.year || 2026, sett.month, sett.startDay);
+        const count = sett.count || 7;
+        for (let g = 0; g < count; g++) {
+          const d = new Date(baseDate);
+          d.setDate(baseDate.getDate() + g);
+          const iso = formatDateISOClient(d);
+          dateCalendario.push({
+            col: colCounter,
+            weekKey: sett.key,
+            weekIdx: sIdx,
+            dayNum: d.getDate(),
+            giornoSett: nomiGiorni[(d.getDay() + 6) % 7],
+            isDomenica: d.getDay() === 0,
+            labelEstesa: `${nomiGiorniCompleti[(d.getDay() + 6) % 7]} ${d.getDate()} ${mesiNomi[d.getMonth()]}`,
+            realObj: d,
+            iso,
+            isBozza: Boolean(globalData && globalData.bozza_dal && iso >= globalData.bozza_dal)
+          });
+          colCounter++;
+        }
+      });
+    }
+
+    function getGradeClass(badge, agentName = "", qualifica = "") {
+      const q = String(qualifica || "").trim().toLowerCase();
+      const map = {
+        "capitano": "grado-capitano",
+        "comandante": "grado-capitano",
+        "capo timoniere": "grado-capo",
+        "capotimoniere": "grado-capo",
+        "timoniere": "grado-timoniere",
+        "motorista": "grado-motorista",
+        "aiuto motorista": "grado-aiuto",
+        "aiutomotorista": "grado-aiuto",
+        "marinaio": "grado-marinaio",
+        "operaio": "grado-operaio"
+      };
+      return map[q] || "grado-marinaio";
+    }
+
+    function ottieniTurnoPulito(v) {
+      if (!v) return "";
+      let txt = v.toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
+      if (txt === "" || txt === "RIP" || txt === "RIP." || txt === "----") return "";
+
+      let match = txt.match(/(?:^C)?([DRMP]\d|BIS|POND|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
+      if (match && match[1]) {
+        return match[1].toUpperCase();
+      }
+      return txt;
+    }
+
+    function classify(v) {
+      if (!v || v === "") return null;
+      let uPulito = ottieniTurnoPulito(v);
+      if (uPulito === "") return "c-rip";
+
+      if (/^D1/.test(uPulito) || /^R1/.test(uPulito) || /^P1/.test(uPulito)) return "c-d1";
+      if (/^D2/.test(uPulito) || /^R2/.test(uPulito) || /^P2/.test(uPulito)) return "c-d2";
+      if (/^D3/.test(uPulito) || /^R3/.test(uPulito) || /^P3/.test(uPulito)) return "c-d3";
+      if (/^D4/.test(uPulito) || /^R4/.test(uPulito) || /^P4/.test(uPulito)) return "c-d4";
+      if (/^T1/.test(uPulito)) return "c-d1";
+      if (/^T2/.test(uPulito)) return "c-d2";
+      if (/^M1/.test(uPulito)) return "c-d3";
+      if (/^DT/.test(uPulito)) return "c-dt";
+      if (/^BIS/.test(uPulito)) return "c-bis";
+      if (/^POND/.test(uPulito)) return "c-pond";
+      if (/^AGB/.test(uPulito)) return "c-agb";
+      if (uPulito.startsWith("CONG") || uPulito === "CON;") return "c-cong";
+      if (uPulito === "FP" || uPulito === "F.P." || uPulito === "CORSO") return "c-fp";
+      return "c-other";
+    }
+
+    function pill(v) {
+      if (!v || v.trim() === "" || v.trim() === "----" || v.trim().toLowerCase() === "rip" || v.trim().toLowerCase() === "rip.") {
+        return '<span class="cell-pill c-rip">rip</span>';
+      }
+      const cls = classify(v);
+      if (!cls) return `<span style="color:#3a3f50">${v}</span>`;
+      return `<span class="cell-pill ${cls}">${v}</span>`;
+    }
+
+    function isTodayDate(dateObj) {
+      const a = new Date(dateObj);
+      const b = new Date();
+      a.setHours(0, 0, 0, 0);
+      b.setHours(0, 0, 0, 0);
+      return a.getTime() === b.getTime();
+    }
+
+    function buildTableHeader() {
+      const container = document.getElementById("thead-container");
+      let html = `<tr class="date-header"><th>Agente</th>`;
+      dateCalendario.forEach(d => {
+        const clsArr = [];
+        clsArr.push(d.weekIdx % 2 === 0 ? "week-even" : "week-odd");
+        if (d.giornoSett === "Lun") clsArr.push("week-start");
+        if (d.giornoSett === "Dom") clsArr.push("week-end");
+        if (isTodayDate(d.realObj)) clsArr.push("today-col");
+        if (d.isBozza) clsArr.push("bozza-col");
+        const currentIndex = dateCalendario.indexOf(d);
+        if (d.isBozza && dateCalendario[currentIndex - 1]?.isBozza !== true) {
+          clsArr.push("bozza-start");
+        }
+        const cls = `class="${clsArr.join(" ")}"`;
+        html += `<th ${cls} data-col="${d.col}" onclick="eseguiRicercaHeader(${d.col})"><span class="date-head-day">${d.giornoSett}</span><span class="date-head-num">${d.dayNum}</span>${d.isBozza ? '<span class="date-head-draft" aria-label="Bozza" title="Bozza"></span>' : ''}</th>`;
+      });
+      html += `</tr>`;
+      container.innerHTML = html;
+    }
+
+    function eseguiRicercaHeader(colonnaCliccata) {
+      if (isEditMode) return;
+      placeDayPanel("main");
+      let cal = dateCalendario.find(c => c.col === colonnaCliccata);
+      if (!cal) return;
+      if (pinnedAgentIdx !== null) {
+        selectDayForPinnedAgent(cal);
+        return;
+      }
+      if (!activeShiftFilter) {
+        const residenceKey = currentResidence.toLowerCase().trim();
+        const availableShifts = turniMappaResidenze[residenceKey] || [];
+        activeShiftFilter = availableShifts[0] || null;
+        if (!activeShiftFilter) return;
+        generaFiltriTurnoRiferimento();
+      }
+      selectDay(cal.col, cal.labelEstesa, activeShiftFilter);
+    }
+
+    function selectDayForPinnedAgent(cal) {
+      const agent = pinnedAgentIdx !== null ? currentAgentsList[pinnedAgentIdx] : null;
+      if (!agent || !cal) return;
+      const dayIndex = (cal.col - 3) % 7;
+      const weeklyShifts = agent.turni_settimanali[cal.weekKey] || [];
+      const rawShift = weeklyShifts[dayIndex] || "rip";
+      const cleanShift = ottieniTurnoPulito(rawShift);
+
+      activeShiftFilter = cleanShift || null;
+      generaFiltriTurnoRiferimento();
+      selectDay(cal.col, cal.labelEstesa, rawShift, agent);
+    }
+
+    function generaFiltriTurnoRiferimento() {
+      if (isEditMode) {
+        document.getElementById("shift-filter-container").style.display = "none";
+        return;
+      }
+      const wrapper = document.getElementById("shift-buttons-wrapper");
+      wrapper.innerHTML = "";
+
+      const chiaveResidenza = currentResidence.toLowerCase().trim();
+      const turniFiltrati = turniMappaResidenze[chiaveResidenza] || [];
+
+      if (turniFiltrati.length === 0 || !currentResidence) {
+        document.getElementById("shift-filter-container").style.display = "none";
+        return;
+      }
+
+      document.getElementById("shift-filter-container").style.display = "flex";
+
+      turniFiltrati.forEach(t => {
+        const btn = document.createElement("button");
+        btn.className = "shift-filter-btn";
+        btn.textContent = t;
+        if (activeShiftFilter === t) btn.classList.add("active");
+
+        btn.addEventListener("click", () => {
+          if (activeShiftFilter === t) {
+            activeShiftFilter = null;
+          } else {
+            activeShiftFilter = t;
+          }
+          generaFiltriTurnoRiferimento();
+          renderTable();
+          if (activeShiftFilter) {
+            placeDayPanel("main");
+            goToToday();
+            setTimeout(scrollCrewPanelIntoView, 80);
+          } else {
+            clearSelection();
+          }
+        });
+        wrapper.appendChild(btn);
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = "";
+      trElements = [];
+      crewCompletenessCache.clear();
+
+      if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
+        let trPinned = createRowDOM(currentAgentsList[pinnedAgentIdx], pinnedAgentIdx, true);
+        tbody.appendChild(trPinned);
+        trElements.push(trPinned);
+      }
+
+      currentAgentsList.forEach((agenteObj, ri) => {
+        if (ri === pinnedAgentIdx) return;
+        let tr = createRowDOM(agenteObj, ri, false);
+        tbody.appendChild(tr);
+        trElements.push(tr);
+      });
+
+      renderCoverageTable();
+      hidePastColumns();
+    }
+
+    function getCrewRequirements(residence) {
+      const key = String(residence || "").trim().toUpperCase();
+      let requirements = { ...(defaultCrewRequirements[key] || {}) };
+      try {
+        const saved = JSON.parse(localStorage.getItem(`ggnl_turni_requisiti_${residence}`) || "{}");
+        requirements = { ...requirements, ...saved };
+      } catch (e) {
+        // Mantiene i requisiti predefiniti se le preferenze locali non sono valide.
+      }
+      return requirements;
+    }
+
+    function getCrewDeficiencies(crew, shift) {
+      if (!shift || shift === "RIPOSO") return { required:null, incomplete:false };
+      const requirements = getCrewRequirements(currentResidence);
+      const requiredValue = requirements[shift] ?? requirements[String(shift).toUpperCase()];
+      const required = requiredValue == null || requiredValue === "" ? null : parseInt(requiredValue, 10);
+      if (required == null || Number.isNaN(required)) return { required:null, incomplete:false };
+      return { required, incomplete:crew.length < required };
+    }
+
+    function getCrewStatusForDate(cal, shiftValue) {
+      const emptyStatus = { incomplete:false, overstaffed:false, hasTransfer:false };
+      if (!cal || !currentResidence) return emptyStatus;
+      const cleanShift = ottieniTurnoPulito(shiftValue).toUpperCase();
+      const residenceKey = currentResidence.trim().toLowerCase();
+      const validShifts = turniMappaResidenze[residenceKey] || [];
+      if (!validShifts.some(shift => shift.toUpperCase() === cleanShift)) return emptyStatus;
+
+      const requirements = getCrewRequirements(currentResidence);
+      const requiredValue = requirements[cleanShift];
+      const required = requiredValue == null || requiredValue === "" ? null : parseInt(requiredValue, 10);
+      if (required == null || Number.isNaN(required)) return emptyStatus;
+
+      const cacheKey = `${currentResidence}|${cal.col}|${cleanShift}|${required}`;
+      if (crewCompletenessCache.has(cacheKey)) return crewCompletenessCache.get(cacheKey);
+
+      const dayIndex = (cal.col - 3) % 7;
+      let count = 0;
+      let hasTransfer = false;
+      Object.entries(globalData.residenze || {}).forEach(([residence, agents]) => {
+        (agents || []).forEach(agent => {
+          const rawShift = (agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip";
+          if (ottieniTurnoPulito(rawShift).toUpperCase() === cleanShift) {
+            count++;
+            const rawUpper = String(rawShift).trim().toUpperCase();
+            if (residence !== currentResidence || rawUpper.startsWith("C") || rawUpper.endsWith("C")) {
+              hasTransfer = true;
+            }
+          }
+        });
+      });
+      const status = {
+        incomplete:count < required,
+        overstaffed:count > required,
+        hasTransfer
+      };
+      crewCompletenessCache.set(cacheKey, status);
+      return status;
+    }
+
+    function toggleCrewMinimumPanel() {
+      const panel = document.getElementById("crew-minimum-panel");
+      const button = document.getElementById("crew-minimum-toggle");
+      if (!panel) return;
+      const isOpen = panel.classList.toggle("open");
+      button?.classList.toggle("active", isOpen);
+      if (isOpen) renderCrewMinimumControls();
+    }
+
+    function renderCrewMinimumControls() {
+      const grid = document.getElementById("crew-minimum-grid");
+      if (!grid || !currentResidence) return;
+      const residenceKey = currentResidence.trim().toLowerCase();
+      const shifts = turniMappaResidenze[residenceKey] || [];
+      const requirements = getCrewRequirements(currentResidence);
+      grid.innerHTML = shifts.map(shift => {
+        const value = requirements[shift] ?? requirements[String(shift).toUpperCase()] ?? "";
+        return `<label class="crew-minimum-item"><span>${shift}</span><input class="crew-minimum-input" type="number" min="1" max="20" inputmode="numeric" value="${escapeAttribute(value)}" aria-label="Minimo equipaggio ${shift}" onchange="updateCrewMinimum('${shift}', this.value)"></label>`;
+      }).join("");
+    }
+
+    function updateCrewMinimum(shift, rawValue) {
+      if (!currentResidence) return;
+      const storageKey = `ggnl_turni_requisiti_${currentResidence}`;
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch (e) { saved = {}; }
+      const value = String(rawValue).trim();
+      if (value === "") {
+        delete saved[shift];
+      } else {
+        saved[shift] = Math.max(1, Math.min(20, parseInt(value, 10) || 1));
+      }
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+      renderTable();
+      const selectedCal = dateCalendario.find(cal => cal.col === selectedCol);
+      if (selectedCal) selectDay(selectedCal.col, selectedCal.labelEstesa, selectedShiftValue);
+    }
+
+    function escapeAttribute(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    const odsPdfFiles = {
+      "16/2026": "O.d.S. n. 16-2026 ESTATE.pdf",
+      "18/2026": "O.d.S. n. 18-2026.pdf",
+      "19/2026": "O.d.S. n. 19-2026.pdf",
+      "20/2026": "O.d.S. n. 20-2026.pdf",
+      "21/2026": "O.d.S. n. 21-2026.pdf",
+      "22/2026": "O.d.S. n. 22-2026.pdf",
+      "23/2026": "O.d.S. n. 23-2026.pdf",
+      "24/2026": "O.d.S. n. 24-2026.pdf",
+      "25/2026": "O.d.S. n. 25-2026 firmato.pdf",
+      "26/2026": "O.d.S. n. 26-2026.pdf"
+    };
+
+    function getOdsPdfHref(ods) {
+      const fileName = odsPdfFiles[String(ods || "").trim()];
+      return fileName ? `ods/${encodeURIComponent(fileName)}` : "";
+    }
+
+    function renderAgentOdsBadge(variation) {
+      if (!variation) return "";
+      const ods = escapeAttribute(variation.ods || "ODS");
+      const original = escapeAttribute(normalizeOdsShift(variation.turno_originale).toUpperCase());
+      const updated = escapeAttribute(normalizeOdsShift(variation.turno_nuovo).toUpperCase());
+      const href = getOdsPdfHref(variation.ods);
+      const label = `ODS ${ods} · ${original} → ${updated}`;
+      const change = `${original} → ${updated}`;
+      return href
+        ? `<a class="agent-ods-badge" href="${href}" target="_blank" rel="noopener" title="${label}">${change}</a>`
+        : `<span class="agent-ods-badge" title="${label}">${change}</span>`;
+    }
+
+    function getShipDayInfo(calInfo, shift) {
+      const cleanShift = ottieniTurnoPulito(shift).toUpperCase();
+      if (!calInfo?.iso || !cleanShift || !Array.isArray(globalData?.turni_navi)) return null;
+      return globalData.turni_navi.find(item => {
+        const active = item.attiva !== false && !/^(no|false|0)$/i.test(String(item.attiva || ""));
+        return active && String(item.data || "").slice(0, 10) === calInfo.iso &&
+          String(item.corsa || "").trim().toUpperCase() === cleanShift;
+      }) || null;
+    }
+
+    function renderShipDayInfo(calInfo, shift) {
+      const info = getShipDayInfo(calInfo, shift);
+      if (!info) return "";
+      const ship = escapeAttribute(info.nave || "Non indicata");
+      const refuel = /^(sì|si|true|1)$/i.test(String(info.rifornimento_mattina || "").trim());
+      const mooring = String(info.ormeggio_serale || "").trim();
+      return `<div class="ship-day-info" aria-label="Dati nave della giornata">
+        <span class="ship-day-badge"><strong>Nave</strong>${ship}</span>
+        ${mooring ? `<span class="ship-day-badge mooring"><strong>Ormeggio serale</strong>${escapeAttribute(mooring)}</span>` : ''}
+        ${refuel ? '<span class="ship-day-badge refuel">⛽ Rifornimento</span>' : ''}
+      </div>`;
+    }
+
+    function appendCrewOdsVariations(container, calInfo, selectedShift) {
+      if (!container || !calInfo) return;
+      const targetShift = ottieniTurnoPulito(selectedShift).toUpperCase();
+      const focusedAgent = selectedCrewAgent || (pinnedAgentIdx !== null ? currentAgentsList[pinnedAgentIdx] : null);
+      const matches = [];
+
+      Object.values(globalData.residenze || {}).forEach(agents => {
+        (agents || []).forEach(agent => {
+          const variation = agent.variazioni_ods?.[calInfo.iso];
+          if (!variation) return;
+          if (focusedAgent && targetShift === "") {
+            const sameId = focusedAgent.id && agent.id && String(focusedAgent.id) === String(agent.id);
+            const sameName = normalizeOdsAgentName(focusedAgent.agente) === normalizeOdsAgentName(agent.agente);
+            if (!sameId && !sameName) return;
+          }
+          const originalShift = ottieniTurnoPulito(variation.turno_originale).toUpperCase();
+          const newShift = ottieniTurnoPulito(variation.turno_nuovo).toUpperCase();
+          if (originalShift !== targetShift && newShift !== targetShift) return;
+          matches.push({ agent, variation });
+        });
+      });
+
+      if (!matches.length) return;
+      const box = document.createElement("div");
+      box.className = "ods-crew-variations";
+      box.innerHTML = `<div class="ods-crew-title">Variazioni ODS</div><div class="ods-crew-list">${matches.map(({ agent, variation }) => {
+        const ods = escapeAttribute(variation.ods || "ODS");
+        const original = normalizeOdsShift(variation.turno_originale).toUpperCase();
+        const updated = normalizeOdsShift(variation.turno_nuovo).toUpperCase();
+        const href = getOdsPdfHref(variation.ods);
+        const link = href
+          ? `<a class="ods-crew-link" href="${href}" target="_blank" rel="noopener">Apri ODS ${ods}</a>`
+          : `<span class="ods-crew-change">ODS ${ods}</span>`;
+        return `<div class="ods-crew-item"><span class="ods-crew-agent">${escapeAttribute(agent.agente)}</span><span class="ods-crew-change">${escapeAttribute(original)} → ${escapeAttribute(updated)}</span>${link}</div>`;
+      }).join("")}</div>`;
+      container.appendChild(box);
+    }
+
+    function getCalendarVisualClasses(cal, index) {
+      const classes = [cal.weekIdx % 2 === 0 ? "week-even" : "week-odd"];
+      if (cal.giornoSett === "Lun") classes.push("week-start");
+      if (cal.giornoSett === "Dom") classes.push("week-end");
+      if (isTodayDate(cal.realObj)) classes.push("today-col");
+      if (cal.isBozza) classes.push("bozza-col");
+      if (cal.isBozza && dateCalendario[index - 1]?.isBozza !== true) classes.push("bozza-start");
+      return classes.join(" ");
+    }
+
+    function renderCoverageTable() {
+      const section = document.getElementById("coverage-section");
+      const thead = document.getElementById("coverage-thead");
+      const tbody = document.getElementById("coverage-tbody");
+      if (!section || !thead || !tbody || !globalData || !currentResidence) return;
+
+      const residenceKey = currentResidence.trim().toLowerCase();
+      const shifts = turniMappaResidenze[residenceKey] || [];
+      const requirements = getCrewRequirements(currentResidence);
+      document.getElementById("coverage-title").textContent = `Completezza equipaggi — ${currentResidence}`;
+      const shiftButtons = document.getElementById("coverage-shift-buttons");
+      if (shiftButtons) {
+        shiftButtons.innerHTML = shifts.map(shift =>
+          `<button class="coverage-shift-btn" type="button" data-shift="${shift}" onclick="switchCoverageShift('${shift}')">${shift}</button>`
+        ).join("");
+        updateCoverageShiftButtons(ottieniTurnoPulito(selectedShiftValue));
+      }
+      const residenceButtons = document.getElementById("coverage-residence-buttons");
+      if (residenceButtons) {
+        residenceButtons.innerHTML = Object.keys(globalData.residenze || {}).map(residence =>
+          `<button class="coverage-residence-btn ${residence === currentResidence ? "active" : ""}" data-res="${escapeAttribute(residence)}" type="button" onclick="selectCoverageResidence(decodeURIComponent('${encodeURIComponent(residence)}'))">${residence}</button>`
+        ).join("");
+      }
+      if (document.getElementById("crew-minimum-panel")?.classList.contains("open")) {
+        renderCrewMinimumControls();
+      }
+
+      thead.innerHTML = `<tr><th>Corsa</th>${dateCalendario.map((cal, index) =>
+        `<th data-col="${cal.col}" class="${getCalendarVisualClasses(cal, index)}"><span class="date-head-day">${cal.giornoSett}</span><span class="date-head-num">${cal.dayNum}</span>${cal.isBozza ? '<span class="date-head-draft" aria-label="Bozza" title="Bozza"></span>' : ''}</th>`
+      ).join("")}</tr>`;
+
+      tbody.innerHTML = shifts.map(shift => {
+        const shiftColor = shiftBorderColor[classify(shift)] || "#94a3b8";
+        const requiredValue = requirements[shift] ?? requirements[shift.toUpperCase()];
+        const required = requiredValue === "" || requiredValue == null ? null : parseInt(requiredValue, 10);
+
+        const cells = dateCalendario.map((cal, calIndex) => {
+          const dayIndex = (cal.col - 3) % 7;
+          const crew = [];
+          let hasTransfer = false;
+          Object.entries(globalData.residenze || {}).forEach(([residence, agents]) => {
+            (agents || []).forEach(agent => {
+              const rawShift = (agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip";
+              if (ottieniTurnoPulito(rawShift).toUpperCase() === shift.toUpperCase()) {
+                const rawUpper = String(rawShift).trim().toUpperCase();
+                const isTransfer = residence !== currentResidence || rawUpper.startsWith("C") || rawUpper.endsWith("C");
+                hasTransfer ||= isTransfer;
+                crew.push(isTransfer ? `${agent.agente} (trasferta da ${residence})` : agent.agente);
+              }
+            });
+          });
+
+          const count = crew.length;
+          const hasOdsVariation = Object.values(globalData.residenze || {}).some(agents =>
+            (agents || []).some(agent => {
+              const variation = agent.variazioni_ods?.[cal.iso];
+              if (!variation) return false;
+              return [variation.turno_originale, variation.turno_nuovo].some(value =>
+                ottieniTurnoPulito(value).toUpperCase() === shift.toUpperCase()
+              );
+            })
+          );
+          const status = required == null || Number.isNaN(required) ? "unconfigured" :
+            count < required ? "incomplete" : count > required ? "overstaffed" : "complete";
+          const label = required == null || Number.isNaN(required) ? String(count) : `${count}/${required}`;
+          const hasRequirement = required != null && !Number.isNaN(required);
+          const cellNotices = [
+            hasRequirement && count > required ? "Sovrannumero" : "",
+            hasTransfer ? "Trasferta" : "",
+            hasOdsVariation ? "Variazione ODS" : ""
+          ].filter(Boolean);
+          const title = escapeAttribute(
+            (crew.length ? crew.join(", ") : "Nessun agente assegnato") +
+            (cellNotices.length ? ` · ${cellNotices.join(" · ")}` : "")
+          );
+          const indicators =
+            (hasRequirement ? `<span class="coverage-indicator ${count < required ? "incomplete" : "complete"}"></span>` : "") +
+            (hasRequirement && count > required ? `<span class="coverage-indicator overstaffed"></span>` : "") +
+            (hasTransfer ? `<span class="coverage-indicator transfer"></span>` : "") +
+            (hasOdsVariation ? `<span class="coverage-indicator ods"></span>` : "");
+          return `<td data-col="${cal.col}" class="coverage-cell ${status} ${hasTransfer ? "has-transfer" : ""} ${getCalendarVisualClasses(cal, calIndex)}" title="${title}" onclick="openCoverageCrew(${cal.col}, '${shift}')"><span class="coverage-indicators">${indicators}</span><span class="coverage-count">${label}</span></td>`;
+        }).join("");
+
+        return `<tr data-shift="${shift}" style="--coverage-shift-color:${shiftColor};--coverage-shift-bg:${shiftColor}24"><td>${shift}</td>${cells}</tr>`;
+      }).join("");
+
+      section.style.display = shifts.length ? "block" : "none";
+    }
+
+    function getTableGradeRank(tr) {
+      const gradeOrder = {
+        "grado-capitano": 1,
+        "grado-capo": 2,
+        "grado-timoniere": 3,
+        "grado-motorista": 4,
+        "grado-aiuto": 5,
+        "grado-marinaio": 6,
+        "grado-operaio": 7
+      };
+      const gradeClass = Object.keys(gradeOrder).find(cls => tr.classList.contains(cls));
+      return gradeOrder[gradeClass] || 99;
+    }
+
+    function getAgentForTableRow(tr) {
+      const rowIndex = parseInt(tr.dataset.rowIndex);
+      const residence = tr.dataset.residence || currentResidence;
+      return globalData?.residenze?.[residence]?.[rowIndex] || null;
+    }
+
+    function removeTemporaryTransferRows() {
+      const temporaryRows = trElements.filter(tr => tr.classList.contains("temporary-transfer-row"));
+      temporaryRows.forEach(tr => tr.remove());
+      trElements = trElements.filter(tr => !tr.classList.contains("temporary-transfer-row"));
+    }
+
+    function importTemporaryTransferRows(calInfo, dayIndex, selectedShift) {
+      removeTemporaryTransferRows();
+      if (!globalData?.residenze || !calInfo || !selectedShift) return;
+
+      const tbody = document.getElementById("tbody");
+      Object.keys(globalData.residenze).forEach(residence => {
+        if (residence === currentResidence) return;
+
+        globalData.residenze[residence].forEach((agent, rowIndex) => {
+          const shifts = agent.turni_settimanali[calInfo.weekKey] || [];
+          const rawShift = shifts[dayIndex] || "rip";
+          if (ottieniTurnoPulito(rawShift) !== selectedShift) return;
+
+          const tr = createRowDOM(agent, rowIndex, false, residence, true);
+          tbody.appendChild(tr);
+          trElements.push(tr);
+        });
+      });
+    }
+
+    function moveSelectedCrewToTop() {
+      const tbody = document.getElementById("tbody");
+      if (!tbody) return;
+
+      trElements.sort((a, b) => {
+        const pinnedA = a.classList.contains("pinned-row") ? 0 : 1;
+        const pinnedB = b.classList.contains("pinned-row") ? 0 : 1;
+        if (pinnedA !== pinnedB) return pinnedA - pinnedB;
+
+        const matchA = a.classList.contains("row-match") ? 0 : 1;
+        const matchB = b.classList.contains("row-match") ? 0 : 1;
+        if (matchA !== matchB) return matchA - matchB;
+
+        const gradeDifference = getTableGradeRank(a) - getTableGradeRank(b);
+        if (gradeDifference !== 0) return gradeDifference;
+
+        const agentA = getAgentForTableRow(a);
+        const agentB = getAgentForTableRow(b);
+        return String(agentA?.agente || "").localeCompare(String(agentB?.agente || ""), "it");
+      });
+
+      trElements.forEach(tr => tbody.appendChild(tr));
+    }
+
+    function restoreDefaultTableOrder() {
+      const tbody = document.getElementById("tbody");
+      if (!tbody) return;
+
+      removeTemporaryTransferRows();
+
+      trElements.sort((a, b) => {
+        const pinnedA = a.classList.contains("pinned-row") ? 0 : 1;
+        const pinnedB = b.classList.contains("pinned-row") ? 0 : 1;
+        if (pinnedA !== pinnedB) return pinnedA - pinnedB;
+        return parseInt(a.dataset.rowIndex) - parseInt(b.dataset.rowIndex);
+      });
+
+      trElements.forEach(tr => tbody.appendChild(tr));
+    }
+
+    function createRowDOM(agenteObj, ri, isPinned = false, residence = currentResidence, isTemporaryTransfer = false) {
+      const tr = document.createElement("tr");
+      tr.dataset.rowIndex = ri;
+      tr.dataset.residence = residence;
+      tr.classList.add(getGradeClass(agenteObj.id, agenteObj.agente, agenteObj.qualifica));
+      if (isPinned) tr.classList.add("pinned-row");
+      if (isTemporaryTransfer) tr.classList.add("temporary-transfer-row");
+
+      const transferLabel = isTemporaryTransfer ? `<span class="transfer-table-label">Trasferta da ${residence}</span>` : "";
+      let html = `<td class="td-name" title="${agenteObj.id || ''} ${agenteObj.agente} — ${agenteObj.qualifica || ''}"><span class="agent-name-text">${agenteObj.agente}</span>${transferLabel}</td>`;
+      tr.innerHTML = html;
+
+      tr.querySelector(".td-name").addEventListener("click", () => {
+        if (isEditMode) return;
+        if (isTemporaryTransfer) return;
+        if (pinnedAgentIdx === ri) {
+          resetCleanTable();
+          return;
+        }
+
+        placeDayPanel("main");
+        pinnedAgentIdx = ri;
+        const todayCal = dateCalendario.find(cal => isTodayDate(cal.realObj));
+        renderTable();
+        if (todayCal) selectDayForPinnedAgent(todayCal);
+        setTimeout(() => {
+          scrollCrewPanelIntoView();
+        }, 80);
+      });
+
+      dateCalendario.forEach(cal => {
+        let arrayTurniSettimana = agenteObj.turni_settimanali[cal.weekKey] || ["rip", "rip", "rip", "rip", "rip", "rip",
+          "rip"
+        ];
+        let giornoInternoIdx = (cal.col - 3) % 7;
+        let turnoVal = arrayTurniSettimana[giornoInternoIdx] || "rip";
+
+        const td = document.createElement("td");
+        const tdClasses = [];
+        tdClasses.push(cal.weekIdx % 2 === 0 ? "week-even" : "week-odd");
+        if (cal.giornoSett === "Lun") tdClasses.push("week-start");
+        if (cal.giornoSett === "Dom") tdClasses.push("week-end");
+        if (isTodayDate(cal.realObj)) tdClasses.push("today-col");
+        if (cal.isBozza) tdClasses.push("bozza-col");
+        const prevCal = dateCalendario[dateCalendario.indexOf(cal) - 1];
+        if (cal.isBozza && (!prevCal || !prevCal.isBozza)) tdClasses.push("bozza-start");
+          const crewStatus = getCrewStatusForDate(cal, turnoVal);
+        const odsVariation = agenteObj.variazioni_ods?.[cal.iso] || null;
+        const shipInfo = getShipDayInfo(cal, turnoVal);
+        const hasRefuel = /^(sì|si|true|1)$/i.test(String(shipInfo?.rifornimento_mattina || "").trim());
+        const hasCrewIndicators = crewStatus.incomplete || crewStatus.overstaffed || crewStatus.hasTransfer || odsVariation;
+        if (hasCrewIndicators) tdClasses.push("has-crew-indicators");
+        if (hasRefuel) tdClasses.push("has-refuel-indicator");
+        td.className = tdClasses.join(" ");
+        td.dataset.col = cal.col;
+        const cellNotices = [
+          crewStatus.overstaffed ? "Sovrannumero" : "",
+          crewStatus.hasTransfer ? "Trasferta" : "",
+          hasRefuel ? "Rifornimento" : "",
+          odsVariation ? `Variazione ODS${odsVariation.ods ? ` ${odsVariation.ods}` : ""}` : ""
+        ].filter(Boolean);
+        if (cellNotices.length) td.title = cellNotices.join(" · ");
+
+        if (isEditMode) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.className = "edit-input";
+          input.value = turnoVal;
+          input.dataset.weekKey = cal.weekKey;
+          input.dataset.dayIdx = giornoInternoIdx;
+          input.dataset.agentIdx = ri;
+          td.appendChild(input);
+        } else {
+          const crewIndicators = hasCrewIndicators
+            ? `<span class="upper-cell-indicators">${crewStatus.incomplete ? '<span class="upper-cell-indicator incomplete"></span>' : ''}${crewStatus.overstaffed ? '<span class="upper-cell-indicator overstaffed"></span>' : ''}${crewStatus.hasTransfer ? '<span class="upper-cell-indicator transfer"></span>' : ''}${odsVariation ? '<span class="upper-cell-indicator ods"></span>' : ''}</span>`
+            : "";
+          const refuelIndicator = hasRefuel ? '<span class="upper-cell-refuel" aria-label="Rifornimento"></span>' : '';
+          td.innerHTML = `${crewIndicators}${refuelIndicator}${pill(turnoVal)}`;
+          td.addEventListener("click", () => {
+            placeDayPanel("main");
+            // Il clic su una cella deve sempre aprire la corsa scritta nella cella,
+            // indipendentemente dal filtro o dall'agente selezionato in precedenza.
+            selectDay(cal.col, cal.labelEstesa, turnoVal, agenteObj);
+          });
+        }
+        tr.appendChild(td);
+      });
+
+      return tr;
+    }
+
+    function selectDay(col, label, cellShiftValue, focusAgent = null) {
+      if (isEditMode) return;
+      // Ogni nuova selezione usa il giorno scelto come prima colonna visibile.
+      showPastColumns = false;
+      selectedCol = col;
+      selectedShiftValue = cellShiftValue || selectedShiftValue;
+      selectedCrewAgent = focusAgent;
+      document.querySelectorAll(".date-header th").forEach(t => t.classList.remove("selected-day"));
+      let targetTh = document.querySelector(`.date-header th[data-col="${col}"]`);
+      if (targetTh) targetTh.classList.add("selected-day");
+
+      let calInfo = dateCalendario.find(c => c.col === col);
+      let giornoInternoIdx = (col - 3) % 7;
+      const cleanShift = ottieniTurnoPulito(cellShiftValue);
+      const isRest = cleanShift === "";
+      const residenceShifts = turniMappaResidenze[String(currentResidence).toLowerCase().trim()] || [];
+      const isCrewShift = residenceShifts.some(shift => String(shift).toUpperCase() === cleanShift);
+      const myShiftPuro = isRest ? "RIPOSO" : cleanShift;
+      updateCoverageShiftButtons(cleanShift);
+      updateCoverageCellSelection(col, cleanShift);
+
+      if (!calInfo) {
+        document.getElementById("tbody").classList.remove("has-selection");
+        trElements.forEach(tr => tr.classList.remove("row-match"));
+        restoreDefaultTableOrder();
+        document.getElementById("day-panel").classList.remove("open");
+        return;
+      }
+
+      document.getElementById("tbody").classList.add("has-selection");
+
+      if (isCrewShift) importTemporaryTransferRows(calInfo, giornoInternoIdx, cleanShift);
+          hidePastColumns();
+
+      trElements.forEach(tr => {
+        let ag = getAgentForTableRow(tr);
+        if (!ag) return;
+        let turniSett = ag.turni_settimanali[calInfo.weekKey] || [];
+        let hisShiftRaw = turniSett[giornoInternoIdx] || "rip";
+        let hisShiftPuro = ottieniTurnoPulito(hisShiftRaw);
+
+        let match = (hisShiftPuro === cleanShift);
+        tr.classList.toggle("row-match", match);
+
+        tr.querySelectorAll("td[data-col]").forEach(td => {
+          td.classList.toggle("col-selected", parseInt(td.dataset.col) === col);
+        });
+      });
+
+      moveSelectedCrewToTop();
+
+      const panelGroups = document.getElementById("panel-groups");
+      panelGroups.innerHTML = "";
+
+      const myShiftCls = classify(cellShiftValue);
+      const myColor = shiftBorderColor[myShiftCls] || "#6b7280";
+      const myDuration = isCrewShift ? getShiftDuration(cleanShift, calInfo) : "";
+      const shipDayInfo = isCrewShift ? renderShipDayInfo(calInfo, cleanShift) : "";
+
+      const myDiv = document.createElement("div");
+      myDiv.className = "shift-group";
+      myDiv.innerHTML = `<div class="colleague-cards">
+        <div class="colleague-card" style="border:1px solid ${myColor}99; border-left:4px solid ${myColor}; background:linear-gradient(135deg, ${myColor}38, ${myColor}18); padding:12px 14px;">
+          <div class="service-summary">
+            <div class="service-identity">
+              <div class="service-name-row">
+                <span class="service-code" style="color:${myColor}">${myShiftPuro}</span>
+                ${myDuration ? `<span class="shift-duration">${myDuration}</span>` : ""}
+              </div>
+              <div class="shift-navigation" aria-label="Cambia corsa">
+                <button class="shift-arrow" type="button" onclick="changeSelectedShift(-1)" aria-label="Corsa precedente">←</button>
+                <span class="shift-nav-label">Corsa</span>
+                <button class="shift-arrow" type="button" onclick="changeSelectedShift(1)" aria-label="Corsa successiva">→</button>
+              </div>
+            </div>
+            ${shipDayInfo}
+            <div class="panel-navigation" aria-label="Cambia giorno">
+              <button class="panel-arrow" id="previous-day-btn" type="button" onclick="changeSelectedDay(-1)" aria-label="Giorno precedente">←</button>
+              <button class="panel-arrow panel-today" id="today-day-btn" type="button" onclick="goToToday()">Oggi</button>
+              <button class="panel-arrow" id="next-day-btn" type="button" onclick="changeSelectedDay(1)" aria-label="Giorno successivo">→</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      panelGroups.appendChild(myDiv);
+      let odsContainer = null;
+
+      if (isCrewShift) {
+        let allColleagues = [];
+        Object.keys(globalData.residenze).forEach(resKey => {
+        globalData.residenze[resKey].forEach(ag => {
+          let turniSett = ag.turni_settimanali[calInfo.weekKey] || [];
+          let hisShiftRaw = turniSett[giornoInternoIdx] || "rip";
+          let hisShiftPuro = ottieniTurnoPulito(hisShiftRaw);
+
+          if (hisShiftPuro === cleanShift) {
+            let rawUpper = hisShiftRaw.toUpperCase();
+            let isTrasfertaFlag = rawUpper.startsWith("C") || rawUpper.endsWith("C") || resKey !==
+              currentResidence;
+
+            allColleagues.push({
+              id: ag.id,
+              agente: ag.agente,
+              qualifica: ag.qualifica,
+              residenzaOrigine: resKey,
+              isTrasferta: isTrasfertaFlag,
+              rawShift: hisShiftRaw,
+              isInstructor: /\*/.test(String(hisShiftRaw)),
+              odsVariation: ag.variazioni_ods?.[calInfo.iso] || null
+            });
+          }
+        });
+        });
+
+        const div = document.createElement("div");
+        div.className = "shift-group";
+        const crewStatus = getCrewDeficiencies(allColleagues, myShiftPuro);
+        const shortageText = crewStatus.incomplete
+          ? `<div class="crew-alert"><strong>Incompleto</strong></div>`
+          : "";
+        div.innerHTML = `${shortageText}<div class="colleague-cards" id="colleague-list"></div>`;
+        panelGroups.appendChild(div);
+        odsContainer = div;
+
+      const list = div.querySelector("#colleague-list");
+      const gradeOrder = {
+        "grado-capitano": 1,
+        "grado-capo": 2,
+        "grado-timoniere": 3,
+        "grado-motorista": 4,
+        "grado-aiuto": 5,
+        "grado-marinaio": 6,
+        "grado-operaio": 7
+      };
+      allColleagues.sort((a, b) => {
+        const gradeA = gradeOrder[getGradeClass(a.id, a.agente, a.qualifica)] || 99;
+        const gradeB = gradeOrder[getGradeClass(b.id, b.agente, b.qualifica)] || 99;
+        return gradeA - gradeB || String(a.agente).localeCompare(String(b.agente), "it");
+      });
+
+        allColleagues.forEach(r => {
+        const gradeClass = getGradeClass(r.id, r.agente, r.qualifica);
+        const grade = gradeInfo[gradeClass] || { label: "Marinaio", color: "#9ca3af" };
+        const card = document.createElement("div");
+        card.className = `colleague-card${r.isInstructor ? " instructor-card" : ""}${r.isTrasferta ? " transfer-card" : ""}`;
+        card.style.cssText = `border-left-color:${grade.color};`;
+        if (r.isTrasferta) card.title = `In trasferta da ${r.residenzaOrigine}`;
+
+        let infoResidenza = "";
+        if (r.isTrasferta) {
+          infoResidenza = `<span class="c-res" style="color:#93c5fd;border-color:rgba(96,165,250,.45);">TRASFERTA DA ${String(r.residenzaOrigine).toUpperCase()}</span>`;
+        }
+
+        const instructorMark = r.isInstructor ? `<span class="c-res instructor-mark">SOVRANNUMERO</span>` : "";
+        const odsBadge = renderAgentOdsBadge(r.odsVariation);
+        card.innerHTML = `<span class="c-num">${r.id || "—"}</span>
+          <span class="c-name">${r.agente}${odsBadge}${instructorMark} ${infoResidenza}</span>
+          <span class="c-grade" style="color:${grade.color}; background:${grade.color}22; border:1px solid ${grade.color}44;">${grade.label}</span>`;
+          list.appendChild(card);
+        });
+      }
+
+      if (!odsContainer) {
+        const odsSide = document.createElement("div");
+        odsSide.className = "shift-group ods-only-group";
+        appendCrewOdsVariations(odsSide, calInfo, cellShiftValue);
+        if (odsSide.childElementCount) panelGroups.appendChild(odsSide);
+      }
+
+      document.getElementById("panel-date-label").innerHTML = `<span>⬡</span>${label}`;
+      const currentIndex = dateCalendario.findIndex(c => c.col === col);
+      document.getElementById("previous-day-btn").disabled = currentIndex <= 0;
+      document.getElementById("next-day-btn").disabled = currentIndex < 0 || currentIndex >= dateCalendario.length - 1;
+      document.getElementById("day-panel").classList.add("open");
+      setTimeout(scrollCrewPanelIntoView, 40);
+    }
+
+    function scrollCrewPanelIntoView() {
+      const target = dayPanelPlacement === "coverage"
+        ? document.querySelector("#coverage-section .coverage-shift-controls")
+        : document.getElementById("day-panel");
+      if (!target) return;
+      const targetTop = target.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ left:window.scrollX, top:targetTop, behavior:"smooth" });
+    }
+
+    function placeDayPanel(placement) {
+      const panel = document.getElementById("day-panel");
+      const matrix = document.getElementById("matrix-scroll-wrap");
+      const coverage = document.getElementById("coverage-section");
+      if (!panel || !matrix || !coverage) return;
+      dayPanelPlacement = placement;
+      const target = placement === "coverage"
+        ? coverage.querySelector(".coverage-wrap")
+        : matrix;
+      if (!target) return;
+      if (panel.nextElementSibling !== target) target.parentNode.insertBefore(panel, target);
+      if (placement !== "coverage") updateCoverageCellSelection(null, "");
+    }
+
+    function setupSynchronizedTableScrolls() {
+      const mainWrap = document.getElementById("matrix-scroll-wrap");
+      const coverageWrap = document.getElementById("coverage-matrix-wrap");
+      if (!mainWrap || !coverageWrap || mainWrap.dataset.scrollSyncReady) return;
+      mainWrap.dataset.scrollSyncReady = "true";
+      const synchronize = (source, target) => {
+        if (syncingHorizontalScroll) return;
+        syncingHorizontalScroll = true;
+        target.scrollLeft = source.scrollLeft;
+        requestAnimationFrame(() => { syncingHorizontalScroll = false; });
+      };
+      mainWrap.addEventListener("scroll", () => synchronize(mainWrap, coverageWrap), { passive:true });
+      coverageWrap.addEventListener("scroll", () => synchronize(coverageWrap, mainWrap), { passive:true });
+    }
+
+    function openCoverageCrew(col, shift) {
+      const cal = dateCalendario.find(item => item.col === col);
+      if (!cal) return;
+      placeDayPanel("coverage");
+      selectDay(cal.col, cal.labelEstesa, shift);
+    }
+
+    function updateCoverageShiftButtons(shift) {
+      const selectedShift = String(shift || "").toUpperCase();
+      document.querySelectorAll(".coverage-shift-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.shift.toUpperCase() === selectedShift);
+      });
+    }
+
+    function updateCoverageCellSelection(col, shift) {
+      document.querySelectorAll(".coverage-cell.coverage-selected").forEach(cell => {
+        cell.classList.remove("coverage-selected");
+      });
+      if (dayPanelPlacement !== "coverage" || col == null || !shift) return;
+      const selectedRow = Array.from(document.querySelectorAll("#coverage-tbody tr"))
+        .find(row => row.dataset.shift.toUpperCase() === String(shift).toUpperCase());
+      const selectedCell = selectedRow?.querySelector(`.coverage-cell[data-col="${col}"]`);
+      selectedCell?.classList.add("coverage-selected");
+    }
+
+    function switchCoverageShift(shift) {
+      let cal = dateCalendario.find(item => item.col === selectedCol);
+      if (!cal) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        cal = dateCalendario.find(item => {
+          const date = new Date(item.realObj);
+          date.setHours(0, 0, 0, 0);
+          return date.getTime() === today.getTime();
+        }) || dateCalendario.find(item => item.realObj >= today) || dateCalendario[0];
+      }
+      if (cal) openCoverageCrew(cal.col, shift);
+    }
+
+    function selectCoverageResidence(residence) {
+      const previousCol = selectedCol;
+      const previousShift = ottieniTurnoPulito(selectedShiftValue);
+      selectResidence(residence);
+      const availableShifts = turniMappaResidenze[String(residence).trim().toLowerCase()] || [];
+      const targetShift = availableShifts.includes(previousShift) ? previousShift : availableShifts[0];
+      const cal = dateCalendario.find(item => item.col === previousCol);
+      if (!cal || !targetShift) return;
+      activeShiftFilter = targetShift;
+      generaFiltriTurnoRiferimento();
+      renderTable();
+      placeDayPanel("coverage");
+      selectDay(cal.col, cal.labelEstesa, targetShift);
+    }
+
+    function changeSelectedDay(direction) {
+      const currentIndex = dateCalendario.findIndex(c => c.col === selectedCol);
+      const target = dateCalendario[currentIndex + direction];
+      if (!target) return;
+      if (pinnedAgentIdx !== null) {
+        selectDayForPinnedAgent(target);
+      } else {
+        const shift = activeShiftFilter || selectedShiftValue;
+        selectDay(target.col, target.labelEstesa, shift);
+      }
+      setTimeout(() => revealSelectedDate(target), 90);
+    }
+
+    function revealSelectedDate(cal) {
+      if (!showPastColumns) {
+        window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
+        return;
+      }
+      scrollDateColumnIntoView(cal);
+    }
+
+    function scrollDateColumnIntoView(cal, behavior = "smooth") {
+      const coverageMode = dayPanelPlacement === "coverage";
+      const wrap = document.getElementById(coverageMode ? "coverage-matrix-wrap" : "matrix-scroll-wrap");
+      const header = document.querySelector(coverageMode ? "#coverage-thead" : ".date-header");
+      const th = header?.querySelector(`th[data-col="${cal.col}"]`);
+      const fixedHeader = header?.querySelector("th:first-child");
+      if (!wrap || !th) return;
+      const offset = Math.max(0, th.getBoundingClientRect().left + window.scrollX - (fixedHeader?.offsetWidth || 0) - 8);
+      window.scrollTo({ left:offset, top:window.scrollY, behavior });
+    }
+
+    function changeSelectedShift(direction) {
+      const residenceKey = String(currentResidence || "").trim().toLowerCase();
+      const shifts = turniMappaResidenze[residenceKey] || [];
+      const cal = dateCalendario.find(item => item.col === selectedCol);
+      if (!shifts.length || !cal) return;
+      const currentShift = ottieniTurnoPulito(selectedShiftValue);
+      const currentIndex = shifts.findIndex(shift => shift.toUpperCase() === currentShift.toUpperCase());
+      const targetIndex = currentIndex < 0
+        ? (direction < 0 ? shifts.length - 1 : 0)
+        : (currentIndex + direction + shifts.length) % shifts.length;
+      const targetShift = shifts[targetIndex];
+      activeShiftFilter = targetShift;
+      generaFiltriTurnoRiferimento();
+      selectDay(cal.col, cal.labelEstesa, targetShift);
+    }
+
+    function goToToday() {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const target = dateCalendario.find(cal => {
+        const date = new Date(cal.realObj);
+        date.setHours(0, 0, 0, 0);
+        return date.getTime() === now.getTime();
+      });
+      if (!target) return;
+      if (pinnedAgentIdx !== null) {
+        selectDayForPinnedAgent(target);
+      } else {
+        const shift = activeShiftFilter || selectedShiftValue;
+        selectDay(target.col, target.labelEstesa, shift);
+      }
+      setTimeout(() => revealSelectedDate(target), 90);
+    }
+
+    function clearSelection() {
+      selectedCol = null;
+      selectedShiftValue = "";
+      selectedCrewAgent = null;
+      document.getElementById("day-panel").classList.remove("open");
+      document.getElementById("tbody").classList.remove("has-selection");
+      document.querySelectorAll(".date-header th").forEach(t => t.classList.remove("selected-day"));
+      trElements.forEach(tr => {
+        tr.classList.remove("row-match");
+        tr.querySelectorAll("td").forEach(td => td.classList.remove("col-selected"));
+      });
+      restoreDefaultTableOrder();
+      showPastColumns = false;
+      hidePastColumns();
+      window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
+    }
+
+    function resetCleanTable() {
+      pinnedAgentIdx = null;
+      activeShiftFilter = null;
+      const search = document.getElementById("agent-search");
+      if (search) search.value = "";
+      clearSelection();
+      generaFiltriTurnoRiferimento();
+      renderTable();
+      window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
+    }
+
+    function filterAgents(query) {
+      const q = (query || "").trim().toLocaleLowerCase("it");
+      let visible = 0;
+      document.querySelectorAll("#tbody tr").forEach(tr => {
+        const match = !q || tr.textContent.toLocaleLowerCase("it").includes(q);
+        tr.classList.toggle("agent-hidden", !match);
+        if (match) visible++;
+      });
+      document.getElementById("stat-agents").textContent = visible;
+    }
+
+    function selectResidence(resName) {
+      if (isEditMode) {
+        if (!confirm("Uscire dalla modalità modifica senza salvare i cambi correnti?")) return;
+        toggleEditMode();
+      }
+      currentResidence = resName;
+      pinnedAgentIdx = null;
+      activeShiftFilter = null;
+
+      currentAgentsList = globalData.residenze[resName] || [];
+      const loggedIndex = findLoggedAgentIndex(resName);
+      if (loggedIndex >= 0) pinnedAgentIdx = loggedIndex;
+      document.getElementById("stat-residence").textContent = resName;
+      document.getElementById("stat-agents").textContent = currentAgentsList.length;
+      const search = document.getElementById("agent-search");
+      if (search) search.value = "";
+      document.querySelectorAll(".res-btn, .coverage-residence-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.res === resName));
+
+      generaFiltriTurnoRiferimento();
+
+      if (currentAgentsList.length > 0) {
+        document.getElementById("matrix-scroll-wrap").style.display = "block";
+        renderTable();
+        if (selectedCol) {
+          let cal = dateCalendario.find(c => c.col === selectedCol);
+          if (cal) selectDay(selectedCol, cal.labelEstesa, activeShiftFilter || "");
+        }
+      } else {
+        clearSelection();
+      }
+    }
+
+    function hidePastColumns() {
+      const selectedDate = selectedCol != null
+        ? dateCalendario.find(cal => cal.col === selectedCol)?.realObj
+        : null;
+      const referenceDate = selectedDate ? new Date(selectedDate) : new Date();
+      referenceDate.setHours(0, 0, 0, 0);
+      dateCalendario.forEach(cal => {
+        const isPast = cal.realObj < referenceDate;
+        const displayValue = (!showPastColumns && isPast) ? "none" : "table-cell";
+        document.querySelectorAll(`th[data-col="${cal.col}"]`).forEach(el => {
+          el.style.display = displayValue;
+          el.style.opacity = "1";
+        });
+        document.querySelectorAll(`td[data-col="${cal.col}"]`).forEach(td => {
+          td.style.display = displayValue;
+          td.style.opacity = "1";
+        });
+      });
+
+      const btn = document.getElementById("togglePastBtn");
+      if (btn) btn.textContent = showPastColumns ? "🙈 Nascondi passato" : "👁 Mostra passato";
+    }
+
+    function togglePastColumns() {
+      showPastColumns = !showPastColumns;
+      hidePastColumns();
+      const selectedCal = dateCalendario.find(cal => cal.col === selectedCol);
+      setTimeout(() => selectedCal ? scrollDateColumnIntoView(selectedCal, "auto") : scrollToToday(), 30);
+    }
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const btn = document.getElementById("toggle-edit-btn");
+      const btnSave = document.getElementById("save-edit-btn");
+      const btnDl = document.getElementById("download-json-btn");
+
+      if (isEditMode) {
+        clearSelection();
+        btn.textContent = "✕ Annulla";
+        btn.classList.add("editing");
+        btnSave.style.display = "inline-flex";
+        btnDl.style.display = "inline-flex";
+      } else {
+        btn.textContent = "✍ Abilita Modifiche";
+        btn.classList.remove("editing");
+        btnSave.style.display = "none";
+        btnDl.style.display = "none";
+      }
+
+      generaFiltriTurnoRiferimento();
+      renderTable();
+    }
+
+    function saveChanges() {
+      const inputs = document.querySelectorAll(".edit-input");
+      inputs.forEach(input => {
+        const aIdx = parseInt(input.dataset.agentIdx);
+        const wKey = input.dataset.weekKey;
+        const dIdx = parseInt(input.dataset.dayIdx);
+        const nuovoValore = input.value.trim() === "" ? "rip" : input.value.trim();
+
+        if (currentAgentsList[aIdx]) {
+          if (!currentAgentsList[aIdx].turni_settimanali[wKey]) {
+            currentAgentsList[aIdx].turni_settimanali[wKey] = ["rip", "rip", "rip", "rip", "rip", "rip", "rip"];
+          }
+          currentAgentsList[aIdx].turni_settimanali[wKey][dIdx] = nuovoValore;
+        }
+      });
+
+      globalData.residenze[currentResidence] = currentAgentsList;
+      localStorage.setItem("turno_finali_data", JSON.stringify(globalData));
+
+      alert("Cambio turni salvato correttamente in memoria locale!");
+      toggleEditMode();
+    }
+
+    function downloadUpdatedJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(globalData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "turni_finali.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function renderResidenceButtons() {
+      const container = document.getElementById("top-residence-buttons");
+      if (!container) return;
+      container.innerHTML = "";
+      Object.keys(globalData.residenze).forEach(res => {
+        const btn = document.createElement("button");
+        btn.className = "coverage-residence-btn";
+        btn.dataset.res = res;
+        btn.textContent = res;
+        btn.addEventListener("click", () => selectResidence(res));
+        container.appendChild(btn);
+      });
+    }
+
+
+    function formatDateISOClient(d) {
+      return d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0");
+    }
+
+    function normalizeOdsAgentName(value) {
+      return String(value || "")
+        .trim()
+        .toLocaleLowerCase("it")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[.'’`]/g, "")
+        .replace(/\s+/g, " ");
+    }
+
+    function normalizeOdsShift(value) {
+      const shift = String(value || "").trim();
+      if (!shift || /^={3,}$/.test(shift) || /^(rip|rip\.|riposo)$/i.test(shift)) return "rip";
+      return shift.toUpperCase();
+    }
+
+    function applyOdsVariations(data) {
+      const variations = Array.isArray(data?.variazioni_ods)
+        ? [...data.variazioni_ods].sort((a, b) => {
+            const odsNumber = value => Number.parseInt(String(value?.ods || "").match(/\d+/)?.[0] || "0", 10);
+            return odsNumber(a) - odsNumber(b);
+          })
+        : [];
+      if (!variations.length) return data;
+
+      const agents = Object.values(data.residenze || {}).flat();
+
+      variations.forEach(variation => {
+        if (!variation || variation.attiva === false || !variation.data || !variation.agente) return;
+
+        const variationId = String(variation.id_agente || "").trim();
+        const variationName = normalizeOdsAgentName(variation.agente);
+        const agent = agents.find(item => {
+          const agentName = normalizeOdsAgentName(item.agente);
+          return (variationId && String(item.id || "").trim() === variationId) ||
+            agentName === variationName ||
+            agentName.startsWith(variationName + " ");
+        });
+        if (!agent) return;
+
+        const week = settimaneInfo.find(item => item.dateIso.includes(variation.data));
+        if (!week) return;
+        const dayIndex = week.dateIso.indexOf(variation.data);
+        const weeklyShifts = agent.turni_settimanali?.[week.key];
+        if (!weeklyShifts || dayIndex < 0) return;
+
+        const currentShift = weeklyShifts[dayIndex] || "rip";
+        const newShift = normalizeOdsShift(variation.turno_nuovo);
+        weeklyShifts[dayIndex] = newShift;
+
+        if (!agent.variazioni_ods) agent.variazioni_ods = {};
+        agent.variazioni_ods[variation.data] = {
+          ...variation,
+          // Il turno di partenza deve riflettere sempre il valore corrente
+          // di Foglio1; quello riportato nell'ODS potrebbe essere precedente
+          // a una successiva correzione del turno base.
+          turno_originale: normalizeOdsShift(currentShift),
+          turno_nuovo: newShift
+        };
+      });
+
+      return data;
+    }
+
+    function adattaFormatoNaviturni(data) {
+      if (!data || !Array.isArray(data.date)) return data;
+
+      settimaneInfo.length = 0;
+      const date = [...data.date].sort((a, b) => a.iso.localeCompare(b.iso));
+
+      for (let i = 0; i < date.length; i += 7) {
+        const blocco = date.slice(i, i + 7);
+        if (!blocco.length) continue;
+
+        const inizio = new Date(blocco[0].iso + "T00:00:00");
+        const fine = new Date(blocco[blocco.length - 1].iso + "T00:00:00");
+
+        const key =
+          "settimana_" +
+          String(inizio.getDate()).padStart(2, "0") + "-" +
+          String(inizio.getMonth() + 1).padStart(2, "0") +
+          "_al_" +
+          String(fine.getDate()).padStart(2, "0") + "-" +
+          String(fine.getMonth() + 1).padStart(2, "0");
+
+        settimaneInfo.push({
+          label: "Settimana " +
+            String(inizio.getDate()).padStart(2, "0") + "-" +
+            String(inizio.getMonth() + 1).padStart(2, "0") +
+            " al " +
+            String(fine.getDate()).padStart(2, "0") + "-" +
+            String(fine.getMonth() + 1).padStart(2, "0"),
+          key,
+          startDay: inizio.getDate(),
+          month: inizio.getMonth(),
+          year: inizio.getFullYear(),
+          count: blocco.length,
+          dateIso: blocco.map(x => x.iso)
+        });
+      }
+
+      const residenze = {};
+
+      Object.keys(data.residenze || {}).forEach(residenza => {
+        residenze[residenza] = (data.residenze[residenza] || []).map(ag => {
+          const turni_settimanali = {};
+
+          settimaneInfo.forEach(sett => {
+            turni_settimanali[sett.key] = sett.dateIso.map(iso =>
+              (ag.turni && ag.turni[iso]) ? ag.turni[iso] : "rip"
+            );
+          });
+
+          return {
+            id: ag.id || "",
+            agente: ag.agente || "",
+            qualifica: ag.qualifica || "marinaio",
+            turni_settimanali
+          };
+        });
+      });
+
+      return {
+        ...data,
+        residenze
+      };
+    }
+
+    function processJSONData(data) {
+      data = adattaFormatoNaviturni(data);
+      data = applyOdsVariations(data);
+      globalData = data;
+      inizializzaCalendario();
+      buildTableHeader();
+      document.getElementById("stat-status").textContent = "Aggiornati";
+      document.getElementById("welcome-notice").style.display = "none";
+      
+      // Aggiorna il periodo nel titolo
+      if (data.periodo) {
+        document.getElementById("periodLabel").textContent = String(data.periodo).replace(/^.*?\bDAL\b\s*/i, "");
+      }
+      
+      renderResidenceButtons();
+      populateLoginSurnameOptions();
+      loggedAgentProfile = readLoggedAgentProfile();
+      updateLoginUserPanel();
+      if (loggedAgentProfile && applyLoggedAgentProfile()) return;
+      if (loggedAgentProfile) {
+        localStorage.removeItem(AGENT_LOGIN_STORAGE_KEY);
+        loggedAgentProfile = null;
+        updateLoginUserPanel();
+      }
+      const keys = Object.keys(data.residenze || {});
+      const defaultResidence = keys.find(key => key.trim().toLowerCase() === "desenzano") || keys[0];
+      if (defaultResidence) selectResidence(defaultResidence);
+      showLoginModal();
+    }
+
+    function loadPastedJSON() {
+      const txt = document.getElementById("json-paste-input").value.trim();
+      try {
+        const parsed = JSON.parse(txt);
+        localStorage.setItem("turno_finali_data", txt);
+        processJSONData(parsed);
+        setTimeout(scrollToToday, 80);
+        toggleUpload();
+        document.getElementById("upload-status").textContent = "✅ Dati caricati con successo!";
+      } catch (e) {
+        alert("Errore nel file JSON: " + e.message);
+        document.getElementById("upload-status").textContent = "❌ Errore: " + e.message;
+      }
+    }
+
+    function clearSavedMemory() {
+      if (confirm("Cancellare i turni memorizzati?")) {
+        localStorage.removeItem("turno_finali_data");
+        location.reload();
+      }
+    }
+
+    function toggleUpload() {
+      const body = document.getElementById("upload-body");
+      const icon = document.getElementById("upload-toggle-icon");
+      if (body.style.display === "none" || body.style.display === "") {
+        body.style.display = "flex";
+        icon.textContent = "▲ comprimi";
+      } else {
+        body.style.display = "none";
+        icon.textContent = "▼ espandi";
+      }
+    }
+
+    function scrollToToday() {
+      const wrap = document.getElementById("matrix-scroll-wrap");
+      if (!wrap || wrap.style.display === "none") return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let target = dateCalendario.find(cal => {
+        const d = new Date(cal.realObj);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === today.getTime();
+      });
+
+      if (!target) {
+        target = dateCalendario.find(cal => cal.realObj > today) || dateCalendario[dateCalendario.length - 1];
+      }
+
+      const th = document.querySelector(`.date-header th[data-col="${target.col}"]`);
+      const fixedCols = document.querySelectorAll(".date-header th:nth-child(1)");
+      if (!th) return;
+      const fixedWidth = Array.from(fixedCols).reduce((sum, el) => sum + el.offsetWidth, 0);
+
+      const offset = Math.max(0, th.getBoundingClientRect().left + window.scrollX - fixedWidth - 8);
+      window.scrollTo({ left:offset, top:window.scrollY, behavior:"auto" });
+      document.querySelectorAll(".date-header th").forEach(t => t.classList.remove("selected-day"));
+      th.classList.add("selected-day");
+    }
+
+    // Carica i dati dal Google Sheet condiviso tramite Apps Script.
+    // Se il Google Sheet non risponde, usa l'ultima copia salvata nel browser.
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec";
+
+    async function caricaDatiDaGoogleSheet(force = false) {
+      try {
+        const datiJson = await NaviSharedData.load(GOOGLE_SCRIPT_URL, { force });
+        processJSONData(datiJson);
+        document.getElementById("turniMenuStatus").textContent = NaviSharedData.source() === "network" ? "Aggiornato" : "Locale";
+        document.getElementById("upload-status").textContent = "✅ Dati caricati dal Foglio Google — " + new Date().toLocaleTimeString("it-IT");
+        setTimeout(scrollToToday, 80);
+      } catch (errore) {
+        console.warn("Caricamento dal Google Sheet fallito, provo con la memoria locale.", errore);
+        const saved = localStorage.getItem("turno_finali_data");
+        if (saved) {
+          try {
+            processJSONData(JSON.parse(saved));
+            document.getElementById("upload-status").textContent = "⚠️ Google Sheet non raggiungibile — dati da memoria locale";
+            setTimeout(scrollToToday, 80);
+            return;
+          } catch (e) {
+            localStorage.removeItem("turno_finali_data");
+          }
+        }
+        const welcomeNotice = document.getElementById("welcome-notice");
+        welcomeNotice.classList.add("is-error");
+        welcomeNotice.innerHTML = `<h3>⚠️ Dati non disponibili</h3><p>Non è stato possibile caricare i turni. Riprova con il pulsante Aggiorna.</p>`;
+        welcomeNotice.style.display = "block";
+        document.getElementById("upload-status").textContent = "❌ Impossibile caricare i dati: " + errore.message;
+      }
+    }
+
+    function ricaricaDati() {
+      const btn = document.getElementById("refreshBtn");
+      const testoOriginale = btn.textContent;
+      btn.textContent = "🔄 Aggiorno...";
+      btn.disabled = true;
+      localStorage.removeItem("turno_finali_data");
+      NaviSharedData.clear();
+      caricaDatiDaGoogleSheet(true).finally(() => {
+        btn.textContent = testoOriginale;
+        btn.disabled = false;
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const menuButton = document.getElementById("turni-menu-button");
+      menuButton.addEventListener("click", () => {
+        const open = document.body.classList.toggle("turni-menu-open");
+        menuButton.setAttribute("aria-expanded", String(open));
+      });
+      document.getElementById("turni-sidebar").addEventListener("click", event => {
+        if (event.target.closest("a") && window.innerWidth <= 800) {
+          document.body.classList.remove("turni-menu-open");
+          menuButton.setAttribute("aria-expanded", "false");
+        }
+      });
+      setupSynchronizedTableScrolls();
+      caricaDatiDaGoogleSheet();
+    });
+  </script>
+
+</body>
+</html>
