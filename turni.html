@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NaviOds</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="turni.css">
+  <link rel="stylesheet" href="shared-menu.css">
+</head>
+<body class="turni-page">
+  <aside class="turni-sidebar app-sidebar" id="archive-sidebar">
+    <a class="turni-sidebar-brand" href="index.html"><span>N</span> Turni / ODS</a>
+    <nav>
+      <a href="naviturni.html" target="_blank" rel="noopener"><span>▦</span> NaviTurni</a>
+      <a href="navidiaria.html" target="_blank" rel="noopener"><span>≈</span> NaviDiaria</a>
+      <a class="active" href="#turni-docs"><span>▤</span> ODS / Turni</a>
+      <button type="button" onclick="renderArchiveDocuments()"><span>↻</span> Aggiorna</button>
+      <span class="turni-menu-label">DOCUMENTI</span>
+      <a href="#turni-docs"><span>▦</span> Turni e bozze</a>
+      <a href="#ods-docs"><span>≡</span> ODS 2026</a>
+      <a id="archiveAdminNav" href="#adminUploadPanel" hidden><span>＋</span> Carica documenti</a>
+    </nav>
+    <div class="sidebar-user-actions">
+      <strong id="archiveSidebarAgent" class="sidebar-agent-name">Agente</strong>
+      <button id="archiveLogout" class="sidebar-action sidebar-exit" type="button">Esci</button>
+      <button id="archiveChangePin" class="sidebar-action" type="button">Cambia PIN</button>
+    </div>
+  </aside>
+  <header class="archive-header">
+    <div class="header-copy"><p>DOCUMENTI OPERATIVI</p><h1>Turni, bozze e<br><em>ordini di servizio.</em></h1><span>Tutti i PDF di lavoro raccolti in un unico archivio.</span></div>
+  </header>
+  <main>
+    <section id="turni-docs" class="section-heading"><div><p>PIANIFICAZIONE</p><h2>Turni e bozze</h2></div><span class="count">2 documenti</span></section>
+    <div class="document-grid">
+      <a class="document featured draft-document" href="turni/BOZZA_TURNO_DAL_27-07_AL_09-08-2026.pdf" target="_blank"><span class="pdf-icon">PDF</span><div><small>BOZZA · NON DEFINITIVA</small><strong>Bozza dal 27 Luglio al 9 Agosto</strong><p><b>Validità:</b> 27 Luglio – 9 Agosto 2026 · Documento provvisorio</p></div><b>↗</b></a>
+      <a class="document published-document" href="turni/TURNO_DAL_22-06_AL_26-07-2026.pdf" target="_blank"><span class="pdf-icon">PDF</span><div><small>TURNO · PUBBLICATO</small><strong>Turno dal 22 Giugno al 26 Luglio</strong><p><b>Validità:</b> 22 Giugno – 26 Luglio 2026 · Documento in vigore</p></div><b>↗</b></a>
+    </div>
+    <div id="uploadedTurni" class="document-grid uploaded-grid"></div>
+    <section id="ods-docs" class="section-heading ods-heading"><div><p>ORDINI DI SERVIZIO</p><h2>Archivio ODS 2026</h2></div><span class="count">10 documenti</span></section>
+    <div id="uploadedOds" class="document-grid uploaded-grid"></div>
+    <div id="staticOds" class="document-grid">
+      <a class="document" href="ods/O.d.S.%20n.%2016-2026%20ESTATE.pdf" target="_blank"><span class="ods-number">16</span><div><small>ODS 16/2026</small><strong>Ordine di servizio Estate</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2018-2026.pdf" target="_blank"><span class="ods-number">18</span><div><small>ODS 18/2026</small><strong>Ordine di servizio n. 18</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2019-2026.pdf" target="_blank"><span class="ods-number">19</span><div><small>ODS 19/2026</small><strong>Ordine di servizio n. 19</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2020-2026.pdf" target="_blank"><span class="ods-number">20</span><div><small>ODS 20/2026</small><strong>Ordine di servizio n. 20</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2021-2026.pdf" target="_blank"><span class="ods-number">21</span><div><small>ODS 21/2026</small><strong>Ordine di servizio n. 21</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2022-2026.pdf" target="_blank"><span class="ods-number">22</span><div><small>ODS 22/2026</small><strong>Ordine di servizio n. 22</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2023-2026.pdf" target="_blank"><span class="ods-number">23</span><div><small>ODS 23/2026</small><strong>Ordine di servizio n. 23</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2024-2026.pdf" target="_blank"><span class="ods-number">24</span><div><small>ODS 24/2026</small><strong>Ordine di servizio n. 24</strong><p>Anno 2026</p></div><b>↗</b></a>
+      <a class="document signed" href="ods/O.d.S.%20n.%2025-2026%20firmato.pdf" target="_blank"><span class="ods-number">25</span><div><small>ODS 25/2026 · FIRMATO</small><strong>Ordine di servizio n. 25</strong><p>Documento firmato</p></div><b>↗</b></a>
+      <a class="document" href="ods/O.d.S.%20n.%2026-2026.pdf" target="_blank"><span class="ods-number">26</span><div><small>ODS 26/2026</small><strong>Ordine di servizio n. 26</strong><p>Anno 2026</p></div><b>↗</b></a>
+    </div>
+    <section id="adminUploadPanel" class="admin-upload admin-upload-bottom" hidden>
+      <div><p>AMMINISTRAZIONE</p><h2>Carica nuovi documenti</h2><span>Il titolo viene generato automaticamente dal nome del PDF. I documenti restano disponibili su questo dispositivo.</span></div>
+      <form id="documentUploadForm">
+        <label>Tipo<select id="documentType"><option value="turno">Turno</option><option value="bozza">Bozza</option><option value="ods">ODS</option></select></label>
+        <label>File PDF<input id="documentFile" type="file" accept="application/pdf,.pdf" required></label>
+        <button type="submit">Carica PDF</button>
+      </form>
+      <p id="uploadMessage" class="upload-message" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="shared-menu.js"></script>
+  <script src="archive.js"></script>
+</body>
+</html>
