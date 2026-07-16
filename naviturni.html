@@ -2044,6 +2044,18 @@
     #tbody td.shared-crew-day .cell-pill {
       box-shadow:0 0 0 2px rgba(251,191,36,.78),0 0 10px rgba(251,191,36,.25);
     }
+    #tbody td.departed-crew-day .cell-pill {
+      box-shadow:0 0 0 2px rgba(168,85,247,.85),0 0 10px rgba(168,85,247,.28);
+    }
+    .shared-crew-change-label {
+      display:block;
+      margin-top:3px;
+      color:#d8b4fe;
+      font-size:8px;
+      font-weight:900;
+      line-height:1;
+      white-space:nowrap;
+    }
 </style>
   <link rel="stylesheet" href="shared-menu.css">
 </head>
@@ -2747,8 +2759,9 @@
     }
 
     function highlightSharedCrewDays() {
-      document.querySelectorAll("#tbody td.shared-crew-day").forEach(cell => {
-        cell.classList.remove("shared-crew-day");
+      document.querySelectorAll("#tbody td.shared-crew-day, #tbody td.departed-crew-day").forEach(cell => {
+        cell.classList.remove("shared-crew-day", "departed-crew-day");
+        cell.querySelector(".shared-crew-change-label")?.remove();
         if (cell.dataset.sharedCrewPreviousTitle) cell.title = cell.dataset.sharedCrewPreviousTitle;
         else cell.removeAttribute("title");
         delete cell.dataset.sharedCrewTitle;
@@ -2770,6 +2783,23 @@
         cell.title = cell.title ? `${cell.title} · ${title}` : title;
       };
 
+      const markDepartedCell = (row, cal, originalShift, updatedShift, variation) => {
+        const cell = row?.querySelector(`td[data-col="${cal.col}"]`);
+        if (!cell) return;
+        const original = getCrewShiftKey(originalShift).replace(/^TERRA_/, "TERRA ");
+        const updated = getCrewShiftKey(updatedShift).replace(/^TERRA_/, "TERRA ") || "RIPOSO";
+        const ods = variation?.ods ? ` · ODS ${variation.ods}` : "";
+        const title = `Ha lasciato ${original} per ${updated}${ods}`;
+        cell.classList.add("departed-crew-day");
+        cell.dataset.sharedCrewPreviousTitle = cell.title || "";
+        cell.dataset.sharedCrewTitle = title;
+        cell.title = cell.title ? `${cell.title} · ${title}` : title;
+        const label = document.createElement("span");
+        label.className = "shared-crew-change-label";
+        label.textContent = `da ${original}`;
+        cell.appendChild(label);
+      };
+
       dateCalendario.forEach(cal => {
         const dayIndex = (cal.col - 3) % 7;
         const loggedRaw = (loggedAgent.turni_settimanali[cal.weekKey] || [])[dayIndex] || "rip";
@@ -2777,22 +2807,42 @@
         if (!getShiftResidence(loggedShift)) return;
 
         const matchingIndexes = [];
+        const departedIndexes = [];
         currentAgentsList.forEach((agent, index) => {
           if (index === loggedIndex) return;
           const colleagueRaw = (agent.turni_settimanali[cal.weekKey] || [])[dayIndex] || "rip";
           const colleagueShift = ottieniTurnoPulito(colleagueRaw);
           if (getShiftResidence(colleagueShift) && isSameCrewShift(loggedShift, colleagueShift)) matchingIndexes.push(index);
+          const variation = agent.variazioni_ods?.[cal.iso];
+          if (!variation) return;
+          const originalShift = ottieniTurnoPulito(variation.turno_originale);
+          const updatedShift = ottieniTurnoPulito(variation.turno_nuovo);
+          if (isSameCrewShift(loggedShift, originalShift) && !isSameCrewShift(loggedShift, updatedShift)) {
+            departedIndexes.push({ index, originalShift, updatedShift, variation });
+          }
         });
-        if (!matchingIndexes.length) return;
+        const departedSet = new Set(departedIndexes.map(item => item.index));
+        for (let index = matchingIndexes.length - 1; index >= 0; index--) {
+          if (departedSet.has(matchingIndexes[index])) matchingIndexes.splice(index, 1);
+        }
+        if (!matchingIndexes.length && !departedIndexes.length) return;
 
         const label = getCrewShiftKey(loggedShift).replace(/^TERRA_/, "TERRA ");
-        const colleagueNames = matchingIndexes.map(index => currentAgentsList[index].agente).join(", ");
-        markSharedCell(loggedRow, cal, `Turno ${label} in comune con: ${colleagueNames}`);
+        if (matchingIndexes.length) {
+          const colleagueNames = matchingIndexes.map(index => currentAgentsList[index].agente).join(", ");
+          markSharedCell(loggedRow, cal, `Turno ${label} in comune con: ${colleagueNames}`);
+        }
         matchingIndexes.forEach(index => {
           const colleagueRow = trElements.find(row =>
             row.dataset.residence === currentResidence && parseInt(row.dataset.rowIndex) === index
           );
           markSharedCell(colleagueRow, cal, `Turno ${label} in comune con ${loggedAgent.agente}`);
+        });
+        departedIndexes.forEach(({ index, originalShift, updatedShift, variation }) => {
+          const colleagueRow = trElements.find(row =>
+            row.dataset.residence === currentResidence && parseInt(row.dataset.rowIndex) === index
+          );
+          markDepartedCell(colleagueRow, cal, originalShift, updatedShift, variation);
         });
       });
     }
