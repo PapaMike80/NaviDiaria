@@ -10,6 +10,14 @@ function openArchiveDb(){return new Promise((resolve,reject)=>{const request=ind
 async function localArchiveDocuments(){const db=await openArchiveDb();return new Promise((resolve,reject)=>{const request=db.transaction('documents').objectStore('documents').getAll();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)})}
 async function deleteLocalArchiveDocument(id){const db=await openArchiveDb();return new Promise((resolve,reject)=>{const request=db.transaction('documents','readwrite').objectStore('documents').delete(id);request.onsuccess=resolve;request.onerror=()=>reject(request.error)})}
 const fileToBase64=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');reader.onerror=()=>reject(reader.error);reader.readAsDataURL(file)});
+const ARCHIVE_MONTHS=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+function shiftDocumentInfo(value,type){
+  const match=String(value||'').match(/dal[^0-9]*(\d{1,2})[-/.](\d{1,2})(?:[-/.](20\d{2}))?[^0-9]*?(?:al|a)[^0-9]*(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})/i);
+  if(!match)return null;
+  const prefix=type==='bozza'?'Bozza':'Turno',fromDay=Number(match[1]),fromMonth=ARCHIVE_MONTHS[Number(match[2])-1],toDay=Number(match[4]),toMonth=ARCHIVE_MONTHS[Number(match[5])-1],year=match[6];
+  if(!fromMonth||!toMonth)return null;
+  return {label:`${prefix} dal ${fromDay} ${fromMonth} al ${toDay} ${toMonth} ${year}`,fileName:`${prefix}_dal_${fromDay}_${fromMonth}_al_${toDay}_${toMonth}_${year}.pdf`,period:`${fromDay} ${fromMonth} – ${toDay} ${toMonth} ${year}`};
+}
 
 async function analyzeOdsPdf(file){
   if(!window.pdfjsLib)throw new Error('Analisi PDF non disponibile: ricarica la pagina e riprova.');
@@ -35,7 +43,8 @@ function documentCard(document){
     const title=String(document.title||''),number=(title.match(/(?:o\.?d\.?s\.?|servizio|n)[^0-9]{0,12}(\d{1,3})/i)||title.match(/(\d{1,3})/))?.[1]||'—',dateMatch=title.match(/(\d{2})[-_.](\d{2})[-_.](20\d{2})/),emissionDate=dateMatch?`${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`:new Intl.DateTimeFormat('it-IT').format(new Date(document.createdAt));
     return `<article class="document local-document" data-open-document="${escapeArchive(document.url)}" role="link" tabindex="0" aria-label="Apri Ordine di servizio n. ${escapeArchive(number)}"><span class="ods-number">${escapeArchive(number)}</span><div><strong>Ordine di servizio n. ${escapeArchive(number)}</strong><p>Data di emissione: ${escapeArchive(emissionDate)}</p></div><b>↗</b>${archiveAdmin?`<button class="document-delete" type="button" data-delete-document="${escapeArchive(document.id)}">Elimina</button>`:''}</article>`;
   }
-  return `<article class="document local-document${draft}" data-open-document="${escapeArchive(document.url)}" role="link" tabindex="0" aria-label="Apri ${escapeArchive(document.title)}"><span class="pdf-icon">${icon}</span><div><small>${type} · CONDIVISO</small><strong>${escapeArchive(document.title)}</strong><p>${new Intl.DateTimeFormat('it-IT',{dateStyle:'medium'}).format(new Date(document.createdAt))}</p></div><b>↗</b>${archiveAdmin?`<button class="document-delete" type="button" data-delete-document="${escapeArchive(document.id)}">Elimina</button>`:''}</article>`;
+  const info=shiftDocumentInfo(document.title,document.type),displayTitle=info?.label||document.title,detail=info?`Validità: ${info.period}`:new Intl.DateTimeFormat('it-IT',{dateStyle:'medium'}).format(new Date(document.createdAt));
+  return `<article class="document local-document${draft}" data-open-document="${escapeArchive(document.url)}" role="link" tabindex="0" aria-label="Apri ${escapeArchive(displayTitle)}"><span class="pdf-icon">${icon}</span><div><small>${type} · CONDIVISO</small><strong>${escapeArchive(displayTitle)}</strong><p>${escapeArchive(detail)}</p></div><b>↗</b>${archiveAdmin?`<button class="document-delete" type="button" data-delete-document="${escapeArchive(document.id)}">Elimina</button>`:''}</article>`;
 }
 
 async function sharedArchiveDocuments(){
@@ -81,7 +90,7 @@ document.getElementById('documentUploadForm').addEventListener('submit',async ev
   const file=document.getElementById('documentFile').files[0],message=document.getElementById('uploadMessage'),button=event.submitter;
   if(!file||(!file.name.toLowerCase().endsWith('.pdf')&&file.type!=='application/pdf')){message.textContent='Seleziona un file PDF valido.';return}
   if(file.size>10*1024*1024){message.textContent='Il PDF non può superare 10 MB.';return}
-  const type=document.getElementById('documentType').value;let title=file.name.trim().replace(/\*/g,'').replace(/\s+/g,'_');
+  const type=document.getElementById('documentType').value;let title=file.name.trim().replace(/\*/g,'').replace(/\s+/g,'_');const shiftInfo=type==='ods'?null:shiftDocumentInfo(title,type);if(shiftInfo)title=shiftInfo.fileName;
   button.disabled=true;message.textContent=type==='ods'?'Analisi di variazioni e turni nave…':'Caricamento su Google Drive…';
   try{
     const analysis=type==='ods'?await analyzeOdsPdf(file):null;
