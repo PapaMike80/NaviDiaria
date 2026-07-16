@@ -31,7 +31,11 @@ async function analyzeOdsPdf(file){
 function documentCard(document){
   const type=document.type==='bozza'?'BOZZA · NON DEFINITIVA':document.type==='ods'?'ODS':'TURNO';
   const icon=document.type==='ods'?'ODS':'PDF',draft=document.type==='bozza'?' draft-document':'';
-  return `<article class="document local-document${draft}" data-open-document="${escapeArchive(document.url)}" role="link" tabindex="0" aria-label="Apri ${escapeArchive(document.title)}"><span class="${document.type==='ods'?'ods-number':'pdf-icon'}">${icon}</span><div><small>${type} · CONDIVISO</small><strong>${escapeArchive(document.title)}</strong><p>${new Intl.DateTimeFormat('it-IT',{dateStyle:'medium'}).format(new Date(document.createdAt))}</p></div><b>↗</b>${archiveAdmin?`<button class="document-delete" type="button" data-delete-document="${escapeArchive(document.id)}">Elimina</button>`:''}</article>`;
+  if(document.type==='ods'){
+    const title=String(document.title||''),number=(title.match(/(?:o\.?d\.?s\.?|servizio|n)[^0-9]{0,12}(\d{1,3})/i)||title.match(/(\d{1,3})/))?.[1]||'—',year=(title.match(/20\d{2}/)||['2026'])[0];
+    return `<article class="document local-document" data-open-document="${escapeArchive(document.url)}" role="link" tabindex="0" aria-label="Apri Ordine di servizio n. ${escapeArchive(number)}"><span class="ods-number">${escapeArchive(number)}</span><div><strong>Ordine di servizio n. ${escapeArchive(number)}</strong><p>Anno ${escapeArchive(year)}</p></div><b>↗</b>${archiveAdmin?`<button class="document-delete" type="button" data-delete-document="${escapeArchive(document.id)}">Elimina</button>`:''}</article>`;
+  }
+  return `<article class="document local-document${draft}" data-open-document="${escapeArchive(document.url)}" role="link" tabindex="0" aria-label="Apri ${escapeArchive(document.title)}"><span class="pdf-icon">${icon}</span><div><small>${type} · CONDIVISO</small><strong>${escapeArchive(document.title)}</strong><p>${new Intl.DateTimeFormat('it-IT',{dateStyle:'medium'}).format(new Date(document.createdAt))}</p></div><b>↗</b>${archiveAdmin?`<button class="document-delete" type="button" data-delete-document="${escapeArchive(document.id)}">Elimina</button>`:''}</article>`;
 }
 
 async function sharedArchiveDocuments(){
