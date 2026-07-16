@@ -2014,6 +2014,22 @@
     #tbody tr.pinned-row td.td-name {
       background-color:#164754 !important;
     }
+    #tbody tr.logged-agent-row:not(.logged-in-selected-crew) td {
+      background-color:#102a35 !important;
+      box-shadow:inset 0 -1px 0 rgba(111,143,153,.28);
+    }
+    #tbody tr.logged-agent-row:not(.logged-in-selected-crew) td.td-name {
+      background-color:#132f3a !important;
+      outline-color:rgba(111,143,153,.38);
+    }
+    #tbody tr.logged-agent-row.logged-in-selected-crew td {
+      background-color:#123f49 !important;
+      box-shadow:inset 0 1px 0 rgba(153,246,228,.22),inset 0 -2px 0 #2dd4bf,0 0 15px rgba(45,212,191,.12);
+    }
+    #tbody tr.logged-agent-row.logged-in-selected-crew td.td-name {
+      background-color:#17515a !important;
+      outline-color:rgba(45,212,191,.88);
+    }
 </style>
   <link rel="stylesheet" href="shared-menu.css">
 </head>
@@ -3259,6 +3275,9 @@
 
         let match = isSameCrewShift(hisShiftPuro, cleanShift);
         tr.classList.toggle("row-match", match);
+        if (tr.classList.contains("logged-agent-row")) {
+          tr.classList.toggle("logged-in-selected-crew", match && isCrewShift);
+        }
 
         tr.querySelectorAll("td[data-col]").forEach(td => {
           td.classList.toggle("col-selected", parseInt(td.dataset.col) === col);
@@ -3579,6 +3598,7 @@
       document.querySelectorAll(".date-header th").forEach(t => t.classList.remove("selected-day"));
       trElements.forEach(tr => {
         tr.classList.remove("row-match");
+        tr.classList.remove("logged-in-selected-crew");
         tr.querySelectorAll("td").forEach(td => td.classList.remove("col-selected"));
       });
       restoreDefaultTableOrder();
