@@ -24,7 +24,8 @@ async function analyzeOdsPdf(file){
   }
   const text=pages.join('\n').slice(0,250000),source=`${file.name}\n${text.slice(0,5000)}`;
   const match=source.match(/(?:O\.?D\.?S\.?|N\.?)[^0-9]{0,15}(\d{1,3})\s*[\/_-]\s*(20\d{2})/i)||source.match(/N\.?\s*(\d{1,3})[^0-9]{1,12}(20\d{2})/i);
-  return {text,pages:structured,ods:match?`${match[1]}/${match[2]}`:file.name.replace(/\.pdf$/i,'')};
+  const dateMatch=source.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2})\b/);
+  return {text,pages:structured,ods:match?`${match[1]}/${match[2]}`:file.name.replace(/\.pdf$/i,''),documentDate:dateMatch?`${dateMatch[1].padStart(2,'0')}/${dateMatch[2].padStart(2,'0')}/${dateMatch[3]}`:''};
 }
 
 function documentCard(document){
@@ -76,10 +77,11 @@ document.getElementById('documentUploadForm').addEventListener('submit',async ev
   const file=document.getElementById('documentFile').files[0],message=document.getElementById('uploadMessage'),button=event.submitter;
   if(!file||(!file.name.toLowerCase().endsWith('.pdf')&&file.type!=='application/pdf')){message.textContent='Seleziona un file PDF valido.';return}
   if(file.size>10*1024*1024){message.textContent='Il PDF non può superare 10 MB.';return}
-  const type=document.getElementById('documentType').value,title=file.name.trim().replace(/\s+/g,'_');
+  const type=document.getElementById('documentType').value;let title=file.name.trim().replace(/\s+/g,'_');
   button.disabled=true;message.textContent=type==='ods'?'Analisi di variazioni e turni nave…':'Caricamento su Google Drive…';
   try{
     const analysis=type==='ods'?await analyzeOdsPdf(file):null;
+    if(analysis){const number=String(analysis.ods||'').match(/^\d+/)?.[0],date=(analysis.documentDate||new Intl.DateTimeFormat('it-IT').format(new Date())).replace(/\//g,'-');if(number)title=`Ordine_di_servizio_n._${number}_-_${date}.pdf`}
     message.textContent='Caricamento su Google Drive…';
     const base64=await fileToBase64(file),result=await NaviCloud.request('upload_document',{...archiveCredentials(),documentType:type,title,base64,analysis});
     event.target.reset();
