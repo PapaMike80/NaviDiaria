@@ -228,6 +228,7 @@ function uploadNaviDocument_(documentsSheet, user, request) {
     try {
       if (typeof importaOdsDaPdf !== "function") throw new Error("Importatore ODS non disponibile nel progetto Apps Script.");
       const analysis = sanitizeNaviPdfAnalysis_(request.analysis);
+      prepareNaviOdsImport_();
       imported = importaOdsDaPdf(analysis.text, analysis.pages, analysis.ods, title);
     } catch (error) {
       analysisError = error && error.message ? error.message : String(error);
@@ -239,6 +240,34 @@ function uploadNaviDocument_(documentsSheet, user, request) {
     imported: imported,
     analysisError: analysisError
   };
+}
+
+function prepareNaviOdsImport_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const variations = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
+  const ships = ss.getSheetByName(NAVITURNI_CONFIG.shipsSheetName);
+  if (variations && variations.getMaxRows() > 1) variations.getRange(2, 7, variations.getMaxRows() - 1, 1).clearDataValidations();
+  if (ships && ships.getMaxRows() > 1) ships.getRange(2, 8, ships.getMaxRows() - 1, 1).clearDataValidations();
+}
+
+/** Normalizza i nomi degli ODS già caricati, usando numero e data di caricamento. */
+function normalizzaTitoliOdsCondivisi() {
+  const sheets = ensureNavidiariaCloudSheets_();
+  const sheet = sheets.documents;
+  if (sheet.getLastRow() < 2) return { aggiornati: 0 };
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+  let updated = 0;
+  rows.forEach(function(row, index) {
+    if (String(row[1]).toLowerCase() !== "ods") return;
+    const match = String(row[2] || "").match(/(?:n[._ -]*)?(\d{1,3})[._ -]+(20\d{2})/i);
+    if (!match) return;
+    const date = row[3] instanceof Date ? Utilities.formatDate(row[3], Session.getScriptTimeZone() || "Europe/Rome", "dd-MM-yyyy") : "16-07-2026";
+    const title = "Ordine_di_servizio_n._" + match[1] + "_-_" + date + ".pdf";
+    try { DriveApp.getFileById(String(row[0])).setName(title); } catch (error) { /* Aggiorna almeno il titolo in archivio. */ }
+    sheet.getRange(index + 2, 3).setValue(title);
+    updated++;
+  });
+  return { aggiornati: updated };
 }
 
 function sanitizeNaviPdfAnalysis_(value) {
