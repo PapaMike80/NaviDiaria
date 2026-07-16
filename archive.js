@@ -104,6 +104,7 @@ document.getElementById('documentUploadForm').addEventListener('submit',async ev
     message.textContent=imported
       ?`${title} condiviso. Variazioni: ${imported.variazioni.inserite} inserite, ${imported.variazioni.duplicate} già presenti. Turni nave: ${imported.navi.inserite} inseriti, ${imported.navi.aggiornate} aggiornati, ${imported.navi.duplicate} invariati.`
       :`${title} condiviso con tutti gli agenti.${result.analysisError?` Analisi non completata: ${result.analysisError}`:''}`;
+    if(imported?.variazioni?.inserite>1&&window.refreshOdsVariationStatus)await window.refreshOdsVariationStatus();
     await renderArchiveDocuments();
   }catch(error){message.textContent=error.message}finally{button.disabled=false}
 });
