@@ -272,6 +272,7 @@ function importNaviVariationsRobust_(text, ods) {
   const months = { GENNAIO:1, FEBBRAIO:2, MARZO:3, APRILE:4, MAGGIO:5, GIUGNO:6, LUGLIO:7, AGOSTO:8, SETTEMBRE:9, OTTOBRE:10, NOVEMBRE:11, DICEMBRE:12 };
   const lines = String(text || "").split(/\r?\n/).map(function(line) { return line.replace(/\s+/g, " ").trim(); }).filter(Boolean);
   const normalize = function(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase(); };
+  const originalShifts = buildNaviOriginalShiftLookup_();
   const rows = [];
   let type = "", date = "";
   lines.forEach(function(line) {
@@ -296,13 +297,43 @@ function importNaviVariationsRobust_(text, ods) {
     if (!/^(?:D[1-4]|R[1-4]|T[1-2]|M1|P[1-3]|CAP|SR1|BIS|AGB|AGM|AGT|DT|POND|PONM|RIP|L\.D\.|I\.E\.|CONG|\d+)\*?$/i.test(shift)) return;
     if (instructor && shift !== "RIP" && !/\*$/.test(shift)) shift += "*";
     const agent = resolveNaviVariationAgent_(variation[1]);
-    rows.push(["SÌ", date, agent.id, agent.name, "", shift, ods, type, instructor ? "ISTRUTTORE" : ""]);
+    const originalShift = originalShifts[date + "|" + agent.id] || originalShifts[date + "|" + normalize(agent.name)] || "";
+    rows.push(["SÌ", date, agent.id, agent.name, originalShift, shift, ods, type, instructor ? "ISTRUTTORE" : ""]);
   });
   const existing = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getDisplayValues() : [];
   const keys = new Set(existing.map(function(row) { return [row[1], normalize(row[3]), String(row[6]).trim()].join("|"); }));
   const unique = rows.filter(function(row) { const key = [row[1], normalize(row[3]), row[6]].join("|"); if (keys.has(key)) return false; keys.add(key); return true; });
   if (unique.length) sheet.getRange(sheet.getLastRow() + 1, 1, unique.length, 9).setValues(unique);
   return { inserite: unique.length, duplicate: rows.length - unique.length };
+}
+
+function buildNaviOriginalShiftLookup_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 5) return {};
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getDisplayValues();
+  const headers = values[0];
+  const year = new Date().getFullYear();
+  const normalizeName = function(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase(); };
+  const normalizeShift = function(value) {
+    const shift = String(value || "").trim().toUpperCase();
+    if (shift === "RIP" || shift === "RIPOSO") return "RIP";
+    return shift;
+  };
+  const lookup = {};
+  for (let column = 4; column < headers.length; column++) {
+    const match = String(headers[column] || "").trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?$/);
+    if (!match) continue;
+    const date = (match[3] || year) + "-" + String(match[2]).padStart(2, "0") + "-" + String(match[1]).padStart(2, "0");
+    for (let row = 1; row < values.length; row++) {
+      const shift = normalizeShift(values[row][column]);
+      if (!shift) continue;
+      const id = String(values[row][1] || "").trim();
+      const name = normalizeName(values[row][3]);
+      if (id) lookup[date + "|" + id] = shift;
+      if (name) lookup[date + "|" + name] = shift;
+    }
+  }
+  return lookup;
 }
 
 function resolveNaviVariationAgent_(value) {
@@ -352,7 +383,11 @@ function prepareNaviOdsImport_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const variations = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
   const ships = ss.getSheetByName(NAVITURNI_CONFIG.shipsSheetName);
-  if (variations && variations.getMaxRows() > 1) variations.getRange(2, 7, variations.getMaxRows() - 1, 1).clearDataValidations();
+  if (variations) {
+    variations.getRange(1, 5).setValue("TURNO");
+    variations.showColumns(5);
+    if (variations.getMaxRows() > 1) variations.getRange(2, 7, variations.getMaxRows() - 1, 1).clearDataValidations();
+  }
   if (ships && ships.getMaxRows() > 1) ships.getRange(2, 1, ships.getMaxRows() - 1, 9).clearDataValidations();
 }
 
