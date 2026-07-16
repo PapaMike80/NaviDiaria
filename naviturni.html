@@ -3678,10 +3678,6 @@
     }
 
     function revealSelectedDate(cal) {
-      if (!showPastColumns) {
-        window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
-        return;
-      }
       scrollDateColumnIntoView(cal);
     }
 
@@ -3800,10 +3796,9 @@
     }
 
     function hidePastColumns() {
-      const selectedDate = selectedCol != null
-        ? dateCalendario.find(cal => cal.col === selectedCol)?.realObj
-        : null;
-      const referenceDate = selectedDate ? new Date(selectedDate) : new Date();
+      // Il limite resta sempre oggi: la selezione di una data futura non deve
+      // nascondere le giornate comprese tra oggi e la data selezionata.
+      const referenceDate = new Date();
       referenceDate.setHours(0, 0, 0, 0);
       dateCalendario.forEach(cal => {
         const isPast = cal.realObj < referenceDate;
