@@ -280,6 +280,12 @@ function getNaviDocumentsFolder_() {
   return folder;
 }
 
+/** Eseguire manualmente dall'editor Apps Script per autorizzare l'accesso a Drive. */
+function autorizzaDriveNavi() {
+  const folder = getNaviDocumentsFolder_();
+  return { id: folder.getId(), name: folder.getName() };
+}
+
 function sanitizeNavidiariaEntry_(entry) {
   if (!entry || typeof entry !== "object") throw new Error("Riga Diaria non valida.");
   const output = {};
