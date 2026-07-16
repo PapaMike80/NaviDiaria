@@ -2071,6 +2071,29 @@
         box-shadow:0 0 0 3px rgba(251,191,36,1),0 0 16px rgba(251,191,36,.5);
       }
     }
+    /* Prima colonna sempre ancorata e quasi completamente coprente. */
+    #matrix-scroll-wrap th:first-child,
+    #matrix-scroll-wrap td:first-child {
+      position:sticky !important;
+      left:0 !important;
+      opacity:.95;
+      background-color:rgba(7,25,35,.95) !important;
+      backdrop-filter:blur(3px);
+      -webkit-backdrop-filter:blur(3px);
+    }
+    #matrix-scroll-wrap tbody td:first-child {
+      z-index:18;
+      background-image:linear-gradient(rgba(var(--grade-rgb, 21,49,61),.22),rgba(var(--grade-rgb, 21,49,61),.22)) !important;
+    }
+    #matrix-scroll-wrap .date-header th:first-child {
+      z-index:48;
+      background:#15313d !important;
+    }
+    #matrix-scroll-wrap tr.logged-agent-row td:first-child,
+    #matrix-scroll-wrap tr.pinned-row td:first-child {
+      background-color:rgba(22,71,84,.95) !important;
+      background-image:none !important;
+    }
     #tbody td.departed-crew-day .cell-pill {
       box-shadow:0 0 0 2px rgba(168,85,247,.85),0 0 10px rgba(168,85,247,.28);
     }
