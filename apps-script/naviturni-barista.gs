@@ -1,11 +1,12 @@
 /**
- * Legge il tab BARISTA e restituisce le presenze sulle corse D2 e D3.
+ * Legge il tab BARISTA e restituisce le presenze sulle corse con bar a bordo.
  * Formati supportati:
  * - DATA | CORSA | BARISTA (con ATTIVA, ID e NOTE opzionali)
- * - DATA | D2 | D3 (nelle celle va il nome della barista)
- * - BARISTA | colonne data (nelle celle va D2 o D3)
+ * - DATA | D2 | D3 | P2 | P3 (nelle celle va il nome della barista)
+ * - BARISTA | colonne data (nelle celle va il codice corsa)
  */
 function leggiBariste(ss) {
+  const corseBar = ["D2", "D3", "P2", "P3"];
   const sheet = ss.getSheetByName("BARISTA");
   if (!sheet || sheet.getLastRow() < 2) return [];
 
@@ -24,14 +25,15 @@ function leggiBariste(ss) {
   const colAttiva = column(["ATTIVA", "ATTIVO"]);
   const colId = column(["ID", "ID_BARISTA"]);
   const colNote = column(["NOTE", "NOTA"]);
-  const colD2 = headers.indexOf("D2");
-  const colD3 = headers.indexOf("D3");
+  const colonneCorse = corseBar.map(function(corsa) {
+    return { corsa: corsa, index: headers.indexOf(corsa) };
+  }).filter(function(item) { return item.index >= 0; });
   const output = [];
 
   function add(row, data, corsa, nome) {
     const shift = String(corsa || "").trim().toUpperCase();
     const barista = String(nome || "").trim();
-    if (!data || ["D2", "D3"].indexOf(shift) < 0 || !barista) return;
+    if (!data || corseBar.indexOf(shift) < 0 || !barista) return;
     const activeText = colAttiva >= 0 ? String(row[colAttiva] || "").trim() : "";
     output.push({
       attiva: !/^(no|false|0)$/i.test(activeText),
@@ -49,8 +51,9 @@ function leggiBariste(ss) {
       if (!date) return;
       const iso = formatDateISO(date);
       if (colCorsa >= 0 && colNome >= 0) add(row, iso, row[colCorsa], row[colNome]);
-      if (colD2 >= 0) add(row, iso, "D2", row[colD2]);
-      if (colD3 >= 0) add(row, iso, "D3", row[colD3]);
+      colonneCorse.forEach(function(item) {
+        add(row, iso, item.corsa, row[item.index]);
+      });
     });
     return output;
   }
