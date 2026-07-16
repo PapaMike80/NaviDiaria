@@ -1,0 +1,230 @@
+/**
+ * NAVIDIARIA — estensione cloud per la Web App NAVITURNI.
+ *
+ * Incollare questo file nello stesso progetto Apps Script che contiene
+ * generaNaviturni(), jsonOutput(), NAVITURNI_CONFIG e Foglio1.
+ * Le schede NAVIDIARIA_UTENTI e NAVIDIARIA_DATI vengono create automaticamente.
+ */
+
+const NAVIDIARIA_CLOUD_CONFIG = {
+  usersSheetName: "NAVIDIARIA_UTENTI",
+  dataSheetName: "NAVIDIARIA_DATI",
+  adminAgentId: "92",
+  maxPayloadChars: 45000
+};
+
+function doPost(e) {
+  try {
+    const request = JSON.parse(e && e.postData && e.postData.contents || "{}");
+    const action = String(request.action || "").trim().toLowerCase();
+    if (!action) throw new Error("Azione mancante.");
+
+    const lock = LockService.getScriptLock();
+    lock.waitLock(15000);
+    try {
+      const sheets = ensureNavidiariaCloudSheets_();
+      if (action === "auth") return jsonOutput(authNavidiaria_(sheets, request));
+
+      const user = authenticateNavidiaria_(sheets.users, request.agentId, request.pinHash);
+      if (action === "load_diaria") return jsonOutput(loadNavidiaria_(sheets.data, user));
+      if (action === "save_diaria") return jsonOutput(saveNavidiaria_(sheets.data, user, request.entries));
+      if (action === "list_users") return jsonOutput(listNavidiariaUsers_(sheets.users, user));
+      if (action === "reset_pin") return jsonOutput(resetNavidiariaPin_(sheets.users, user, request.targetAgentId));
+      if (action === "change_pin") return jsonOutput(changeNavidiariaPin_(sheets.users, user, request.newPinHash));
+      if (action === "reset_own_pin") return jsonOutput(resetNavidiariaOwnPin_(sheets.users, user));
+      throw new Error("Azione non riconosciuta: " + action);
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    return jsonOutput({
+      ok: false,
+      error: error && error.message ? error.message : String(error)
+    });
+  }
+}
+
+function ensureNavidiariaCloudSheets_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let users = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
+  let data = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
+
+  if (!users) users = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
+  if (!data) data = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
+
+  ensureNavidiariaHeader_(users, ["ID_AGENTE", "AGENTE", "PIN_HASH", "REGISTRATO_IL", "ULTIMO_ACCESSO"]);
+  ensureNavidiariaHeader_(data, ["ID_AGENTE", "JSON_DATI", "VERSIONE", "AGGIORNATO_IL"]);
+  users.hideColumns(3);
+  users.setFrozenRows(1);
+  data.setFrozenRows(1);
+  return { users: users, data: data };
+}
+
+function ensureNavidiariaHeader_(sheet, headers) {
+  if (sheet.getLastRow() === 0) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  const current = sheet.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
+  if (current.join("|") !== headers.join("|")) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setBackground("#15313d").setFontColor("#ffffff").setFontWeight("bold");
+}
+
+function authNavidiaria_(sheets, request) {
+  const agentId = cleanNavidiariaId_(request.agentId);
+  const pinHash = cleanNavidiariaHash_(request.pinHash);
+  if (!agentId || !pinHash) throw new Error("ID agente o PIN non valido.");
+
+  const directoryAgent = findNavidiariaDirectoryAgent_(agentId);
+  if (!directoryAgent) throw new Error("Agente non presente in Foglio1.");
+
+  const found = findNavidiariaRow_(sheets.users, agentId);
+  const now = new Date();
+  if (!found) {
+    sheets.users.appendRow([agentId, directoryAgent.name, pinHash, now, now]);
+    return { ok: true, registered: true, agent: directoryAgent };
+  }
+
+  const savedHash = String(found.values[2] || "");
+  if (savedHash && savedHash !== pinHash) throw new Error("PIN non corretto.");
+  sheets.users.getRange(found.row, 2, 1, 4).setValues([[
+    directoryAgent.name,
+    pinHash,
+    found.values[3] || now,
+    now
+  ]]);
+  return { ok: true, registered: !savedHash, agent: directoryAgent };
+}
+
+function authenticateNavidiaria_(usersSheet, agentIdValue, pinHashValue) {
+  const agentId = cleanNavidiariaId_(agentIdValue);
+  const pinHash = cleanNavidiariaHash_(pinHashValue);
+  const found = findNavidiariaRow_(usersSheet, agentId);
+  if (!found || !found.values[2] || String(found.values[2]) !== pinHash) throw new Error("Sessione non valida: accedi nuovamente.");
+  return { id: agentId, name: String(found.values[1] || "") };
+}
+
+function loadNavidiaria_(dataSheet, user) {
+  const found = findNavidiariaRow_(dataSheet, user.id);
+  if (!found) return { ok: true, entries: [], version: 0, updatedAt: "" };
+  let entries = [];
+  try { entries = JSON.parse(String(found.values[1] || "[]")); } catch (error) { throw new Error("Archivio Diaria online non leggibile."); }
+  return {
+    ok: true,
+    entries: Array.isArray(entries) ? entries : [],
+    version: Number(found.values[2]) || 0,
+    updatedAt: formatNavidiariaDate_(found.values[3])
+  };
+}
+
+function saveNavidiaria_(dataSheet, user, entriesValue) {
+  if (!Array.isArray(entriesValue)) throw new Error("Dati Diaria non validi.");
+  if (entriesValue.length > 2000) throw new Error("Il registro contiene troppe righe.");
+  const entries = entriesValue.map(sanitizeNavidiariaEntry_);
+  const json = JSON.stringify(entries);
+  if (json.length > NAVIDIARIA_CLOUD_CONFIG.maxPayloadChars) throw new Error("Archivio troppo grande per una singola scheda: contatta l’amministratore.");
+
+  const found = findNavidiariaRow_(dataSheet, user.id);
+  const version = found ? (Number(found.values[2]) || 0) + 1 : 1;
+  const now = new Date();
+  const row = [user.id, json, version, now];
+  if (found) dataSheet.getRange(found.row, 1, 1, 4).setValues([row]);
+  else dataSheet.appendRow(row);
+  return { ok: true, version: version, updatedAt: formatNavidiariaDate_(now) };
+}
+
+function listNavidiariaUsers_(usersSheet, user) {
+  requireNavidiariaAdmin_(user);
+  if (usersSheet.getLastRow() < 2) return { ok: true, users: [] };
+  const values = usersSheet.getRange(2, 1, usersSheet.getLastRow() - 1, 5).getValues();
+  return {
+    ok: true,
+    users: values.filter(function(row) { return row[0] && row[2]; }).map(function(row) {
+      return {
+        id: cleanNavidiariaId_(row[0]),
+        name: String(row[1] || ""),
+        registeredAt: formatNavidiariaDate_(row[3]),
+        lastAccess: formatNavidiariaDate_(row[4])
+      };
+    })
+  };
+}
+
+function resetNavidiariaPin_(usersSheet, user, targetAgentIdValue) {
+  requireNavidiariaAdmin_(user);
+  const targetAgentId = cleanNavidiariaId_(targetAgentIdValue);
+  const found = findNavidiariaRow_(usersSheet, targetAgentId);
+  if (!found) throw new Error("Utente non registrato.");
+  usersSheet.getRange(found.row, 3).clearContent();
+  return { ok: true };
+}
+
+function changeNavidiariaPin_(usersSheet, user, newPinHashValue) {
+  const newPinHash = cleanNavidiariaHash_(newPinHashValue);
+  if (!newPinHash) throw new Error("Nuovo PIN non valido.");
+  const found = findNavidiariaRow_(usersSheet, user.id);
+  if (!found) throw new Error("Utente non registrato.");
+  usersSheet.getRange(found.row, 3).setValue(newPinHash);
+  return { ok: true };
+}
+
+function resetNavidiariaOwnPin_(usersSheet, user) {
+  const found = findNavidiariaRow_(usersSheet, user.id);
+  if (!found) throw new Error("Utente non registrato.");
+  usersSheet.getRange(found.row, 3).clearContent();
+  return { ok: true };
+}
+
+function requireNavidiariaAdmin_(user) {
+  if (String(user.id) !== NAVIDIARIA_CLOUD_CONFIG.adminAgentId) throw new Error("Operazione riservata all’amministratore.");
+}
+
+function sanitizeNavidiariaEntry_(entry) {
+  if (!entry || typeof entry !== "object") throw new Error("Riga Diaria non valida.");
+  const output = {};
+  Object.keys(entry).slice(0, 30).forEach(function(key) {
+    const value = entry[key];
+    if (["string", "number", "boolean"].indexOf(typeof value) >= 0 || value === null) output[String(key).slice(0, 40)] = value;
+  });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(output.date || ""))) throw new Error("Data Diaria non valida.");
+  return output;
+}
+
+function findNavidiariaDirectoryAgent_(agentId) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return null;
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getDisplayValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (cleanNavidiariaId_(rows[i][1]) === agentId) {
+      return {
+        id: agentId,
+        name: String(rows[i][3] || "").trim(),
+        qualifica: typeof normalizzaQualifica === "function" ? normalizzaQualifica(rows[i][2]) : String(rows[i][2] || "marinaio"),
+        residence: String(rows[i][0] || "").trim().toUpperCase()
+      };
+    }
+  }
+  return null;
+}
+
+function findNavidiariaRow_(sheet, agentId) {
+  if (!agentId || sheet.getLastRow() < 2) return null;
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  for (let i = 0; i < values.length; i++) {
+    if (cleanNavidiariaId_(values[i][0]) === agentId) return { row: i + 2, values: values[i] };
+  }
+  return null;
+}
+
+function cleanNavidiariaId_(value) {
+  return String(value === null || value === undefined ? "" : value).trim().replace(/\.0$/, "");
+}
+
+function cleanNavidiariaHash_(value) {
+  const hash = String(value || "").trim().toLowerCase();
+  return /^[a-f0-9]{64}$/.test(hash) ? hash : "";
+}
+
+function formatNavidiariaDate_(value) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return "";
+  return Utilities.formatDate(date, Session.getScriptTimeZone() || "Europe/Rome", "yyyy-MM-dd'T'HH:mm:ss");
+}
