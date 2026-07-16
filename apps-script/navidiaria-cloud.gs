@@ -222,7 +222,38 @@ function uploadNaviDocument_(documentsSheet, user, request) {
   const now = new Date();
   const url = "https://drive.google.com/file/d/" + file.getId() + "/view";
   documentsSheet.appendRow([file.getId(), type, title, now, user.id, url]);
-  return { ok: true, document: { id: file.getId(), type: type, title: title, createdAt: formatNavidiariaDate_(now), uploadedBy: user.id, url: url } };
+  let imported = null;
+  let analysisError = "";
+  if (type === "ods" && request.analysis) {
+    try {
+      if (typeof importaOdsDaPdf !== "function") throw new Error("Importatore ODS non disponibile nel progetto Apps Script.");
+      const analysis = sanitizeNaviPdfAnalysis_(request.analysis);
+      imported = importaOdsDaPdf(analysis.text, analysis.pages, analysis.ods, title);
+    } catch (error) {
+      analysisError = error && error.message ? error.message : String(error);
+    }
+  }
+  return {
+    ok: true,
+    document: { id: file.getId(), type: type, title: title, createdAt: formatNavidiariaDate_(now), uploadedBy: user.id, url: url },
+    imported: imported,
+    analysisError: analysisError
+  };
+}
+
+function sanitizeNaviPdfAnalysis_(value) {
+  if (!value || typeof value !== "object") throw new Error("Analisi PDF mancante.");
+  const text = String(value.text || "").slice(0, 250000);
+  const ods = String(value.ods || "").trim().slice(0, 80);
+  const pages = (Array.isArray(value.pages) ? value.pages : []).slice(0, 20).map(function(page) {
+    return {
+      items: (page && Array.isArray(page.items) ? page.items : []).slice(0, 5000).map(function(item) {
+        return { x: Number(item.x) || 0, y: Number(item.y) || 0, s: String(item.s || "").slice(0, 200) };
+      })
+    };
+  });
+  if (!text) throw new Error("Il PDF non contiene testo leggibile.");
+  return { text: text, pages: pages, ods: ods };
 }
 
 function deleteNaviDocument_(documentsSheet, user, documentIdValue) {

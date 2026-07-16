@@ -11,6 +11,22 @@ async function localArchiveDocuments(){const db=await openArchiveDb();return new
 async function deleteLocalArchiveDocument(id){const db=await openArchiveDb();return new Promise((resolve,reject)=>{const request=db.transaction('documents','readwrite').objectStore('documents').delete(id);request.onsuccess=resolve;request.onerror=()=>reject(request.error)})}
 const fileToBase64=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');reader.onerror=()=>reject(reader.error);reader.readAsDataURL(file)});
 
+async function analyzeOdsPdf(file){
+  if(!window.pdfjsLib)throw new Error('Analisi PDF non disponibile: ricarica la pagina e riprova.');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,pages=[],structured=[];
+  for(let pageNumber=1;pageNumber<=pdf.numPages;pageNumber++){
+    const page=await pdf.getPage(pageNumber),content=await page.getTextContent(),lines={};
+    content.items.forEach(item=>{const y=Math.round(item.transform[5]);(lines[y]||(lines[y]=[])).push({x:item.transform[4],s:item.str})});
+    const text=Object.keys(lines).map(Number).sort((a,b)=>b-a).map(y=>lines[y].sort((a,b)=>a.x-b.x).map(value=>value.s).join(' ').replace(/ +/g,' ').trim()).filter(Boolean).join('\n');
+    pages.push(text);
+    if(text.toUpperCase().includes('TURNO NAVI'))structured.push({items:content.items.slice(0,5000).map(item=>({x:item.transform[4],y:item.transform[5],s:item.str}))});
+  }
+  const text=pages.join('\n').slice(0,250000),source=`${file.name}\n${text.slice(0,5000)}`;
+  const match=source.match(/(?:O\.?D\.?S\.?|N\.?)[^0-9]{0,15}(\d{1,3})\s*[\/_-]\s*(20\d{2})/i)||source.match(/N\.?\s*(\d{1,3})[^0-9]{1,12}(20\d{2})/i);
+  return {text,pages:structured,ods:match?`${match[1]}/${match[2]}`:file.name.replace(/\.pdf$/i,'')};
+}
+
 function documentCard(document){
   const type=document.type==='bozza'?'BOZZA · NON DEFINITIVA':document.type==='ods'?'ODS':'TURNO';
   const icon=document.type==='ods'?'ODS':'PDF',draft=document.type==='bozza'?' draft-document':'';
@@ -61,8 +77,18 @@ document.getElementById('documentUploadForm').addEventListener('submit',async ev
   if(!file||(!file.name.toLowerCase().endsWith('.pdf')&&file.type!=='application/pdf')){message.textContent='Seleziona un file PDF valido.';return}
   if(file.size>10*1024*1024){message.textContent='Il PDF non può superare 10 MB.';return}
   const type=document.getElementById('documentType').value,title=file.name.trim().replace(/\s+/g,'_');
-  button.disabled=true;message.textContent='Caricamento su Google Drive…';
-  try{const base64=await fileToBase64(file);await NaviCloud.request('upload_document',{...archiveCredentials(),documentType:type,title,base64});event.target.reset();message.textContent=`${title} condiviso con tutti gli agenti.`;await renderArchiveDocuments()}catch(error){message.textContent=error.message}finally{button.disabled=false}
+  button.disabled=true;message.textContent=type==='ods'?'Analisi di variazioni e turni nave…':'Caricamento su Google Drive…';
+  try{
+    const analysis=type==='ods'?await analyzeOdsPdf(file):null;
+    message.textContent='Caricamento su Google Drive…';
+    const base64=await fileToBase64(file),result=await NaviCloud.request('upload_document',{...archiveCredentials(),documentType:type,title,base64,analysis});
+    event.target.reset();
+    const imported=result.imported;
+    message.textContent=imported
+      ?`${title} condiviso. Variazioni: ${imported.variazioni.inserite} inserite, ${imported.variazioni.duplicate} già presenti. Turni nave: ${imported.navi.inserite} inseriti, ${imported.navi.aggiornate} aggiornati, ${imported.navi.duplicate} invariati.`
+      :`${title} condiviso con tutti gli agenti.${result.analysisError?` Analisi non completata: ${result.analysisError}`:''}`;
+    await renderArchiveDocuments();
+  }catch(error){message.textContent=error.message}finally{button.disabled=false}
 });
 
 document.addEventListener('click',async event=>{
