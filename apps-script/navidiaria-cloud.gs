@@ -249,6 +249,7 @@ function prepareNaviOdsImport_() {
   if (variations && variations.getMaxRows() > 1) variations.getRange(2, 7, variations.getMaxRows() - 1, 1).clearDataValidations();
   if (ships && ships.getMaxRows() > 1) {
     ships.getRange(2, 5, ships.getMaxRows() - 1, 1).clearDataValidations();
+    ships.getRange(2, 7, ships.getMaxRows() - 1, 1).clearDataValidations();
     ships.getRange(2, 8, ships.getMaxRows() - 1, 1).clearDataValidations();
   }
 }
