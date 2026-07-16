@@ -3,6 +3,7 @@ const ADMIN_AGENT_IDS=new Set(['92','MOVIMENTO']);
 const activeArchiveAgent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null');
 if(!activeArchiveAgent)location.replace('index.html');
 const archiveAdmin=ADMIN_AGENT_IDS.has(String(activeArchiveAgent?.id));
+const staticOdsMarkup=[...document.getElementById('staticOds').children].reverse().map(card=>card.outerHTML).join('');
 const escapeArchive=value=>String(value||'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const archiveCredentials=()=>({agentId:String(activeArchiveAgent?.id||''),pinHash:localStorage.getItem(`navidiaria.pin.${activeArchiveAgent?.id}`)||''});
 
@@ -68,15 +69,14 @@ async function renderArchiveDocuments(){
   const turni=documents.filter(document=>document.type!=='ods').sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
   const ods=documents.filter(document=>document.type==='ods').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   document.getElementById('uploadedTurni').innerHTML=turni.map(documentCard).join('');
-  document.getElementById('uploadedOds').innerHTML=ods.map(documentCard).join('');
+  document.getElementById('uploadedOds').innerHTML=ods.map(documentCard).join('')+staticOdsMarkup;
+  document.getElementById('staticOds').hidden=true;
   const counts=document.querySelectorAll('.section-heading .count');
   if(counts[0])counts[0].textContent=`${2+turni.length} documenti`;
   if(counts[1])counts[1].textContent=`${10+ods.length} documenti`;
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
-  const staticOds=document.getElementById('staticOds');
-  [...staticOds.children].reverse().forEach(card=>staticOds.appendChild(card));
   document.getElementById('adminUploadPanel').hidden=!archiveAdmin;
   document.getElementById('archiveAdminNav').hidden=!archiveAdmin;
   document.getElementById('archiveSidebarAgent').textContent=String(activeArchiveAgent?.name||'Agente').trim().toLocaleUpperCase('it');
