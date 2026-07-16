@@ -3,7 +3,7 @@ const ADMIN_AGENT_IDS=new Set(['92','MOVIMENTO']);
 const activeArchiveAgent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null');
 if(!activeArchiveAgent)location.replace('index.html');
 const archiveAdmin=ADMIN_AGENT_IDS.has(String(activeArchiveAgent?.id));
-const staticOdsMarkup=[...document.getElementById('staticOds').children].reverse().map(card=>card.outerHTML).join('');
+const staticOdsCards=[...document.getElementById('staticOds').children].reverse().map(card=>({number:String(card.querySelector('.ods-number')?.textContent||'').trim(),html:card.outerHTML}));
 const escapeArchive=value=>String(value||'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const archiveCredentials=()=>({agentId:String(activeArchiveAgent?.id||''),pinHash:localStorage.getItem(`navidiaria.pin.${activeArchiveAgent?.id}`)||''});
 
@@ -47,6 +47,7 @@ function documentCard(document){
   const info=shiftDocumentInfo(document.title,document.type),displayTitle=info?.label||document.title,detail=info?`Validità: ${info.period}`:new Intl.DateTimeFormat('it-IT',{dateStyle:'medium'}).format(new Date(document.createdAt));
   return `<article class="document local-document${draft}" data-open-document="${escapeArchive(document.url)}" role="link" tabindex="0" aria-label="Apri ${escapeArchive(displayTitle)}"><span class="pdf-icon">${icon}</span><div><small>${type} · CONDIVISO</small><strong>${escapeArchive(displayTitle)}</strong><p>${escapeArchive(detail)}</p></div><b>↗</b>${archiveAdmin?`<button class="document-delete" type="button" data-delete-document="${escapeArchive(document.id)}">Elimina</button>`:''}</article>`;
 }
+function archiveOdsNumber(document){const title=String(document?.title||'');return (title.match(/(?:o\.?d\.?s\.?|servizio|n)[^0-9]{0,12}(\d{1,3})/i)||title.match(/(\d{1,3})/))?.[1]||''}
 
 async function sharedArchiveDocuments(){
   const result=await NaviCloud.request('list_documents',archiveCredentials());
@@ -67,13 +68,14 @@ async function migrateLocalDocuments(){
 async function renderArchiveDocuments(){
   const documents=await sharedArchiveDocuments();
   const turni=documents.filter(document=>document.type!=='ods').sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
-  const ods=documents.filter(document=>document.type==='ods').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const seenOdsNumbers=new Set(),ods=documents.filter(document=>document.type==='ods').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).filter(document=>{const number=archiveOdsNumber(document);if(number&&seenOdsNumbers.has(number))return false;if(number)seenOdsNumbers.add(number);return true});
   document.getElementById('uploadedTurni').innerHTML=turni.map(documentCard).join('');
-  document.getElementById('uploadedOds').innerHTML=ods.map(documentCard).join('')+staticOdsMarkup;
+  const sharedOdsNumbers=new Set(ods.map(archiveOdsNumber).filter(Boolean)),missingStaticOds=staticOdsCards.filter(card=>!sharedOdsNumbers.has(card.number));
+  document.getElementById('uploadedOds').innerHTML=ods.map(documentCard).join('')+missingStaticOds.map(card=>card.html).join('');
   document.getElementById('staticOds').hidden=true;
   const counts=document.querySelectorAll('.section-heading .count');
   if(counts[0])counts[0].textContent=`${2+turni.length} documenti`;
-  if(counts[1])counts[1].textContent=`${10+ods.length} documenti`;
+  if(counts[1])counts[1].textContent=`${ods.length+missingStaticOds.length} documenti`;
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
