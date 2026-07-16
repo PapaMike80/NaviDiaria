@@ -2041,6 +2041,16 @@
       background-color:#17515a !important;
       outline-color:rgba(45,212,191,.88);
     }
+    #tbody tr.logged-agent-row td.shared-crew-day,
+    #tbody tr.pinned-row td.shared-crew-day {
+      background:#15545a !important;
+      outline:2px solid #fbbf24;
+      outline-offset:-2px;
+      box-shadow:inset 0 0 0 2px rgba(251,191,36,.2),0 0 15px rgba(251,191,36,.16);
+    }
+    #tbody td.shared-crew-day .cell-pill {
+      box-shadow:0 0 0 2px rgba(251,191,36,.78),0 0 10px rgba(251,191,36,.25);
+    }
 </style>
   <link rel="stylesheet" href="shared-menu.css">
 </head>
@@ -2714,7 +2724,39 @@
 
       renderCoverageTable();
       hidePastColumns();
+      highlightSharedCrewDays();
       requestAnimationFrame(updateLoggedStickyOffset);
+    }
+
+    function highlightSharedCrewDays() {
+      document.querySelectorAll("#tbody td.shared-crew-day").forEach(cell => {
+        cell.classList.remove("shared-crew-day");
+        if (cell.dataset.sharedCrewTitle && cell.title === cell.dataset.sharedCrewTitle) cell.removeAttribute("title");
+        delete cell.dataset.sharedCrewTitle;
+      });
+      const loggedIndex = findLoggedAgentIndex();
+      if (loggedIndex < 0 || pinnedAgentIdx === null || pinnedAgentIdx === loggedIndex) return;
+      const loggedAgent = currentAgentsList[loggedIndex];
+      const pinnedAgent = currentAgentsList[pinnedAgentIdx];
+      if (!loggedAgent || !pinnedAgent) return;
+
+      dateCalendario.forEach(cal => {
+        const dayIndex = (cal.col - 3) % 7;
+        const loggedRaw = (loggedAgent.turni_settimanali[cal.weekKey] || [])[dayIndex] || "rip";
+        const pinnedRaw = (pinnedAgent.turni_settimanali[cal.weekKey] || [])[dayIndex] || "rip";
+        const loggedShift = ottieniTurnoPulito(loggedRaw);
+        const pinnedShift = ottieniTurnoPulito(pinnedRaw);
+        if (!getShiftResidence(loggedShift) || !getShiftResidence(pinnedShift) || !isSameCrewShift(loggedShift, pinnedShift)) return;
+        const label = getCrewShiftKey(loggedShift).replace(/^TERRA_/, "TERRA ");
+        [loggedIndex, pinnedAgentIdx].forEach(index => {
+          const cell = document.querySelector(`#tbody tr[data-row-index="${index}"] td[data-col="${cal.col}"]`);
+          if (!cell) return;
+          cell.classList.add("shared-crew-day");
+          const title = `Turno in comune: ${label}`;
+          cell.dataset.sharedCrewTitle = title;
+          cell.title = cell.title ? `${cell.title} · ${title}` : title;
+        });
+      });
     }
 
     function updateLoggedStickyOffset() {
