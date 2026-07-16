@@ -2263,13 +2263,9 @@
       selectResidence(loggedAgentProfile.residence);
       const index = findLoggedAgentIndex();
       if (index < 0) return false;
-      pinnedAgentIdx = index;
+      // L'agente collegato resta in cima, ma viene pinnato solo quando lo seleziona.
+      pinnedAgentIdx = null;
       renderTable();
-      const todayCal = dateCalendario.find(cal => isTodayDate(cal.realObj));
-      if (todayCal) {
-        selectDayForPinnedAgent(todayCal);
-        setTimeout(scrollCrewPanelIntoView, 80);
-      }
       return true;
     }
 
@@ -2613,15 +2609,15 @@
       trElements = [];
       crewCompletenessCache.clear();
 
-      if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
-        let trPinned = createRowDOM(currentAgentsList[pinnedAgentIdx], pinnedAgentIdx, true);
-        tbody.appendChild(trPinned);
-        trElements.push(trPinned);
-      }
+      const loggedIndex = findLoggedAgentIndex();
+      const orderedIndexes = [];
+      if (loggedIndex >= 0) orderedIndexes.push(loggedIndex);
+      if (pinnedAgentIdx !== null && pinnedAgentIdx !== loggedIndex && currentAgentsList[pinnedAgentIdx]) orderedIndexes.push(pinnedAgentIdx);
+      currentAgentsList.forEach((agent, index) => { if (!orderedIndexes.includes(index)) orderedIndexes.push(index); });
 
-      currentAgentsList.forEach((agenteObj, ri) => {
-        if (ri === pinnedAgentIdx) return;
-        let tr = createRowDOM(agenteObj, ri, false);
+      orderedIndexes.forEach(ri => {
+        const agenteObj = currentAgentsList[ri];
+        let tr = createRowDOM(agenteObj, ri, ri === pinnedAgentIdx);
         tbody.appendChild(tr);
         trElements.push(tr);
       });
@@ -3006,6 +3002,9 @@
       const selectedIsGroundCrew = isGroundCrewShiftKey(selectedCrewKey);
 
       trElements.sort((a, b) => {
+        const loggedA = a.classList.contains("logged-agent-row") ? 0 : 1;
+        const loggedB = b.classList.contains("logged-agent-row") ? 0 : 1;
+        if (loggedA !== loggedB) return loggedA - loggedB;
         const pinnedA = a.classList.contains("pinned-row") ? 0 : 1;
         const pinnedB = b.classList.contains("pinned-row") ? 0 : 1;
         if (pinnedA !== pinnedB) return pinnedA - pinnedB;
@@ -3040,6 +3039,9 @@
       removeTemporaryTransferRows();
 
       trElements.sort((a, b) => {
+        const loggedA = a.classList.contains("logged-agent-row") ? 0 : 1;
+        const loggedB = b.classList.contains("logged-agent-row") ? 0 : 1;
+        if (loggedA !== loggedB) return loggedA - loggedB;
         const pinnedA = a.classList.contains("pinned-row") ? 0 : 1;
         const pinnedB = b.classList.contains("pinned-row") ? 0 : 1;
         if (pinnedA !== pinnedB) return pinnedA - pinnedB;
@@ -3055,6 +3057,7 @@
       tr.dataset.residence = residence;
       tr.classList.add(getGradeClass(agenteObj.id, agenteObj.agente, agenteObj.qualifica));
       if (isPinned) tr.classList.add("pinned-row");
+      if (!isTemporaryTransfer && ri === findLoggedAgentIndex(residence)) tr.classList.add("logged-agent-row");
       if (isTemporaryTransfer) tr.classList.add("temporary-transfer-row");
 
       const transferLabel = isTemporaryTransfer ? `<span class="transfer-table-label">Trasferta da ${residence}</span>` : "";
@@ -3211,11 +3214,11 @@
                 <span class="service-code" style="color:${myColor}">${myShiftPuro}</span>
                 ${myDuration ? `<span class="shift-duration">${myDuration}</span>` : ""}
               </div>
-              <div class="shift-navigation" aria-label="Cambia corsa">
+              ${pinnedAgentIdx === null ? `<div class="shift-navigation" aria-label="Cambia corsa">
                 <button class="shift-arrow" type="button" onclick="changeSelectedShift(-1)" aria-label="Corsa precedente">←</button>
                 <span class="shift-nav-label">Corsa</span>
                 <button class="shift-arrow" type="button" onclick="changeSelectedShift(1)" aria-label="Corsa successiva">→</button>
-              </div>
+              </div>` : ""}
             </div>
             ${shipDayInfo}
             <div class="panel-navigation" aria-label="Cambia giorno">
@@ -3431,9 +3434,13 @@
       const currentIndex = dateCalendario.findIndex(c => c.col === selectedCol);
       const target = dateCalendario[currentIndex + direction];
       if (!target) return;
-      const shift = activeShiftFilter || selectedShiftValue;
-      clearPinnedAgentSelection();
-      selectDay(target.col, target.labelEstesa, shift);
+      if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
+        selectDayForPinnedAgent(target);
+      } else {
+        const shift = activeShiftFilter || selectedShiftValue;
+        clearPinnedAgentSelection();
+        selectDay(target.col, target.labelEstesa, shift);
+      }
       setTimeout(() => revealSelectedDate(target), 90);
     }
 
@@ -3482,9 +3489,13 @@
         return date.getTime() === now.getTime();
       });
       if (!target) return;
-      const shift = activeShiftFilter || selectedShiftValue;
-      clearPinnedAgentSelection();
-      selectDay(target.col, target.labelEstesa, shift);
+      if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
+        selectDayForPinnedAgent(target);
+      } else {
+        const shift = activeShiftFilter || selectedShiftValue;
+        clearPinnedAgentSelection();
+        selectDay(target.col, target.labelEstesa, shift);
+      }
       setTimeout(() => revealSelectedDate(target), 90);
     }
 
