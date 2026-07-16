@@ -37,6 +37,7 @@ function doPost(e) {
       if (action === "change_pin") return jsonOutput(changeNavidiariaPin_(sheets.users, user, request.newPinHash));
       if (action === "reset_own_pin") return jsonOutput(resetNavidiariaOwnPin_(sheets.users, user));
       if (action === "list_documents") return jsonOutput(listNaviDocuments_(sheets.documents));
+      if (action === "variation_status") return jsonOutput(getNaviVariationStatus_(sheets.documents));
       if (action === "upload_document") return jsonOutput(uploadNaviDocument_(sheets.documents, user, request));
       if (action === "delete_document") return jsonOutput(deleteNaviDocument_(sheets.documents, user, request.documentId));
       throw new Error("Azione non riconosciuta: " + action);
@@ -49,6 +50,41 @@ function doPost(e) {
       error: error && error.message ? error.message : String(error)
     });
   }
+}
+
+function getNaviVariationStatus_(documentsSheet) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
+  if (!sheet || sheet.getLastRow() < 2) return { ok:true, variationStatus:null };
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getDisplayValues();
+  const counts = {};
+  rows.forEach(function(row) {
+    if (String(row[0] || "").trim().toUpperCase() === "NO") return;
+    const ods = String(row[6] || "").trim();
+    if (!ods) return;
+    counts[ods] = (counts[ods] || 0) + 1;
+  });
+  const candidates = Object.keys(counts).filter(function(ods) { return counts[ods] > 1; }).map(function(ods) {
+    const match = ods.match(/(\d{1,3})(?:\s*\/\s*(20\d{2}))?/);
+    return { ods:ods, number:match ? Number(match[1]) : 0, year:match && match[2] ? Number(match[2]) : 0, count:counts[ods] };
+  }).sort(function(a, b) { return b.year - a.year || b.number - a.number; });
+  if (!candidates.length) return { ok:true, variationStatus:null };
+  const latest = candidates[0];
+  let date = "";
+  if (documentsSheet && documentsSheet.getLastRow() > 1) {
+    const documents = documentsSheet.getRange(2, 1, documentsSheet.getLastRow() - 1, 6).getValues();
+    for (let index = documents.length - 1; index >= 0; index--) {
+      if (String(documents[index][1] || "").toLowerCase() !== "ods") continue;
+      const title = String(documents[index][2] || "");
+      const number = (title.match(/(?:o\.?d\.?s\.?|servizio|n)[^0-9]{0,12}(\d{1,3})/i) || title.match(/(\d{1,3})/));
+      if (!number || Number(number[1]) !== latest.number) continue;
+      const titleDate = title.match(/(\d{2})[-_.](\d{2})[-_.](20\d{2})/);
+      if (titleDate) date = titleDate[1] + "/" + titleDate[2] + "/" + titleDate[3];
+      else if (documents[index][3] instanceof Date) date = Utilities.formatDate(documents[index][3], Session.getScriptTimeZone() || "Europe/Rome", "dd/MM/yyyy");
+      break;
+    }
+  }
+  return { ok:true, variationStatus:{ ods:latest.ods, number:latest.number, date:date, count:latest.count } };
 }
 
 function ensureNavidiariaCloudSheets_() {

@@ -5,7 +5,7 @@
   window.name=tabNames[page];
   const tabForHref=href=>href.includes('naviturni')?tabNames.turni:href.includes('navidiaria')?tabNames.diaria:href.includes('turni.html')?tabNames.archive:'';
   const item=(href,icon,label,active=false,external=false,id='')=>`<a ${id?`id="${id}" `:''}class="nav-link${active?' active':''}" href="${href}"${external?` data-navi-tab="${tabForHref(href)}"`:''}${['competencyNav','adminNav','archiveAdminNav'].includes(id)?' hidden':''}><span>${icon}</span>${label}</a>`;
-  let common='',specific='',user='',status='';
+  let common='',specific='',user='',status='<div id="odsVariationStatus" class="ods-variation-status" hidden></div>';
   if(page==='diaria'){
     common=item('naviturni.html','▦','NaviTurni',false,true)+item('#oggi','≈','NaviDiaria',true)+item('turni.html','▤','ODS / Turni',false,true);
     specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,false,'competencyNav')}${item('#adminPanel','♙','Gestione PIN',false,false,'adminNav')}`;
@@ -26,4 +26,17 @@
   const toggle=document.createElement('button');toggle.className='sidebar-collapse-button';toggle.type='button';document.body.appendChild(toggle);
   function setCollapsed(value){document.body.classList.toggle('menu-collapsed',value);toggle.setAttribute('aria-expanded',String(!value));toggle.setAttribute('aria-label',value?'Mostra menu':'Nascondi menu');toggle.textContent=value?'›':'‹'}
   toggle.addEventListener('click',()=>setCollapsed(!document.body.classList.contains('menu-collapsed')));sidebar.querySelector('nav')?.addEventListener('click',event=>{if(window.innerWidth<=800&&event.target.closest('a'))setCollapsed(true)});setCollapsed(true);
+  async function refreshOdsVariationStatus(){
+    const target=document.getElementById('odsVariationStatus');if(!target||!window.NaviCloud)return;
+    let agent=null;try{agent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null')}catch{}
+    const agentId=String(agent?.id||'');const pinHash=localStorage.getItem(`navidiaria.pin.${agentId}`)||'';
+    if(!agentId||!pinHash){target.hidden=true;return}
+    try{
+      const result=await NaviCloud.request('variation_status',{agentId,pinHash}),info=result.variationStatus;
+      if(!info||Number(info.count)<=1){target.hidden=true;return}
+      target.textContent=`Variazioni aggiornate all'ODS n. ${info.number}${info.date?` del ${info.date}`:''}`;target.hidden=false;
+    }catch{target.hidden=true}
+  }
+  window.refreshOdsVariationStatus=refreshOdsVariationStatus;
+  window.addEventListener('DOMContentLoaded',refreshOdsVariationStatus);
 })();
