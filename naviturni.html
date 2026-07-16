@@ -2044,6 +2044,25 @@
     #tbody td.shared-crew-day .cell-pill {
       box-shadow:0 0 0 2px rgba(251,191,36,.78),0 0 10px rgba(251,191,36,.25);
     }
+    #tbody tr.shared-crew-focus td.shared-crew-day .cell-pill {
+      animation:shared-crew-pulse .72s ease-in-out infinite alternate;
+    }
+    @keyframes shared-crew-pulse {
+      from {
+        transform:scale(1);
+        box-shadow:0 0 0 2px rgba(251,191,36,.72),0 0 8px rgba(251,191,36,.22);
+      }
+      to {
+        transform:scale(1.1);
+        box-shadow:0 0 0 3px rgba(251,191,36,1),0 0 18px rgba(251,191,36,.62);
+      }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      #tbody tr.shared-crew-focus td.shared-crew-day .cell-pill {
+        animation:none;
+        box-shadow:0 0 0 3px rgba(251,191,36,1),0 0 16px rgba(251,191,36,.5);
+      }
+    }
     #tbody td.departed-crew-day .cell-pill {
       box-shadow:0 0 0 2px rgba(168,85,247,.85),0 0 10px rgba(168,85,247,.28);
     }
@@ -3366,6 +3385,24 @@
         }
         tr.appendChild(td);
       });
+
+      tr.addEventListener("pointerenter", event => {
+        if (event.pointerType !== "touch" && tr.querySelector("td.shared-crew-day")) {
+          tr.classList.add("shared-crew-focus");
+        }
+      });
+      tr.addEventListener("pointerleave", event => {
+        if (event.pointerType !== "touch") tr.classList.remove("shared-crew-focus");
+      });
+      tr.addEventListener("touchstart", () => {
+        if (!tr.querySelector("td.shared-crew-day")) return;
+        document.querySelectorAll("#tbody tr.shared-crew-focus").forEach(row => {
+          if (row !== tr) row.classList.remove("shared-crew-focus");
+        });
+        tr.classList.add("shared-crew-focus");
+        clearTimeout(tr._sharedCrewPulseTimer);
+        tr._sharedCrewPulseTimer = setTimeout(() => tr.classList.remove("shared-crew-focus"), 1800);
+      }, { passive:true });
 
       return tr;
     }
