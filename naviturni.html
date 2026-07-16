@@ -409,19 +409,23 @@
     }
 
     .panel-close {
-      background: none;
-      border: 1px solid var(--line);
-      color: var(--ink-dim);
+      background: rgba(239, 68, 68, .16);
+      border: 1px solid rgba(248, 113, 113, .65);
+      color: #fca5a5;
       cursor: pointer;
       font-size: 12px;
-      padding: 4px 12px;
+      font-weight: 800;
+      padding: 6px 14px;
       border-radius: 999px;
-      transition: .15s;
+      box-shadow: 0 0 0 1px rgba(239, 68, 68, .08), 0 4px 14px rgba(127, 29, 29, .2);
+      transition: background .15s, border-color .15s, color .15s, transform .15s;
     }
 
     .panel-close:hover {
-      color: var(--ink);
-      border-color: var(--ink);
+      background: rgba(239, 68, 68, .3);
+      border-color: rgba(252, 165, 165, .9);
+      color: #fee2e2;
+      transform: translateY(-1px);
     }
 
     .panel-navigation {
@@ -2264,12 +2268,17 @@
       if (!loggedAgentProfile || !globalData) return;
       if (currentResidence !== loggedAgentProfile.residence) {
         selectResidence(loggedAgentProfile.residence);
-        return;
       }
       const index = findLoggedAgentIndex();
       if (index < 0) return;
       pinnedAgentIdx = index;
       renderTable();
+    }
+
+    function clearPinnedAgentSelection() {
+      pinnedAgentIdx = null;
+      selectedCrewAgent = null;
+      document.querySelectorAll("#tbody tr.pinned-row").forEach(row => row.classList.remove("pinned-row"));
     }
 
     function logoutAgent() {
@@ -2281,16 +2290,56 @@
     }
 
     const turniMappaResidenze = {
-      "desenzano": ["D1", "D2", "D3", "D4", "BIS"],
-      "maderno": ["T1", "T2", "M1"],
+      "desenzano": ["D1", "D2", "D3", "D4", "BIS", "TERRA"],
+      "maderno": ["T1", "T2", "M1", "TERRA"],
       "riva": ["R1", "R2", "R3", "R4", "CAR"],
       "peschiera": ["P1", "P2", "P3", "CAP", "SR1"]
     };
 
-    function getShiftResidence(shiftValue) {
+    const serviziTerraPerResidenza = {
+      DESENZANO: ["AGB", "DT", "POND"],
+      MADERNO: ["AGM", "AGT", "PONM"]
+    };
+    const ordineServiziTerra = { AGB: 1, DT: 2, POND: 3, AGM: 1, AGT: 2, PONM: 3 };
+    const etichetteServiziTerra = { AGB: "AgB", DT: "DT", POND: "PonD", AGM: "AgM", AGT: "AgT", PONM: "PonM" };
+
+    function getCrewShiftKey(shiftValue) {
       const cleanShift = ottieniTurnoPulito(shiftValue).toUpperCase();
+      if (cleanShift === "TERRA") {
+        const residenceKey = String(currentResidence || "").trim().toUpperCase();
+        return serviziTerraPerResidenza[residenceKey] ? `TERRA_${residenceKey}` : "TERRA";
+      }
+      const groundResidence = Object.entries(serviziTerraPerResidenza)
+        .find(([, shifts]) => shifts.includes(cleanShift))?.[0];
+      return groundResidence ? `TERRA_${groundResidence}` : cleanShift;
+    }
+
+    function isGroundCrewShiftKey(shiftValue) {
+      return getCrewShiftKey(shiftValue).startsWith("TERRA_");
+    }
+
+    function getCrewRequirementKey(shiftValue) {
+      return isGroundCrewShiftKey(shiftValue) ? "TERRA" : getCrewShiftKey(shiftValue);
+    }
+
+    function isSameCrewShift(firstShift, secondShift) {
+      const firstKey = getCrewShiftKey(firstShift);
+      return Boolean(firstKey) && firstKey === getCrewShiftKey(secondShift);
+    }
+
+    function getShiftResidence(shiftValue) {
+      const rawShift = ottieniTurnoPulito(shiftValue).toUpperCase();
+      const groundResidence = Object.entries(serviziTerraPerResidenza)
+        .find(([, shifts]) => shifts.includes(rawShift))?.[0];
+      if (groundResidence) {
+        return Object.keys(globalData?.residenze || {}).find(residence =>
+          residence.toUpperCase().trim() === groundResidence
+        ) || groundResidence;
+      }
+      if (rawShift === "TERRA") return currentResidence;
+      const cleanShift = getCrewShiftKey(rawShift);
       const match = Object.entries(turniMappaResidenze).find(([, shifts]) =>
-        shifts.some(shift => String(shift).toUpperCase() === cleanShift)
+        shifts.some(shift => getCrewShiftKey(shift) === cleanShift)
       );
       if (!match) return "";
       return Object.keys(globalData?.residenze || {}).find(residence =>
@@ -2299,8 +2348,8 @@
     }
 
     const defaultCrewRequirements = {
-      DESENZANO: { D1: 4, D2: 5, D3: 5, D4: 3, BIS: 3, AGB: 1, DT: 1, POND: 1 },
-      MADERNO: { T1: 5, T2: 5, M1: 3 },
+      DESENZANO: { D1: 4, D2: 5, D3: 5, D4: 3, BIS: 3, TERRA: 3 },
+      MADERNO: { T1: 5, T2: 5, M1: 3, TERRA: 3 },
       RIVA: { R1: 4, R2: 5, R3: 5, R4: 4, CAR: 3 },
       PESCHIERA: { P1: 5, P2: 5, P3: 4, CAP: 3, SR1: 4 }
     };
@@ -2408,7 +2457,7 @@
       let txt = v.toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
       if (txt === "" || txt === "RIP" || txt === "RIP." || txt === "----") return "";
 
-      let match = txt.match(/(?:^C)?([DRMP]\d|BIS|POND|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
+      let match = txt.match(/(?:^C)?([DRMP]\d|BIS|POND|PONM|AGB|AGM|AGT|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
       if (match && match[1]) {
         return match[1].toUpperCase();
       }
@@ -2476,13 +2525,10 @@
 
     function eseguiRicercaHeader(colonnaCliccata) {
       if (isEditMode) return;
+      clearPinnedAgentSelection();
       placeDayPanel("main");
       let cal = dateCalendario.find(c => c.col === colonnaCliccata);
       if (!cal) return;
-      if (pinnedAgentIdx !== null) {
-        selectDayForPinnedAgent(cal);
-        return;
-      }
       if (!activeShiftFilter) {
         const residenceKey = currentResidence.toLowerCase().trim();
         const availableShifts = turniMappaResidenze[residenceKey] || [];
@@ -2501,7 +2547,7 @@
       const rawShift = weeklyShifts[dayIndex] || "rip";
       const cleanShift = ottieniTurnoPulito(rawShift);
 
-      activeShiftFilter = cleanShift || null;
+      activeShiftFilter = getCrewShiftKey(cleanShift) || null;
       generaFiltriTurnoRiferimento();
       selectDay(cal.col, cal.labelEstesa, rawShift, agent);
     }
@@ -2528,10 +2574,11 @@
         const btn = document.createElement("button");
         btn.className = "shift-filter-btn";
         btn.textContent = t;
-        if (activeShiftFilter === t) btn.classList.add("active");
+        if (getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t)) btn.classList.add("active");
 
         btn.addEventListener("click", () => {
-          if (activeShiftFilter === t) {
+          clearPinnedAgentSelection();
+          if (getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t)) {
             activeShiftFilter = null;
           } else {
             activeShiftFilter = t;
@@ -2588,7 +2635,8 @@
     function getCrewDeficiencies(crew, shift, residence = currentResidence) {
       if (!shift || shift === "RIPOSO") return { required:null, incomplete:false };
       const requirements = getCrewRequirements(residence);
-      const requiredValue = requirements[shift] ?? requirements[String(shift).toUpperCase()];
+      const shiftKey = getCrewRequirementKey(shift);
+      const requiredValue = requirements[shiftKey] ?? requirements[String(shiftKey).toUpperCase()];
       const required = requiredValue == null || requiredValue === "" ? null : parseInt(requiredValue, 10);
       if (required == null || Number.isNaN(required)) return { required:null, incomplete:false };
       const operatingCrew = crew.filter(person => !person.isBarista);
@@ -2612,13 +2660,14 @@
     function getCrewStatusForDate(cal, shiftValue) {
       const emptyStatus = { incomplete:false, overstaffed:false, hasTransfer:false };
       if (!cal || !currentResidence) return emptyStatus;
-      const cleanShift = ottieniTurnoPulito(shiftValue).toUpperCase();
+      const cleanShift = getCrewShiftKey(shiftValue);
       const residenceKey = currentResidence.trim().toLowerCase();
       const validShifts = turniMappaResidenze[residenceKey] || [];
-      if (!validShifts.some(shift => shift.toUpperCase() === cleanShift)) return emptyStatus;
+      if (!validShifts.some(shift => getCrewShiftKey(shift) === cleanShift)) return emptyStatus;
 
       const requirements = getCrewRequirements(currentResidence);
-      const requiredValue = requirements[cleanShift];
+      const requirementKey = getCrewRequirementKey(cleanShift);
+      const requiredValue = requirements[requirementKey];
       const required = requiredValue == null || requiredValue === "" ? null : parseInt(requiredValue, 10);
       if (required == null || Number.isNaN(required)) return emptyStatus;
 
@@ -2631,7 +2680,7 @@
       Object.entries(globalData.residenze || {}).forEach(([residence, agents]) => {
         (agents || []).forEach(agent => {
           const rawShift = (agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip";
-          if (ottieniTurnoPulito(rawShift).toUpperCase() === cleanShift) {
+          if (isSameCrewShift(rawShift, cleanShift)) {
             count++;
             const rawUpper = String(rawShift).trim().toUpperCase();
             if (residence !== currentResidence || rawUpper.startsWith("C") || rawUpper.endsWith("C")) {
@@ -2751,7 +2800,7 @@
 
     function appendCrewOdsVariations(container, calInfo, selectedShift) {
       if (!container || !calInfo) return;
-      const targetShift = ottieniTurnoPulito(selectedShift).toUpperCase();
+      const targetShift = getCrewShiftKey(selectedShift);
       const focusedAgent = selectedCrewAgent || (pinnedAgentIdx !== null ? currentAgentsList[pinnedAgentIdx] : null);
       const matches = [];
 
@@ -2766,7 +2815,7 @@
           }
           const originalShift = ottieniTurnoPulito(variation.turno_originale).toUpperCase();
           const newShift = ottieniTurnoPulito(variation.turno_nuovo).toUpperCase();
-          if (originalShift !== targetShift && newShift !== targetShift) return;
+          if (!isSameCrewShift(originalShift, targetShift) && !isSameCrewShift(newShift, targetShift)) return;
           matches.push({ agent, variation });
         });
       });
@@ -2840,7 +2889,7 @@
           Object.entries(globalData.residenze || {}).forEach(([residence, agents]) => {
             (agents || []).forEach(agent => {
               const rawShift = (agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip";
-              if (ottieniTurnoPulito(rawShift).toUpperCase() === shift.toUpperCase()) {
+              if (isSameCrewShift(rawShift, shift)) {
                 const rawUpper = String(rawShift).trim().toUpperCase();
                 const isTransfer = residence !== currentResidence || rawUpper.startsWith("C") || rawUpper.endsWith("C");
                 hasTransfer ||= isTransfer;
@@ -2855,7 +2904,7 @@
               const variation = agent.variazioni_ods?.[cal.iso];
               if (!variation) return false;
               return [variation.turno_originale, variation.turno_nuovo].some(value =>
-                ottieniTurnoPulito(value).toUpperCase() === shift.toUpperCase()
+                isSameCrewShift(value, shift)
               );
             })
           );
@@ -2906,6 +2955,13 @@
       return globalData?.residenze?.[residence]?.[rowIndex] || null;
     }
 
+    function getTableRowShift(tr, cal = dateCalendario.find(item => item.col === selectedCol)) {
+      const agent = getAgentForTableRow(tr);
+      if (!agent || !cal) return "";
+      const dayIndex = (cal.col - 3) % 7;
+      return ottieniTurnoPulito((agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip").toUpperCase();
+    }
+
     function removeTemporaryTransferRows() {
       const temporaryRows = trElements.filter(tr => tr.classList.contains("temporary-transfer-row"));
       temporaryRows.forEach(tr => tr.remove());
@@ -2923,7 +2979,7 @@
         globalData.residenze[residence].forEach((agent, rowIndex) => {
           const shifts = agent.turni_settimanali[calInfo.weekKey] || [];
           const rawShift = shifts[dayIndex] || "rip";
-          if (ottieniTurnoPulito(rawShift) !== selectedShift) return;
+          if (!isSameCrewShift(rawShift, selectedShift)) return;
 
           const tr = createRowDOM(agent, rowIndex, false, residence, true);
           tbody.appendChild(tr);
@@ -2935,15 +2991,26 @@
     function moveSelectedCrewToTop() {
       const tbody = document.getElementById("tbody");
       if (!tbody) return;
+      const selectedCal = dateCalendario.find(item => item.col === selectedCol);
+      const selectedCrewKey = getCrewShiftKey(selectedShiftValue);
+      const selectedIsGroundCrew = isGroundCrewShiftKey(selectedCrewKey);
 
       trElements.sort((a, b) => {
         const pinnedA = a.classList.contains("pinned-row") ? 0 : 1;
         const pinnedB = b.classList.contains("pinned-row") ? 0 : 1;
         if (pinnedA !== pinnedB) return pinnedA - pinnedB;
 
-        const matchA = a.classList.contains("row-match") ? 0 : 1;
-        const matchB = b.classList.contains("row-match") ? 0 : 1;
+        const shiftA = getTableRowShift(a, selectedCal);
+        const shiftB = getTableRowShift(b, selectedCal);
+        const matchA = isSameCrewShift(shiftA, selectedCrewKey) ? 0 : 1;
+        const matchB = isSameCrewShift(shiftB, selectedCrewKey) ? 0 : 1;
         if (matchA !== matchB) return matchA - matchB;
+
+        if (matchA === 0 && selectedIsGroundCrew) {
+          const serviceDifference = (ordineServiziTerra[shiftA] || 99) -
+            (ordineServiziTerra[shiftB] || 99);
+          if (serviceDifference !== 0) return serviceDifference;
+        }
 
         const gradeDifference = getTableGradeRank(a) - getTableGradeRank(b);
         if (gradeDifference !== 0) return gradeDifference;
@@ -3051,6 +3118,7 @@
           const refuelIndicator = hasRefuel ? '<span class="upper-cell-refuel" aria-label="Rifornimento"></span>' : '';
           td.innerHTML = `${crewIndicators}${refuelIndicator}${pill(turnoVal)}`;
           td.addEventListener("click", () => {
+            clearPinnedAgentSelection();
             placeDayPanel("main");
             // Il clic su una cella deve sempre aprire la corsa scritta nella cella,
             // indipendentemente dal filtro o dall'agente selezionato in precedenza.
@@ -3077,12 +3145,13 @@
       let calInfo = dateCalendario.find(c => c.col === col);
       let giornoInternoIdx = (col - 3) % 7;
       const cleanShift = ottieniTurnoPulito(cellShiftValue);
+      const crewShift = getCrewShiftKey(cleanShift);
       const isRest = cleanShift === "";
       const crewResidence = getShiftResidence(cleanShift);
       const isCrewShift = Boolean(crewResidence);
-      const myShiftPuro = isRest ? "RIPOSO" : cleanShift;
-      updateCoverageShiftButtons(cleanShift);
-      updateCoverageCellSelection(col, cleanShift);
+      const myShiftPuro = isRest ? "RIPOSO" : (isGroundCrewShiftKey(crewShift) ? "TERRA" : crewShift);
+      updateCoverageShiftButtons(crewShift);
+      updateCoverageCellSelection(col, crewShift);
 
       if (!calInfo) {
         document.getElementById("tbody").classList.remove("has-selection");
@@ -3104,7 +3173,7 @@
         let hisShiftRaw = turniSett[giornoInternoIdx] || "rip";
         let hisShiftPuro = ottieniTurnoPulito(hisShiftRaw);
 
-        let match = (hisShiftPuro === cleanShift);
+        let match = isSameCrewShift(hisShiftPuro, cleanShift);
         tr.classList.toggle("row-match", match);
 
         tr.querySelectorAll("td[data-col]").forEach(td => {
@@ -3158,7 +3227,7 @@
           let hisShiftRaw = turniSett[giornoInternoIdx] || "rip";
           let hisShiftPuro = ottieniTurnoPulito(hisShiftRaw);
 
-          if (hisShiftPuro === cleanShift) {
+          if (isSameCrewShift(hisShiftPuro, cleanShift)) {
             let rawUpper = hisShiftRaw.toUpperCase();
             let isTrasfertaFlag = rawUpper.startsWith("C") || rawUpper.endsWith("C") || resKey !==
               crewResidence;
@@ -3213,6 +3282,12 @@
         ,"grado-barista": 8
       };
       allColleagues.sort((a, b) => {
+        if (myShiftPuro === "TERRA") {
+          const serviceA = ottieniTurnoPulito(a.rawShift).toUpperCase();
+          const serviceB = ottieniTurnoPulito(b.rawShift).toUpperCase();
+          const serviceDifference = (ordineServiziTerra[serviceA] || 99) - (ordineServiziTerra[serviceB] || 99);
+          if (serviceDifference !== 0) return serviceDifference;
+        }
         const gradeA = gradeOrder[getGradeClass(a.id, a.agente, a.qualifica)] || 99;
         const gradeB = gradeOrder[getGradeClass(b.id, b.agente, b.qualifica)] || 99;
         return gradeA - gradeB || String(a.agente).localeCompare(String(b.agente), "it");
@@ -3232,9 +3307,13 @@
         }
 
         const instructorMark = r.isInstructor ? `<span class="c-res instructor-mark">SOVRANNUMERO</span>` : "";
+        const groundServiceCode = ottieniTurnoPulito(r.rawShift).toUpperCase();
+        const groundService = myShiftPuro === "TERRA"
+          ? `<span class="c-res">${escapeAttribute(etichetteServiziTerra[groundServiceCode] || groundServiceCode)}</span>`
+          : "";
         const odsBadge = renderAgentOdsBadge(r.odsVariation);
         card.innerHTML = `<span class="c-num">${r.id || "—"}</span>
-          <span class="c-name">${r.agente}${odsBadge}${instructorMark} ${infoResidenza}</span>
+          <span class="c-name">${r.agente}${odsBadge}${groundService}${instructorMark} ${infoResidenza}</span>
           <span class="c-grade" style="color:${grade.color}; background:${grade.color}22; border:1px solid ${grade.color}44;">${grade.label}</span>`;
           list.appendChild(card);
         });
@@ -3296,6 +3375,7 @@
     function openCoverageCrew(col, shift) {
       const cal = dateCalendario.find(item => item.col === col);
       if (!cal) return;
+      clearPinnedAgentSelection();
       placeDayPanel("coverage");
       selectDay(cal.col, cal.labelEstesa, shift);
     }
@@ -3333,30 +3413,17 @@
     }
 
     function selectCoverageResidence(residence) {
-      const previousCol = selectedCol;
-      const previousShift = ottieniTurnoPulito(selectedShiftValue);
       selectResidence(residence);
-      const availableShifts = turniMappaResidenze[String(residence).trim().toLowerCase()] || [];
-      const targetShift = availableShifts.includes(previousShift) ? previousShift : availableShifts[0];
-      const cal = dateCalendario.find(item => item.col === previousCol);
-      if (!cal || !targetShift) return;
-      activeShiftFilter = targetShift;
-      generaFiltriTurnoRiferimento();
-      renderTable();
       placeDayPanel("coverage");
-      selectDay(cal.col, cal.labelEstesa, targetShift);
     }
 
     function changeSelectedDay(direction) {
       const currentIndex = dateCalendario.findIndex(c => c.col === selectedCol);
       const target = dateCalendario[currentIndex + direction];
       if (!target) return;
-      if (pinnedAgentIdx !== null) {
-        selectDayForPinnedAgent(target);
-      } else {
-        const shift = activeShiftFilter || selectedShiftValue;
-        selectDay(target.col, target.labelEstesa, shift);
-      }
+      const shift = activeShiftFilter || selectedShiftValue;
+      clearPinnedAgentSelection();
+      selectDay(target.col, target.labelEstesa, shift);
       setTimeout(() => revealSelectedDate(target), 90);
     }
 
@@ -3390,6 +3457,7 @@
         ? (direction < 0 ? shifts.length - 1 : 0)
         : (currentIndex + direction + shifts.length) % shifts.length;
       const targetShift = shifts[targetIndex];
+      clearPinnedAgentSelection();
       activeShiftFilter = targetShift;
       generaFiltriTurnoRiferimento();
       selectDay(cal.col, cal.labelEstesa, targetShift);
@@ -3404,12 +3472,9 @@
         return date.getTime() === now.getTime();
       });
       if (!target) return;
-      if (pinnedAgentIdx !== null) {
-        selectDayForPinnedAgent(target);
-      } else {
-        const shift = activeShiftFilter || selectedShiftValue;
-        selectDay(target.col, target.labelEstesa, shift);
-      }
+      const shift = activeShiftFilter || selectedShiftValue;
+      clearPinnedAgentSelection();
+      selectDay(target.col, target.labelEstesa, shift);
       setTimeout(() => revealSelectedDate(target), 90);
     }
 
@@ -3438,7 +3503,7 @@
       clearSelection();
       generaFiltriTurnoRiferimento();
       renderTable();
-      window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
+      window.scrollTo({ left:0, top:0, behavior:"smooth" });
     }
 
     function filterAgents(query) {
@@ -3457,13 +3522,12 @@
         if (!confirm("Uscire dalla modalità modifica senza salvare i cambi correnti?")) return;
         toggleEditMode();
       }
+      clearPinnedAgentSelection();
+      clearSelection();
       currentResidence = resName;
-      pinnedAgentIdx = null;
       activeShiftFilter = null;
 
       currentAgentsList = globalData.residenze[resName] || [];
-      const loggedIndex = findLoggedAgentIndex(resName);
-      if (loggedIndex >= 0) pinnedAgentIdx = loggedIndex;
       document.getElementById("stat-residence").textContent = resName;
       document.getElementById("stat-agents").textContent = currentAgentsList.length;
       const search = document.getElementById("agent-search");
@@ -3475,10 +3539,6 @@
       if (currentAgentsList.length > 0) {
         document.getElementById("matrix-scroll-wrap").style.display = "block";
         renderTable();
-        if (selectedCol) {
-          let cal = dateCalendario.find(c => c.col === selectedCol);
-          if (cal) selectDay(selectedCol, cal.labelEstesa, activeShiftFilter || "");
-        }
       } else {
         clearSelection();
       }
