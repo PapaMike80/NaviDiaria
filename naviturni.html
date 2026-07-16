@@ -1375,6 +1375,51 @@
       z-index:45;
     }
 
+    /* L'agente collegato resta sempre visibile sotto la riga delle date. */
+    tbody tr.logged-agent-row {
+      opacity:1 !important;
+      filter:brightness(1.08);
+    }
+    tbody tr.logged-agent-row td {
+      position:sticky;
+      top:var(--logged-row-sticky-top, 38px);
+      z-index:34;
+      height:44px;
+      padding-top:6px !important;
+      padding-bottom:6px !important;
+      border-bottom:2px solid rgba(45,212,191,.72) !important;
+      background:#123946 !important;
+      box-shadow:inset 0 1px 0 rgba(153,246,228,.18),inset 0 -1px 0 rgba(45,212,191,.25);
+    }
+    tbody tr.logged-agent-row td.td-name {
+      z-index:38;
+      background:#164754 !important;
+      color:#f2fffd !important;
+      outline:1px solid rgba(45,212,191,.68);
+      outline-offset:-1px;
+    }
+    tbody tr.logged-agent-row.pinned-row td {
+      height:44px;
+      padding-top:6px !important;
+      padding-bottom:6px !important;
+      border-bottom:2px solid rgba(45,212,191,.72) !important;
+      font-size:14px !important;
+    }
+    tbody tr.logged-agent-row.pinned-row .cell-pill {
+      padding:4px 8px;
+      font-size:12.5px !important;
+    }
+    tbody tr.pinned-row:not(.logged-agent-row) td {
+      border-top:12px solid var(--bg-panel) !important;
+    }
+    .compact tbody tr.logged-agent-row td,
+    .compact tbody tr.logged-agent-row.pinned-row td {
+      height:38px;
+      padding-top:4px !important;
+      padding-bottom:4px !important;
+      font-size:12.5px !important;
+    }
+
     /* Menu operativo compatto */
     .page-header { padding:13px 22px 11px; }
     .company-name { font-size:10px; letter-spacing:.16em; }
@@ -2624,7 +2669,15 @@
 
       renderCoverageTable();
       hidePastColumns();
+      requestAnimationFrame(updateLoggedStickyOffset);
     }
+
+    function updateLoggedStickyOffset() {
+      const dateHeader = document.querySelector(".date-header");
+      const height = dateHeader ? Math.ceil(dateHeader.getBoundingClientRect().height) : 38;
+      document.documentElement.style.setProperty("--logged-row-sticky-top", height + "px");
+    }
+    window.addEventListener("resize", updateLoggedStickyOffset);
 
     function getCrewRequirements(residence) {
       const key = String(residence || "").trim().toUpperCase();
