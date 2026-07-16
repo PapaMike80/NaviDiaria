@@ -250,7 +250,9 @@ function uploadNaviDocument_(documentsSheet, user, request) {
     try {
       if (typeof importaOdsDaPdf !== "function") throw new Error("Importatore ODS non disponibile nel progetto Apps Script.");
       prepareNaviOdsImport_();
+      const robustVariations = importNaviVariationsRobust_(analysis.text, analysis.ods);
       imported = importaOdsDaPdf(analysis.text, analysis.pages, analysis.ods, title);
+      imported.variazioni = robustVariations;
     } catch (error) {
       analysisError = error && error.message ? error.message : String(error);
     }
@@ -261,6 +263,59 @@ function uploadNaviDocument_(documentsSheet, user, request) {
     imported: imported,
     analysisError: analysisError
   };
+}
+
+function importNaviVariationsRobust_(text, ods) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
+  if (!sheet) throw new Error("Tab VARIAZIONI_ODS non trovato.");
+  const months = { GENNAIO:1, FEBBRAIO:2, MARZO:3, APRILE:4, MAGGIO:5, GIUGNO:6, LUGLIO:7, AGOSTO:8, SETTEMBRE:9, OTTOBRE:10, NOVEMBRE:11, DICEMBRE:12 };
+  const lines = String(text || "").split(/\r?\n/).map(function(line) { return line.replace(/\s+/g, " ").trim(); }).filter(Boolean);
+  const normalize = function(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase(); };
+  const rows = [];
+  let type = "", date = "";
+  lines.forEach(function(line) {
+    const normalized = normalize(line);
+    if (normalized.indexOf("VARIAZIONI TURNI DA UFFICIO") >= 0) { type = "D'UFFICIO"; return; }
+    if (normalized.indexOf("VARIAZIONI TURNI VOLONTARI") >= 0) { type = "VOLONTARIA"; return; }
+    if (/^(COMITIVE O\.?D\.?S|TURNO NAVI)/.test(normalized)) { type = ""; return; }
+    const dateMatch = normalized.match(/^(?:DA\s+)?(?:LUNEDI|MARTEDI|MERCOLEDI|MEROLEDI|GIOVEDI|VENERDI|SABATO|DOMENICA)[’'`´\s]*(\d{1,2})\s+([A-Z]+)\s+(20\d{2})/);
+    if (dateMatch && months[dateMatch[2]]) {
+      date = dateMatch[3] + "-" + String(months[dateMatch[2]]).padStart(2, "0") + "-" + String(dateMatch[1]).padStart(2, "0");
+      return;
+    }
+    if (!type || !date) return;
+    const variation = line.match(/^([^:]+):\s*(.+)$/);
+    if (!variation || variation[1].indexOf(",") >= 0) return;
+    let shift = variation[2].replace(/[“”"]/g, "").trim();
+    if (/^={3,}$/.test(shift)) shift = "RIP";
+    const takesShift = shift.match(/PRENDE IL TURNO N\.?\s*(\d+)/i);
+    if (takesShift) shift = takesShift[1];
+    const instructor = /ISTRUTTORE/i.test(shift);
+    shift = shift.replace(/\bISTRUTTORE\b/ig, "").replace(/\([^)]*\)/g, "").trim().toUpperCase();
+    if (!/^(?:D[1-4]|R[1-4]|T[1-2]|M1|P[1-3]|CAP|SR1|BIS|AGB|AGM|AGT|DT|POND|PONM|RIP|L\.D\.|I\.E\.|CONG|\d+)\*?$/i.test(shift)) return;
+    if (instructor && shift !== "RIP" && !/\*$/.test(shift)) shift += "*";
+    const agent = resolveNaviVariationAgent_(variation[1]);
+    rows.push(["SÌ", date, agent.id, agent.name, "", shift, ods, type, instructor ? "ISTRUTTORE" : ""]);
+  });
+  const existing = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getDisplayValues() : [];
+  const keys = new Set(existing.map(function(row) { return [row[1], normalize(row[3]), String(row[6]).trim()].join("|"); }));
+  const unique = rows.filter(function(row) { const key = [row[1], normalize(row[3]), row[6]].join("|"); if (keys.has(key)) return false; keys.add(key); return true; });
+  if (unique.length) sheet.getRange(sheet.getLastRow() + 1, 1, unique.length, 9).setValues(unique);
+  return { inserite: unique.length, duplicate: rows.length - unique.length };
+}
+
+function resolveNaviVariationAgent_(value) {
+  const raw = String(value || "").trim();
+  const normalize = function(text) { return String(text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[.’'`´]/g, "").replace(/\s+/g, " ").trim().toUpperCase(); };
+  const wanted = normalize(raw);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return { id:"", name:raw };
+  const directory = sheet.getRange(2, 2, sheet.getLastRow() - 1, 3).getDisplayValues().map(function(row) { return { id:String(row[0] || ""), name:String(row[2] || "").trim(), normalized:normalize(row[2]) }; });
+  const exact = directory.find(function(agent) { return agent.normalized === wanted; });
+  if (exact) return exact;
+  const surnameMatches = directory.filter(function(agent) { return agent.normalized === wanted || agent.normalized.indexOf(wanted + " ") === 0; });
+  return surnameMatches.length === 1 ? surnameMatches[0] : { id:"", name:raw };
 }
 
 function normalizeNaviShiftTitle_(value, type) {
