@@ -247,7 +247,10 @@ function prepareNaviOdsImport_() {
   const variations = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
   const ships = ss.getSheetByName(NAVITURNI_CONFIG.shipsSheetName);
   if (variations && variations.getMaxRows() > 1) variations.getRange(2, 7, variations.getMaxRows() - 1, 1).clearDataValidations();
-  if (ships && ships.getMaxRows() > 1) ships.getRange(2, 8, ships.getMaxRows() - 1, 1).clearDataValidations();
+  if (ships && ships.getMaxRows() > 1) {
+    ships.getRange(2, 5, ships.getMaxRows() - 1, 1).clearDataValidations();
+    ships.getRange(2, 8, ships.getMaxRows() - 1, 1).clearDataValidations();
+  }
 }
 
 /** Normalizza i nomi degli ODS già caricati, usando numero e data di caricamento. */
@@ -259,7 +262,8 @@ function normalizzaTitoliOdsCondivisi() {
   let updated = 0;
   rows.forEach(function(row, index) {
     if (String(row[1]).toLowerCase() !== "ods") return;
-    const match = String(row[2] || "").match(/(?:n[._ -]*)?(\d{1,3})[._ -]+(20\d{2})/i);
+    const currentTitle = String(row[2] || "");
+    const match = currentTitle.match(/(?:o\.?d\.?s\.?|servizio|n)[^0-9]{0,12}(\d{1,3})/i) || currentTitle.match(/(\d{1,3})/);
     if (!match) return;
     const date = row[3] instanceof Date ? Utilities.formatDate(row[3], Session.getScriptTimeZone() || "Europe/Rome", "dd-MM-yyyy") : "16-07-2026";
     const title = "Ordine_di_servizio_n._" + match[1] + "_-_" + date + ".pdf";

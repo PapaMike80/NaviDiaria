@@ -77,11 +77,11 @@ document.getElementById('documentUploadForm').addEventListener('submit',async ev
   const file=document.getElementById('documentFile').files[0],message=document.getElementById('uploadMessage'),button=event.submitter;
   if(!file||(!file.name.toLowerCase().endsWith('.pdf')&&file.type!=='application/pdf')){message.textContent='Seleziona un file PDF valido.';return}
   if(file.size>10*1024*1024){message.textContent='Il PDF non può superare 10 MB.';return}
-  const type=document.getElementById('documentType').value;let title=file.name.trim().replace(/\s+/g,'_');
+  const type=document.getElementById('documentType').value;let title=file.name.trim().replace(/\*/g,'').replace(/\s+/g,'_');
   button.disabled=true;message.textContent=type==='ods'?'Analisi di variazioni e turni nave…':'Caricamento su Google Drive…';
   try{
     const analysis=type==='ods'?await analyzeOdsPdf(file):null;
-    if(analysis){const number=String(analysis.ods||'').match(/^\d+/)?.[0],date=(analysis.documentDate||new Intl.DateTimeFormat('it-IT').format(new Date())).replace(/\//g,'-');if(number)title=`Ordine_di_servizio_n._${number}_-_${date}.pdf`}
+    if(analysis){const number=String(analysis.ods||'').match(/\d+/)?.[0],date=(analysis.documentDate||new Intl.DateTimeFormat('it-IT').format(new Date())).replace(/\//g,'-');if(number)title=`Ordine_di_servizio_n._${number}_-_${date}.pdf`}
     message.textContent='Caricamento su Google Drive…';
     const base64=await fileToBase64(file),result=await NaviCloud.request('upload_document',{...archiveCredentials(),documentType:type,title,base64,analysis});
     event.target.reset();
