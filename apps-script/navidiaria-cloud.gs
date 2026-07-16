@@ -213,6 +213,7 @@ function uploadNaviDocument_(documentsSheet, user, request) {
   const now = new Date();
   let analysis = null;
   let title = String(request.title || "").trim().replace(/\*/g, "").replace(/\s+/g, "_").slice(0, 180);
+  if (type !== "ods") title = normalizeNaviShiftTitle_(title, type) || title;
   if (type === "ods" && request.analysis) {
     analysis = sanitizeNaviPdfAnalysis_(request.analysis);
     const numberMatch = String(analysis.ods || title).match(/\d{1,3}/);
@@ -260,6 +261,36 @@ function uploadNaviDocument_(documentsSheet, user, request) {
     imported: imported,
     analysisError: analysisError
   };
+}
+
+function normalizeNaviShiftTitle_(value, type) {
+  const match = String(value || "").match(/dal[^0-9]*(\d{1,2})[-\/.](\d{1,2})(?:[-\/.](20\d{2}))?[^0-9]*?(?:al|a)[^0-9]*(\d{1,2})[-\/.](\d{1,2})[-\/.](20\d{2})/i);
+  if (!match) return "";
+  const months = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+  const fromMonth = months[Number(match[2]) - 1];
+  const toMonth = months[Number(match[5]) - 1];
+  if (!fromMonth || !toMonth) return "";
+  const prefix = type === "bozza" ? "Bozza" : "Turno";
+  return prefix + "_dal_" + Number(match[1]) + "_" + fromMonth + "_al_" + Number(match[4]) + "_" + toMonth + "_" + match[6] + ".pdf";
+}
+
+/** Uniforma i nomi dei turni e delle bozze già presenti nell'archivio condiviso. */
+function normalizzaTitoliTurniCondivisi() {
+  const sheets = ensureNavidiariaCloudSheets_();
+  const sheet = sheets.documents;
+  if (sheet.getLastRow() < 2) return { aggiornati: 0 };
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+  let updated = 0;
+  rows.forEach(function(row, index) {
+    const type = String(row[1] || "").toLowerCase();
+    if (type !== "turno" && type !== "bozza") return;
+    const title = normalizeNaviShiftTitle_(row[2], type);
+    if (!title || title === String(row[2])) return;
+    try { DriveApp.getFileById(String(row[0])).setName(title); } catch (error) { /* Aggiorna almeno il titolo in archivio. */ }
+    sheet.getRange(index + 2, 3).setValue(title);
+    updated++;
+  });
+  return { aggiornati: updated };
 }
 
 function prepareNaviOdsImport_() {
