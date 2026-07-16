@@ -2335,12 +2335,20 @@
       applyLoggedAgentProfile();
     }
 
-    function findLoggedAgentIndex(residence = currentResidence) {
-      if (!loggedAgentProfile || residence !== loggedAgentProfile.residence) return -1;
-      return currentAgentsList.findIndex(agent => {
+    function getLoggedAgentLocation() {
+      if (!loggedAgentProfile || String(loggedAgentProfile.id || "") === "MOVIMENTO") return null;
+      const residence = loggedAgentProfile.residence;
+      const agents = globalData?.residenze?.[residence] || [];
+      const index = agents.findIndex(agent => {
         const sameId = loggedAgentProfile.id && String(agent.id || "") === loggedAgentProfile.id;
         return sameId || normalizeOdsAgentName(agent.agente) === normalizeOdsAgentName(loggedAgentProfile.name);
       });
+      return index >= 0 ? { residence, index, agent: agents[index] } : null;
+    }
+
+    function findLoggedAgentIndex(residence = currentResidence) {
+      const location = getLoggedAgentLocation();
+      return location && location.residence === residence ? location.index : -1;
     }
 
     function applyLoggedAgentProfile() {
@@ -2703,10 +2711,27 @@
       crewCompletenessCache.clear();
 
       const loggedIndex = findLoggedAgentIndex();
+      const loggedLocation = getLoggedAgentLocation();
       const orderedIndexes = [];
       if (loggedIndex >= 0) orderedIndexes.push(loggedIndex);
       if (pinnedAgentIdx !== null && pinnedAgentIdx !== loggedIndex && currentAgentsList[pinnedAgentIdx]) orderedIndexes.push(pinnedAgentIdx);
       currentAgentsList.forEach((agent, index) => { if (!orderedIndexes.includes(index)) orderedIndexes.push(index); });
+
+      if (loggedLocation && loggedLocation.residence !== currentResidence) {
+        const loggedRow = createRowDOM(
+          loggedLocation.agent,
+          loggedLocation.index,
+          false,
+          loggedLocation.residence,
+          true
+        );
+        loggedRow.classList.remove("temporary-transfer-row");
+        loggedRow.classList.add("cross-residence-logged-row");
+        const referenceLabel = loggedRow.querySelector(".transfer-table-label");
+        if (referenceLabel) referenceLabel.textContent = `La mia riga · ${loggedLocation.residence}`;
+        tbody.appendChild(loggedRow);
+        trElements.push(loggedRow);
+      }
 
       orderedIndexes.forEach(ri => {
         const agenteObj = currentAgentsList[ri];
@@ -2729,13 +2754,15 @@
         delete cell.dataset.sharedCrewTitle;
         delete cell.dataset.sharedCrewPreviousTitle;
       });
+      const loggedLocation = getLoggedAgentLocation();
+      if (!loggedLocation) return;
       const loggedIndex = findLoggedAgentIndex();
-      if (loggedIndex < 0) return;
-      const loggedAgent = currentAgentsList[loggedIndex];
-      if (!loggedAgent) return;
+      const loggedAgent = loggedLocation.agent;
+      const loggedRow = document.querySelector("#tbody tr.logged-agent-row");
+      if (!loggedAgent || !loggedRow) return;
 
-      const markSharedCell = (index, cal, title) => {
-        const cell = document.querySelector(`#tbody tr[data-row-index="${index}"] td[data-col="${cal.col}"]`);
+      const markSharedCell = (row, cal, title) => {
+        const cell = row?.querySelector(`td[data-col="${cal.col}"]`);
         if (!cell) return;
         cell.classList.add("shared-crew-day");
         cell.dataset.sharedCrewPreviousTitle = cell.title || "";
@@ -2760,9 +2787,12 @@
 
         const label = getCrewShiftKey(loggedShift).replace(/^TERRA_/, "TERRA ");
         const colleagueNames = matchingIndexes.map(index => currentAgentsList[index].agente).join(", ");
-        markSharedCell(loggedIndex, cal, `Turno ${label} in comune con: ${colleagueNames}`);
+        markSharedCell(loggedRow, cal, `Turno ${label} in comune con: ${colleagueNames}`);
         matchingIndexes.forEach(index => {
-          markSharedCell(index, cal, `Turno ${label} in comune con ${loggedAgent.agente}`);
+          const colleagueRow = trElements.find(row =>
+            row.dataset.residence === currentResidence && parseInt(row.dataset.rowIndex) === index
+          );
+          markSharedCell(colleagueRow, cal, `Turno ${label} in comune con ${loggedAgent.agente}`);
         });
       });
     }
@@ -3127,10 +3157,12 @@
       if (!globalData?.residenze || !calInfo || !selectedShift) return;
 
       const tbody = document.getElementById("tbody");
+      const loggedLocation = getLoggedAgentLocation();
       Object.keys(globalData.residenze).forEach(residence => {
         if (residence === currentResidence) return;
 
         globalData.residenze[residence].forEach((agent, rowIndex) => {
+          if (loggedLocation && residence === loggedLocation.residence && rowIndex === loggedLocation.index) return;
           const shifts = agent.turni_settimanali[calInfo.weekKey] || [];
           const rawShift = shifts[dayIndex] || "rip";
           if (!isSameCrewShift(rawShift, selectedShift)) return;
@@ -3205,7 +3237,7 @@
       tr.dataset.residence = residence;
       tr.classList.add(getGradeClass(agenteObj.id, agenteObj.agente, agenteObj.qualifica));
       if (isPinned) tr.classList.add("pinned-row");
-      if (!isTemporaryTransfer && ri === findLoggedAgentIndex(residence)) tr.classList.add("logged-agent-row");
+      if (ri === findLoggedAgentIndex(residence)) tr.classList.add("logged-agent-row");
       if (isTemporaryTransfer) tr.classList.add("temporary-transfer-row");
 
       const transferLabel = isTemporaryTransfer ? `<span class="transfer-table-label">Trasferta da ${residence}</span>` : "";
