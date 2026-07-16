@@ -2828,10 +2828,6 @@
         if (!matchingIndexes.length && !departedIndexes.length) return;
 
         const label = getCrewShiftKey(loggedShift).replace(/^TERRA_/, "TERRA ");
-        if (matchingIndexes.length) {
-          const colleagueNames = matchingIndexes.map(index => currentAgentsList[index].agente).join(", ");
-          markSharedCell(loggedRow, cal, `Turno ${label} in comune con: ${colleagueNames}`);
-        }
         matchingIndexes.forEach(index => {
           const colleagueRow = trElements.find(row =>
             row.dataset.residence === currentResidence && parseInt(row.dataset.rowIndex) === index
