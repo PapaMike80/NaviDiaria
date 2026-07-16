@@ -2287,6 +2287,17 @@
       "peschiera": ["P1", "P2", "P3", "CAP", "SR1"]
     };
 
+    function getShiftResidence(shiftValue) {
+      const cleanShift = ottieniTurnoPulito(shiftValue).toUpperCase();
+      const match = Object.entries(turniMappaResidenze).find(([, shifts]) =>
+        shifts.some(shift => String(shift).toUpperCase() === cleanShift)
+      );
+      if (!match) return "";
+      return Object.keys(globalData?.residenze || {}).find(residence =>
+        residence.toLowerCase().trim() === match[0]
+      ) || match[0].toUpperCase();
+    }
+
     const defaultCrewRequirements = {
       DESENZANO: { D1: 4, D2: 5, D3: 5, D4: 3, BIS: 3, AGB: 1, DT: 1, POND: 1 },
       MADERNO: { T1: 5, T2: 5, M1: 3 },
@@ -2574,9 +2585,9 @@
       return requirements;
     }
 
-    function getCrewDeficiencies(crew, shift) {
+    function getCrewDeficiencies(crew, shift, residence = currentResidence) {
       if (!shift || shift === "RIPOSO") return { required:null, incomplete:false };
-      const requirements = getCrewRequirements(currentResidence);
+      const requirements = getCrewRequirements(residence);
       const requiredValue = requirements[shift] ?? requirements[String(shift).toUpperCase()];
       const required = requiredValue == null || requiredValue === "" ? null : parseInt(requiredValue, 10);
       if (required == null || Number.isNaN(required)) return { required:null, incomplete:false };
@@ -3067,8 +3078,8 @@
       let giornoInternoIdx = (col - 3) % 7;
       const cleanShift = ottieniTurnoPulito(cellShiftValue);
       const isRest = cleanShift === "";
-      const residenceShifts = turniMappaResidenze[String(currentResidence).toLowerCase().trim()] || [];
-      const isCrewShift = residenceShifts.some(shift => String(shift).toUpperCase() === cleanShift);
+      const crewResidence = getShiftResidence(cleanShift);
+      const isCrewShift = Boolean(crewResidence);
       const myShiftPuro = isRest ? "RIPOSO" : cleanShift;
       updateCoverageShiftButtons(cleanShift);
       updateCoverageCellSelection(col, cleanShift);
@@ -3150,7 +3161,7 @@
           if (hisShiftPuro === cleanShift) {
             let rawUpper = hisShiftRaw.toUpperCase();
             let isTrasfertaFlag = rawUpper.startsWith("C") || rawUpper.endsWith("C") || resKey !==
-              currentResidence;
+              crewResidence;
 
             allColleagues.push({
               id: ag.id,
@@ -3171,7 +3182,7 @@
             id: record.id || `BAR${index + 1}`,
             agente: record.barista || record.agente || record.nome,
             qualifica: "barista",
-            residenzaOrigine: currentResidence,
+            residenzaOrigine: crewResidence,
             isTrasferta: false,
             rawShift: cleanShift,
             isInstructor: false,
@@ -3182,7 +3193,7 @@
 
         const div = document.createElement("div");
         div.className = "shift-group";
-        const crewStatus = getCrewDeficiencies(allColleagues, myShiftPuro);
+        const crewStatus = getCrewDeficiencies(allColleagues, myShiftPuro, crewResidence);
         const shortageText = crewStatus.incomplete
           ? `<div class="crew-alert"><strong>Incompleto</strong></div>`
           : "";
