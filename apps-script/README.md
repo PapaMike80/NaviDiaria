@@ -3,11 +3,13 @@
 1. Aprire il progetto Google Apps Script già collegato al foglio NaviTurni.
 2. Creare un nuovo file script chiamato `navidiaria-cloud.gs`.
 3. Copiare nel file il contenuto di `navidiaria-cloud.gs` presente in questa cartella.
-4. Salvare il progetto.
-5. Aprire **Esegui il deployment → Gestisci deployment**.
-6. Modificare il deployment Web App esistente e scegliere **Nuova versione**.
-7. Mantenere **Esegui come: me** e l’accesso già usato dal sito.
-8. Confermare il deployment. L’URL della Web App deve rimanere quello già configurato nel sito.
+4. Creare anche `naviturni-barista.gs` e copiarne il contenuto.
+5. Nell'oggetto restituito da `generaNaviturni()` aggiungere `bariste: leggiBariste(ss),` accanto a `turni_navi`.
+6. Salvare il progetto.
+7. Aprire **Esegui il deployment → Gestisci deployment**.
+8. Modificare il deployment Web App esistente e scegliere **Nuova versione**.
+9. Mantenere **Esegui come: me** e l’accesso già usato dal sito.
+10. Confermare il deployment. L’URL della Web App deve rimanere quello già configurato nel sito.
 
 Al primo accesso aggiornato vengono create automaticamente due schede:
 

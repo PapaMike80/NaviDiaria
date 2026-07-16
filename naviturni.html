@@ -570,6 +570,11 @@
       box-shadow: inset 0 0 0 1px rgba(96, 165, 250, .30);
     }
 
+    .colleague-card.barista-card {
+      background: rgba(244, 114, 182, .10);
+      box-shadow: inset 0 0 0 1px rgba(244, 114, 182, .28);
+    }
+
     .colleague-card.instructor-card.transfer-card {
       background: linear-gradient(90deg, rgba(245,158,11,.12), rgba(96,165,250,.10));
       box-shadow: inset 0 0 0 1px rgba(245,158,11,.34);
@@ -2306,6 +2311,7 @@
       "grado-motorista": { label: "Motorista", color: "#a855f7" },
       "grado-marinaio": { label: "Marinaio", color: "#9ca3af" },
       "grado-operaio": { label: "Operaio", color: "#14b8a6" }
+      ,"grado-barista": { label: "Barista", color: "#f472b6" }
     };
 
     const shiftBorderColor = {
@@ -2381,6 +2387,7 @@
         "aiutomotorista": "grado-aiuto",
         "marinaio": "grado-marinaio",
         "operaio": "grado-operaio"
+        ,"barista": "grado-barista"
       };
       return map[q] || "grado-marinaio";
     }
@@ -2573,7 +2580,22 @@
       const requiredValue = requirements[shift] ?? requirements[String(shift).toUpperCase()];
       const required = requiredValue == null || requiredValue === "" ? null : parseInt(requiredValue, 10);
       if (required == null || Number.isNaN(required)) return { required:null, incomplete:false };
-      return { required, incomplete:crew.length < required };
+      const operatingCrew = crew.filter(person => !person.isBarista);
+      return { required, incomplete:operatingCrew.length < required };
+    }
+
+    function getCrewBaristas(calInfo, shift) {
+      const cleanShift = ottieniTurnoPulito(shift).toUpperCase();
+      if (!calInfo?.iso || !["D2", "D3"].includes(cleanShift)) return [];
+      const records = Array.isArray(globalData?.bariste)
+        ? globalData.bariste
+        : (Array.isArray(globalData?.barista) ? globalData.barista : []);
+      return records.filter(item => {
+        const active = item.attiva !== false && !/^(no|false|0)$/i.test(String(item.attiva || ""));
+        return active && String(item.data || "").slice(0, 10) === calInfo.iso &&
+          String(item.corsa || "").trim().toUpperCase() === cleanShift &&
+          String(item.barista || item.agente || item.nome || "").trim();
+      });
     }
 
     function getCrewStatusForDate(cal, shiftValue) {
@@ -3144,6 +3166,20 @@
         });
         });
 
+        getCrewBaristas(calInfo, cleanShift).forEach((record, index) => {
+          allColleagues.push({
+            id: record.id || `BAR${index + 1}`,
+            agente: record.barista || record.agente || record.nome,
+            qualifica: "barista",
+            residenzaOrigine: currentResidence,
+            isTrasferta: false,
+            rawShift: cleanShift,
+            isInstructor: false,
+            isBarista: true,
+            odsVariation: null
+          });
+        });
+
         const div = document.createElement("div");
         div.className = "shift-group";
         const crewStatus = getCrewDeficiencies(allColleagues, myShiftPuro);
@@ -3163,6 +3199,7 @@
         "grado-aiuto": 5,
         "grado-marinaio": 6,
         "grado-operaio": 7
+        ,"grado-barista": 8
       };
       allColleagues.sort((a, b) => {
         const gradeA = gradeOrder[getGradeClass(a.id, a.agente, a.qualifica)] || 99;
@@ -3174,7 +3211,7 @@
         const gradeClass = getGradeClass(r.id, r.agente, r.qualifica);
         const grade = gradeInfo[gradeClass] || { label: "Marinaio", color: "#9ca3af" };
         const card = document.createElement("div");
-        card.className = `colleague-card${r.isInstructor ? " instructor-card" : ""}${r.isTrasferta ? " transfer-card" : ""}`;
+        card.className = `colleague-card${r.isInstructor ? " instructor-card" : ""}${r.isTrasferta ? " transfer-card" : ""}${r.isBarista ? " barista-card" : ""}`;
         card.style.cssText = `border-left-color:${grade.color};`;
         if (r.isTrasferta) card.title = `In trasferta da ${r.residenzaOrigine}`;
 
