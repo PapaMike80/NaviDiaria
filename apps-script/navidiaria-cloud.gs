@@ -210,24 +210,44 @@ function uploadNaviDocument_(documentsSheet, user, request) {
   requireNavidiariaAdmin_(user);
   const type = String(request.documentType || "").trim().toLowerCase();
   if (["turno", "bozza", "ods"].indexOf(type) < 0) throw new Error("Tipo documento non valido.");
-  const title = String(request.title || "").trim().replace(/\s+/g, "_").slice(0, 180);
+  const now = new Date();
+  let analysis = null;
+  let title = String(request.title || "").trim().replace(/\*/g, "").replace(/\s+/g, "_").slice(0, 180);
+  if (type === "ods" && request.analysis) {
+    analysis = sanitizeNaviPdfAnalysis_(request.analysis);
+    const numberMatch = String(analysis.ods || title).match(/\d{1,3}/);
+    const dateMatch = String(analysis.documentDate || title).match(/(\d{1,2})[\/.\-_](\d{1,2})[\/.\-_](20\d{2})/);
+    const date = dateMatch
+      ? String(dateMatch[1]).padStart(2, "0") + "-" + String(dateMatch[2]).padStart(2, "0") + "-" + dateMatch[3]
+      : Utilities.formatDate(now, Session.getScriptTimeZone() || "Europe/Rome", "dd-MM-yyyy");
+    if (numberMatch) title = "Ordine_di_servizio_n._" + numberMatch[0] + "_-_" + date + ".pdf";
+  }
   if (!title || !/\.pdf$/i.test(title)) throw new Error("Il file deve mantenere l'estensione .pdf.");
   const base64 = String(request.base64 || "").replace(/^data:application\/pdf;base64,/i, "");
   if (!base64) throw new Error("Contenuto PDF mancante.");
   const bytes = Utilities.base64Decode(base64);
   if (bytes.length > NAVIDIARIA_CLOUD_CONFIG.maxPdfBytes) throw new Error("Il PDF non può superare 10 MB.");
-  const folder = getNaviDocumentsFolder_();
-  const file = folder.createFile(Utilities.newBlob(bytes, MimeType.PDF, title));
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  const now = new Date();
-  const url = "https://drive.google.com/file/d/" + file.getId() + "/view";
-  documentsSheet.appendRow([file.getId(), type, title, now, user.id, url]);
+  let fileId = "";
+  let url = "";
+  if (documentsSheet.getLastRow() > 1) {
+    const existing = documentsSheet.getRange(2, 1, documentsSheet.getLastRow() - 1, 6).getValues().find(function(row) {
+      return String(row[1]).toLowerCase() === type && String(row[2]) === title;
+    });
+    if (existing) { fileId = String(existing[0]); url = String(existing[5]); }
+  }
+  if (!fileId) {
+    const folder = getNaviDocumentsFolder_();
+    const file = folder.createFile(Utilities.newBlob(bytes, MimeType.PDF, title));
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    fileId = file.getId();
+    url = "https://drive.google.com/file/d/" + fileId + "/view";
+    documentsSheet.appendRow([fileId, type, title, now, user.id, url]);
+  }
   let imported = null;
   let analysisError = "";
   if (type === "ods" && request.analysis) {
     try {
       if (typeof importaOdsDaPdf !== "function") throw new Error("Importatore ODS non disponibile nel progetto Apps Script.");
-      const analysis = sanitizeNaviPdfAnalysis_(request.analysis);
       prepareNaviOdsImport_();
       imported = importaOdsDaPdf(analysis.text, analysis.pages, analysis.ods, title);
     } catch (error) {
@@ -236,7 +256,7 @@ function uploadNaviDocument_(documentsSheet, user, request) {
   }
   return {
     ok: true,
-    document: { id: file.getId(), type: type, title: title, createdAt: formatNavidiariaDate_(now), uploadedBy: user.id, url: url },
+    document: { id: fileId, type: type, title: title, createdAt: formatNavidiariaDate_(now), uploadedBy: user.id, url: url },
     imported: imported,
     analysisError: analysisError
   };
@@ -247,11 +267,7 @@ function prepareNaviOdsImport_() {
   const variations = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
   const ships = ss.getSheetByName(NAVITURNI_CONFIG.shipsSheetName);
   if (variations && variations.getMaxRows() > 1) variations.getRange(2, 7, variations.getMaxRows() - 1, 1).clearDataValidations();
-  if (ships && ships.getMaxRows() > 1) {
-    ships.getRange(2, 5, ships.getMaxRows() - 1, 1).clearDataValidations();
-    ships.getRange(2, 7, ships.getMaxRows() - 1, 1).clearDataValidations();
-    ships.getRange(2, 8, ships.getMaxRows() - 1, 1).clearDataValidations();
-  }
+  if (ships && ships.getMaxRows() > 1) ships.getRange(2, 1, ships.getMaxRows() - 1, 9).clearDataValidations();
 }
 
 /** Normalizza i nomi degli ODS già caricati, usando numero e data di caricamento. */
@@ -279,6 +295,7 @@ function sanitizeNaviPdfAnalysis_(value) {
   if (!value || typeof value !== "object") throw new Error("Analisi PDF mancante.");
   const text = String(value.text || "").slice(0, 250000);
   const ods = String(value.ods || "").trim().slice(0, 80);
+  const documentDate = String(value.documentDate || "").trim().slice(0, 20);
   const pages = (Array.isArray(value.pages) ? value.pages : []).slice(0, 20).map(function(page) {
     return {
       items: (page && Array.isArray(page.items) ? page.items : []).slice(0, 5000).map(function(item) {
@@ -287,7 +304,7 @@ function sanitizeNaviPdfAnalysis_(value) {
     };
   });
   if (!text) throw new Error("Il PDF non contiene testo leggibile.");
-  return { text: text, pages: pages, ods: ods };
+  return { text: text, pages: pages, ods: ods, documentDate: documentDate };
 }
 
 function deleteNaviDocument_(documentsSheet, user, documentIdValue) {
