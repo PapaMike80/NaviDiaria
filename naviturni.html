@@ -2724,30 +2724,45 @@
     function highlightSharedCrewDays() {
       document.querySelectorAll("#tbody td.shared-crew-day").forEach(cell => {
         cell.classList.remove("shared-crew-day");
-        if (cell.dataset.sharedCrewTitle && cell.title === cell.dataset.sharedCrewTitle) cell.removeAttribute("title");
+        if (cell.dataset.sharedCrewPreviousTitle) cell.title = cell.dataset.sharedCrewPreviousTitle;
+        else cell.removeAttribute("title");
         delete cell.dataset.sharedCrewTitle;
+        delete cell.dataset.sharedCrewPreviousTitle;
       });
       const loggedIndex = findLoggedAgentIndex();
-      if (loggedIndex < 0 || pinnedAgentIdx === null || pinnedAgentIdx === loggedIndex) return;
+      if (loggedIndex < 0) return;
       const loggedAgent = currentAgentsList[loggedIndex];
-      const pinnedAgent = currentAgentsList[pinnedAgentIdx];
-      if (!loggedAgent || !pinnedAgent) return;
+      if (!loggedAgent) return;
+
+      const markSharedCell = (index, cal, title) => {
+        const cell = document.querySelector(`#tbody tr[data-row-index="${index}"] td[data-col="${cal.col}"]`);
+        if (!cell) return;
+        cell.classList.add("shared-crew-day");
+        cell.dataset.sharedCrewPreviousTitle = cell.title || "";
+        cell.dataset.sharedCrewTitle = title;
+        cell.title = cell.title ? `${cell.title} · ${title}` : title;
+      };
 
       dateCalendario.forEach(cal => {
         const dayIndex = (cal.col - 3) % 7;
         const loggedRaw = (loggedAgent.turni_settimanali[cal.weekKey] || [])[dayIndex] || "rip";
-        const pinnedRaw = (pinnedAgent.turni_settimanali[cal.weekKey] || [])[dayIndex] || "rip";
         const loggedShift = ottieniTurnoPulito(loggedRaw);
-        const pinnedShift = ottieniTurnoPulito(pinnedRaw);
-        if (!getShiftResidence(loggedShift) || !getShiftResidence(pinnedShift) || !isSameCrewShift(loggedShift, pinnedShift)) return;
+        if (!getShiftResidence(loggedShift)) return;
+
+        const matchingIndexes = [];
+        currentAgentsList.forEach((agent, index) => {
+          if (index === loggedIndex) return;
+          const colleagueRaw = (agent.turni_settimanali[cal.weekKey] || [])[dayIndex] || "rip";
+          const colleagueShift = ottieniTurnoPulito(colleagueRaw);
+          if (getShiftResidence(colleagueShift) && isSameCrewShift(loggedShift, colleagueShift)) matchingIndexes.push(index);
+        });
+        if (!matchingIndexes.length) return;
+
         const label = getCrewShiftKey(loggedShift).replace(/^TERRA_/, "TERRA ");
-        [loggedIndex, pinnedAgentIdx].forEach(index => {
-          const cell = document.querySelector(`#tbody tr[data-row-index="${index}"] td[data-col="${cal.col}"]`);
-          if (!cell) return;
-          cell.classList.add("shared-crew-day");
-          const title = `Turno in comune: ${label}`;
-          cell.dataset.sharedCrewTitle = title;
-          cell.title = cell.title ? `${cell.title} · ${title}` : title;
+        const colleagueNames = matchingIndexes.map(index => currentAgentsList[index].agente).join(", ");
+        markSharedCell(loggedIndex, cal, `Turno ${label} in comune con: ${colleagueNames}`);
+        matchingIndexes.forEach(index => {
+          markSharedCell(index, cal, `Turno ${label} in comune con ${loggedAgent.agente}`);
         });
       });
     }
