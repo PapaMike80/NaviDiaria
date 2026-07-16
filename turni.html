@@ -52,7 +52,7 @@
       <a class="document" href="ods/O.d.S.%20n.%2026-2026.pdf" target="_blank"><span class="ods-number">26</span><div><small>ODS 26/2026</small><strong>Ordine di servizio n. 26</strong><p>Anno 2026</p></div><b>↗</b></a>
     </div>
     <section id="adminUploadPanel" class="admin-upload admin-upload-bottom" hidden>
-      <div><p>AMMINISTRAZIONE</p><h2>Carica nuovi documenti</h2><span>Il titolo viene generato automaticamente dal nome del PDF. I documenti restano disponibili su questo dispositivo.</span></div>
+      <div><p>AMMINISTRAZIONE</p><h2>Carica nuovi documenti</h2><span>Il titolo viene generato dal nome del PDF. Il documento sarà salvato su Google Drive e visibile a tutti gli agenti.</span></div>
       <form id="documentUploadForm">
         <label>Tipo<select id="documentType"><option value="turno">Turno</option><option value="bozza">Bozza</option><option value="ods">ODS</option></select></label>
         <label>File PDF<input id="documentFile" type="file" accept="application/pdf,.pdf" required></label>
@@ -62,6 +62,7 @@
     </section>
   </main>
   <script src="shared-menu.js"></script>
+  <script src="cloud-data.js"></script>
   <script src="archive.js"></script>
 </body>
 </html>

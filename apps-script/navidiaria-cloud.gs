@@ -9,8 +9,12 @@
 const NAVIDIARIA_CLOUD_CONFIG = {
   usersSheetName: "NAVIDIARIA_UTENTI",
   dataSheetName: "NAVIDIARIA_DATI",
+  documentsSheetName: "NAVI_DOCUMENTI",
+  documentsFolderName: "NaviDiaria - Documenti condivisi",
   adminAgentId: "92",
-  maxPayloadChars: 45000
+  movementAgentId: "MOVIMENTO",
+  maxPayloadChars: 45000,
+  maxPdfBytes: 10 * 1024 * 1024
 };
 
 function doPost(e) {
@@ -32,6 +36,9 @@ function doPost(e) {
       if (action === "reset_pin") return jsonOutput(resetNavidiariaPin_(sheets.users, user, request.targetAgentId));
       if (action === "change_pin") return jsonOutput(changeNavidiariaPin_(sheets.users, user, request.newPinHash));
       if (action === "reset_own_pin") return jsonOutput(resetNavidiariaOwnPin_(sheets.users, user));
+      if (action === "list_documents") return jsonOutput(listNaviDocuments_(sheets.documents));
+      if (action === "upload_document") return jsonOutput(uploadNaviDocument_(sheets.documents, user, request));
+      if (action === "delete_document") return jsonOutput(deleteNaviDocument_(sheets.documents, user, request.documentId));
       throw new Error("Azione non riconosciuta: " + action);
     } finally {
       lock.releaseLock();
@@ -48,16 +55,20 @@ function ensureNavidiariaCloudSheets_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let users = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
   let data = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
+  let documents = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.documentsSheetName);
 
   if (!users) users = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
   if (!data) data = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
+  if (!documents) documents = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.documentsSheetName);
 
   ensureNavidiariaHeader_(users, ["ID_AGENTE", "AGENTE", "PIN_HASH", "REGISTRATO_IL", "ULTIMO_ACCESSO"]);
   ensureNavidiariaHeader_(data, ["ID_AGENTE", "JSON_DATI", "VERSIONE", "AGGIORNATO_IL"]);
+  ensureNavidiariaHeader_(documents, ["ID_FILE", "TIPO", "TITOLO", "CREATO_IL", "CARICATO_DA", "URL"]);
   users.hideColumns(3);
   users.setFrozenRows(1);
   data.setFrozenRows(1);
-  return { users: users, data: data };
+  documents.setFrozenRows(1);
+  return { users: users, data: data, documents: documents };
 }
 
 function ensureNavidiariaHeader_(sheet, headers) {
@@ -72,7 +83,9 @@ function authNavidiaria_(sheets, request) {
   const pinHash = cleanNavidiariaHash_(request.pinHash);
   if (!agentId || !pinHash) throw new Error("ID agente o PIN non valido.");
 
-  const directoryAgent = findNavidiariaDirectoryAgent_(agentId);
+  const directoryAgent = agentId === NAVIDIARIA_CLOUD_CONFIG.movementAgentId
+    ? { id: agentId, name: "Movimento", qualifica: "amministratore", residence: "UFFICIO MOVIMENTO", role: "admin" }
+    : findNavidiariaDirectoryAgent_(agentId);
   if (!directoryAgent) throw new Error("Agente non presente in Foglio1.");
 
   const found = findNavidiariaRow_(sheets.users, agentId);
@@ -173,7 +186,67 @@ function resetNavidiariaOwnPin_(usersSheet, user) {
 }
 
 function requireNavidiariaAdmin_(user) {
-  if (String(user.id) !== NAVIDIARIA_CLOUD_CONFIG.adminAgentId) throw new Error("Operazione riservata all’amministratore.");
+  const id = String(user.id);
+  if (id !== NAVIDIARIA_CLOUD_CONFIG.adminAgentId && id !== NAVIDIARIA_CLOUD_CONFIG.movementAgentId) {
+    throw new Error("Operazione riservata all’amministratore.");
+  }
+}
+
+function listNaviDocuments_(documentsSheet) {
+  if (documentsSheet.getLastRow() < 2) return { ok: true, documents: [] };
+  const rows = documentsSheet.getRange(2, 1, documentsSheet.getLastRow() - 1, 6).getValues();
+  return {
+    ok: true,
+    documents: rows.filter(function(row) { return row[0] && row[5]; }).map(function(row) {
+      return {
+        id: String(row[0]), type: String(row[1] || "turno"), title: String(row[2] || "Documento.pdf"),
+        createdAt: formatNavidiariaDate_(row[3]), uploadedBy: String(row[4] || ""), url: String(row[5] || "")
+      };
+    })
+  };
+}
+
+function uploadNaviDocument_(documentsSheet, user, request) {
+  requireNavidiariaAdmin_(user);
+  const type = String(request.documentType || "").trim().toLowerCase();
+  if (["turno", "bozza", "ods"].indexOf(type) < 0) throw new Error("Tipo documento non valido.");
+  const title = String(request.title || "").trim().replace(/\s+/g, "_").slice(0, 180);
+  if (!title || !/\.pdf$/i.test(title)) throw new Error("Il file deve mantenere l'estensione .pdf.");
+  const base64 = String(request.base64 || "").replace(/^data:application\/pdf;base64,/i, "");
+  if (!base64) throw new Error("Contenuto PDF mancante.");
+  const bytes = Utilities.base64Decode(base64);
+  if (bytes.length > NAVIDIARIA_CLOUD_CONFIG.maxPdfBytes) throw new Error("Il PDF non può superare 10 MB.");
+  const folder = getNaviDocumentsFolder_();
+  const file = folder.createFile(Utilities.newBlob(bytes, MimeType.PDF, title));
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  const now = new Date();
+  const url = "https://drive.google.com/file/d/" + file.getId() + "/view";
+  documentsSheet.appendRow([file.getId(), type, title, now, user.id, url]);
+  return { ok: true, document: { id: file.getId(), type: type, title: title, createdAt: formatNavidiariaDate_(now), uploadedBy: user.id, url: url } };
+}
+
+function deleteNaviDocument_(documentsSheet, user, documentIdValue) {
+  requireNavidiariaAdmin_(user);
+  const documentId = String(documentIdValue || "").trim();
+  if (!documentId) throw new Error("Documento non valido.");
+  const found = findNavidiariaRow_(documentsSheet, documentId);
+  if (!found) throw new Error("Documento non trovato.");
+  try { DriveApp.getFileById(documentId).setTrashed(true); } catch (error) { /* Rimuove comunque la voce. */ }
+  documentsSheet.deleteRow(found.row);
+  return { ok: true };
+}
+
+function getNaviDocumentsFolder_() {
+  const properties = PropertiesService.getScriptProperties();
+  const savedId = properties.getProperty("NAVI_DOCUMENTS_FOLDER_ID");
+  if (savedId) {
+    try { return DriveApp.getFolderById(savedId); } catch (error) { properties.deleteProperty("NAVI_DOCUMENTS_FOLDER_ID"); }
+  }
+  const folders = DriveApp.getFoldersByName(NAVIDIARIA_CLOUD_CONFIG.documentsFolderName);
+  const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(NAVIDIARIA_CLOUD_CONFIG.documentsFolderName);
+  folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  properties.setProperty("NAVI_DOCUMENTS_FOLDER_ID", folder.getId());
+  return folder;
 }
 
 function sanitizeNavidiariaEntry_(entry) {
