@@ -1,7 +1,7 @@
 const DIRECTORY_URL='https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec';
 const DIARIA_SESSION='navidiaria.activeAgent';
 const TURNI_SESSION='naviturni_logged_agent';
-const MOVEMENT_AGENT={id:'MOVIMENTO',name:'Movimento',qualifica:'amministratore',residence:'UFFICIO MOVIMENTO',role:'admin'};
+const MOVEMENT_AGENT={id:'MOVIMENTO',name:'Ufficio Movimento',qualifica:'ufficio',residence:'UFFICIO MOVIMENTO',role:'admin'};
 let agents=[];
 const $=id=>document.getElementById(id);
 const formatName=name=>String(name||'').trim().split(/\s+/).map(part=>part.length>1?part[0]+part.slice(1).toLocaleLowerCase('it'):part).join(' ');

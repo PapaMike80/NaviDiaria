@@ -84,7 +84,7 @@ function authNavidiaria_(sheets, request) {
   if (!agentId || !pinHash) throw new Error("ID agente o PIN non valido.");
 
   const directoryAgent = agentId === NAVIDIARIA_CLOUD_CONFIG.movementAgentId
-    ? { id: agentId, name: "Movimento", qualifica: "amministratore", residence: "UFFICIO MOVIMENTO", role: "admin" }
+    ? { id: agentId, name: "Ufficio Movimento", qualifica: "ufficio", residence: "UFFICIO MOVIMENTO", role: "admin" }
     : findNavidiariaDirectoryAgent_(agentId);
   if (!directoryAgent) throw new Error("Agente non presente in Foglio1.");
 
