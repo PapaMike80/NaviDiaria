@@ -3878,7 +3878,7 @@
       tr.innerHTML = html;
 
       const agentNameCell = tr.querySelector(".td-name");
-      const pinThisAgent = () => {
+      const pinThisAgent = (targetCal = null) => {
         if (isEditMode || isTemporaryTransfer) return;
         if (pinnedAgentIdx === ri) {
           resetCleanTable();
@@ -3887,9 +3887,11 @@
 
         placeDayPanel("main");
         pinnedAgentIdx = ri;
-        const todayCal = dateCalendario.find(cal => isTodayDate(cal.realObj));
+        // Quando il pin nasce dal doppio tap su una cella, conserva la data toccata.
+        // Il doppio tap sul nome dell'agente continua invece ad aprire la giornata odierna.
+        const calToOpen = targetCal || dateCalendario.find(cal => isTodayDate(cal.realObj));
         renderTable();
-        if (todayCal) selectDayForPinnedAgent(todayCal);
+        if (calToOpen) selectDayForPinnedAgent(calToOpen);
         setTimeout(() => {
           scrollCrewPanelIntoView();
         }, 80);
@@ -3964,7 +3966,7 @@
               groupThisShift();
               return;
             }
-            pinThisAgent();
+            pinThisAgent(cal);
           };
           const singleTapCellAction = () => {
             // Un solo tap, quando esiste un pin, elimina qualsiasi agente fissato.
