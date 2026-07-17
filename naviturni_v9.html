@@ -2604,8 +2604,45 @@
     let showPastColumns = false;
     let isEditMode = false;
     let loggedAgentProfile = null;
+    let lastMobilePointerUpAt = 0;
+    let mobileTapTimer = null;
+    let mobileTapTarget = null;
+    let mobileTapAt = 0;
 
+    const MOBILE_DOUBLE_TAP_MS = 340;
     const AGENT_LOGIN_STORAGE_KEY = "naviturni_logged_agent";
+
+    function handleMobileTap(target, singleTapAction, doubleTapAction) {
+      const now = Date.now();
+      lastMobilePointerUpAt = now;
+      const isDoubleTap = mobileTapTarget === target && (now - mobileTapAt) <= MOBILE_DOUBLE_TAP_MS;
+
+      if (isDoubleTap) {
+        if (mobileTapTimer) clearTimeout(mobileTapTimer);
+        mobileTapTimer = null;
+        mobileTapTarget = null;
+        mobileTapAt = 0;
+        doubleTapAction?.();
+        return;
+      }
+
+      if (mobileTapTimer) {
+        clearTimeout(mobileTapTimer);
+        mobileTapTimer = null;
+      }
+      mobileTapTarget = target;
+      mobileTapAt = now;
+      mobileTapTimer = setTimeout(() => {
+        mobileTapTimer = null;
+        mobileTapTarget = null;
+        mobileTapAt = 0;
+        singleTapAction?.();
+      }, MOBILE_DOUBLE_TAP_MS);
+    }
+
+    function isSyntheticClickAfterTouch() {
+      return Date.now() - lastMobilePointerUpAt < 650;
+    }
 
     function readLoggedAgentProfile() {
       try {
@@ -3840,9 +3877,9 @@
       let html = `<td class="td-name" title="${agenteObj.id || ''} ${agenteObj.agente} — ${agenteObj.qualifica || ''}"><span class="agent-name-text">${agenteObj.agente}</span>${transferLabel}</td>`;
       tr.innerHTML = html;
 
-      tr.querySelector(".td-name").addEventListener("click", () => {
-        if (isEditMode) return;
-        if (isTemporaryTransfer) return;
+      const agentNameCell = tr.querySelector(".td-name");
+      const pinThisAgent = () => {
+        if (isEditMode || isTemporaryTransfer) return;
         if (pinnedAgentIdx === ri) {
           resetCleanTable();
           return;
@@ -3856,6 +3893,17 @@
         setTimeout(() => {
           scrollCrewPanelIntoView();
         }, 80);
+      };
+
+      agentNameCell.addEventListener("click", () => {
+        if (isSyntheticClickAfterTouch()) return;
+        pinThisAgent();
+      });
+      agentNameCell.addEventListener("pointerup", event => {
+        if (event.pointerType !== "touch") return;
+        event.preventDefault();
+        // Su mobile il nome si pinna esclusivamente con un doppio tap.
+        handleMobileTap(agentNameCell, null, pinThisAgent);
       });
 
       dateCalendario.forEach(cal => {
@@ -3906,12 +3954,44 @@
             : "";
           const refuelIndicator = hasRefuel ? '<span class="upper-cell-refuel" aria-label="Rifornimento"></span>' : '';
           td.innerHTML = `${crewIndicators}${refuelIndicator}${pill(turnoVal)}`;
-          td.addEventListener("click", () => {
+          const groupThisShift = () => {
             clearPinnedAgentSelection();
             placeDayPanel("main");
-            // Il clic su una cella deve sempre aprire la corsa scritta nella cella,
-            // indipendentemente dal filtro o dall'agente selezionato in precedenza.
             selectDay(cal.col, cal.labelEstesa, turnoVal, agenteObj);
+          };
+          const pinCellAgent = () => {
+            if (tr.classList.contains("logged-agent-row")) {
+              groupThisShift();
+              return;
+            }
+            pinThisAgent();
+          };
+          const singleTapCellAction = () => {
+            // Un solo tap, quando esiste un pin, elimina qualsiasi agente fissato.
+            if (pinnedAgentIdx !== null) {
+              pinnedAgentIdx = null;
+              selectedCrewAgent = null;
+              clearSelection();
+              renderTable();
+              return;
+            }
+            if (tr.classList.contains("logged-agent-row")) {
+              highlightCommonColleaguesForMyCell(cal, turnoVal, td);
+              return;
+            }
+            // Sulle righe dei colleghi evidenzia con il bordo giallo il collega
+            // e tutte le date nelle quali lavora insieme all'agente collegato.
+            clearMyCellCommonColleagues();
+            setSharedCrewFocus(tr, true);
+          };
+          td.addEventListener("click", () => {
+            if (isSyntheticClickAfterTouch()) return;
+            groupThisShift();
+          });
+          td.addEventListener("pointerup", event => {
+            if (event.pointerType !== "touch") return;
+            event.preventDefault();
+            handleMobileTap(td, singleTapCellAction, pinCellAgent);
           });
           td.addEventListener("pointerenter", event => {
             if (event.pointerType === "touch" || !tr.classList.contains("logged-agent-row")) return;
@@ -4194,9 +4274,15 @@
           if (!r.isBarista) {
             card.classList.add("pinnable-colleague");
             card.title = [card.title, "Clicca per pinnare l’agente"].filter(Boolean).join(" · ");
+            const pinCrewCardAgent = () => pinCrewColleague(r.residenzaOrigine, r.id, r.agente, calInfo);
             card.addEventListener("click", event => {
-              if (event.target.closest("a, button")) return;
-              pinCrewColleague(r.residenzaOrigine, r.id, r.agente, calInfo);
+              if (event.target.closest("a, button") || isSyntheticClickAfterTouch()) return;
+              pinCrewCardAgent();
+            });
+            card.addEventListener("pointerup", event => {
+              if (event.pointerType !== "touch" || event.target.closest("a, button")) return;
+              event.preventDefault();
+              handleMobileTap(card, null, pinCrewCardAgent);
             });
           }
           list.appendChild(card);
