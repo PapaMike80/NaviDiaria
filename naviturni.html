@@ -2941,7 +2941,37 @@
     let mobileTapAt = 0;
 
     const MOBILE_DOUBLE_TAP_MS = 340;
+    const MOBILE_TAP_MOVE_TOLERANCE = 12;
+    const mobilePointerGestures = new WeakMap();
     const AGENT_LOGIN_STORAGE_KEY = "naviturni_logged_agent";
+
+    function beginMobileTapGesture(target, event) {
+      if (event.pointerType !== "touch") return;
+      mobilePointerGestures.set(target, {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        moved: false
+      });
+    }
+
+    function updateMobileTapGesture(target, event) {
+      const gesture = mobilePointerGestures.get(target);
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      const movedX = Math.abs(event.clientX - gesture.startX);
+      const movedY = Math.abs(event.clientY - gesture.startY);
+      if (movedX > MOBILE_TAP_MOVE_TOLERANCE || movedY > MOBILE_TAP_MOVE_TOLERANCE) gesture.moved = true;
+    }
+
+    function finishMobileTapGesture(target, event) {
+      const gesture = mobilePointerGestures.get(target);
+      mobilePointerGestures.delete(target);
+      return Boolean(gesture && gesture.pointerId === event.pointerId && !gesture.moved);
+    }
+
+    function cancelMobileTapGesture(target) {
+      mobilePointerGestures.delete(target);
+    }
 
     function handleMobileTap(target, singleTapAction, doubleTapAction) {
       const now = Date.now();
@@ -4273,11 +4303,15 @@
         event.stopPropagation();
         pinThisAgent();
       });
+      agentNameCell.addEventListener("pointerdown", event => beginMobileTapGesture(agentNameCell, event));
+      agentNameCell.addEventListener("pointermove", event => updateMobileTapGesture(agentNameCell, event));
+      agentNameCell.addEventListener("pointercancel", () => cancelMobileTapGesture(agentNameCell));
       agentNameCell.addEventListener("pointerup", event => {
         if (event.pointerType !== "touch") return;
+        if (!finishMobileTapGesture(agentNameCell, event)) return;
         event.preventDefault();
         event.stopPropagation();
-        // Su mobile il nome si pinna esclusivamente con un doppio tap.
+        // Su mobile il nome si pinna esclusivamente con un doppio tap reale.
         handleMobileTap(agentNameCell, null, pinThisAgent);
       });
 
@@ -4363,8 +4397,12 @@
             if (isSyntheticClickAfterTouch()) return;
             groupThisShift();
           });
+          td.addEventListener("pointerdown", event => beginMobileTapGesture(td, event));
+          td.addEventListener("pointermove", event => updateMobileTapGesture(td, event));
+          td.addEventListener("pointercancel", () => cancelMobileTapGesture(td));
           td.addEventListener("pointerup", event => {
             if (event.pointerType !== "touch") return;
+            if (!finishMobileTapGesture(td, event)) return;
             event.preventDefault();
             handleMobileTap(td, singleTapCellAction, pinCellAgent);
           });
@@ -4391,10 +4429,6 @@
         if (event.pointerType === "touch" || tr.classList.contains("logged-agent-row")) return;
         setSharedCrewFocus(tr, false);
       });
-      tr.addEventListener("touchstart", () => {
-        if (!tr.querySelector("td.shared-crew-day")) return;
-        setSharedCrewFocus(tr, true);
-      }, { passive:true });
 
       return tr;
     }
