@@ -40,6 +40,193 @@
     odsStatusEl.style.cssText='margin:8px 12px 2px;color:#19e3c1;font-size:11px;font-weight:700;letter-spacing:.04em;text-align:center;white-space:nowrap;background:none;border:none;padding:0';
   }
 
+
+  function installFilterBubbleStyle(){
+    if(document.getElementById('navi-filter-bubbles-style')) return;
+
+    const style=document.createElement('style');
+    style.id='navi-filter-bubbles-style';
+    style.textContent=`
+      .app-sidebar .top-filter-controls,
+      .app-sidebar .top-residence-controls,
+      .app-sidebar .top-filter-group{
+        display:flex!important;
+        flex-direction:column!important;
+        align-items:center!important;
+        justify-content:center!important;
+        width:100%!important;
+        text-align:center!important;
+      }
+
+      .app-sidebar .filter-label{
+        display:block!important;
+        width:100%!important;
+        margin:5px 0 8px!important;
+        color:#86a5af!important;
+        font-size:9px!important;
+        font-weight:900!important;
+        letter-spacing:.14em!important;
+        text-align:center!important;
+      }
+
+      .app-sidebar #top-residence-buttons,
+      .app-sidebar #coverage-residence-buttons{
+        display:grid!important;
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
+        align-items:center!important;
+        justify-content:center!important;
+        gap:7px!important;
+        width:100%!important;
+      }
+
+      .app-sidebar #shift-buttons-wrapper,
+      .app-sidebar #coverage-shift-buttons{
+        display:grid!important;
+        grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        align-items:center!important;
+        justify-content:center!important;
+        gap:7px!important;
+        width:100%!important;
+      }
+
+      .app-sidebar #top-residence-buttons button,
+      .app-sidebar #shift-buttons-wrapper button,
+      .app-sidebar #coverage-residence-buttons button,
+      .app-sidebar #coverage-shift-buttons button{
+        --bubble-color:#2dd4bf;
+        --bubble-bg:rgba(45,212,191,.11);
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        width:100%!important;
+        min-width:0!important;
+        min-height:30px!important;
+        margin:0!important;
+        padding:6px 11px!important;
+        border:1px solid color-mix(in srgb,var(--bubble-color) 52%,transparent)!important;
+        border-radius:999px!important;
+        background:var(--bubble-bg)!important;
+        color:var(--bubble-color)!important;
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.025)!important;
+        font:800 10px/1 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+        letter-spacing:.03em!important;
+        text-transform:uppercase!important;
+        cursor:pointer!important;
+        transition:transform .15s ease,box-shadow .15s ease,background .15s ease!important;
+      }
+
+      .app-sidebar #top-residence-buttons button:hover,
+      .app-sidebar #shift-buttons-wrapper button:hover,
+      .app-sidebar #coverage-residence-buttons button:hover,
+      .app-sidebar #coverage-shift-buttons button:hover{
+        transform:translateY(-1px)!important;
+        box-shadow:0 5px 13px color-mix(in srgb,var(--bubble-color) 18%,transparent)!important;
+      }
+
+      .app-sidebar #top-residence-buttons button.active,
+      .app-sidebar #shift-buttons-wrapper button.active,
+      .app-sidebar #coverage-residence-buttons button.active,
+      .app-sidebar #coverage-shift-buttons button.active{
+        background:var(--bubble-color)!important;
+        border-color:var(--bubble-color)!important;
+        color:#06171d!important;
+        box-shadow:0 0 0 2px color-mix(in srgb,var(--bubble-color) 22%,transparent),
+                   0 5px 15px color-mix(in srgb,var(--bubble-color) 25%,transparent)!important;
+      }
+
+      .app-sidebar .shifts-filter-block{
+        align-items:center!important;
+        justify-content:center!important;
+        width:100%!important;
+        padding:11px 8px!important;
+        border:1px solid rgba(66,105,116,.38)!important;
+        border-radius:13px!important;
+        background:rgba(10,35,45,.56)!important;
+        text-align:center!important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const residenceColors={
+      DESENZANO:['#22d3ee','rgba(34,211,238,.12)'],
+      MADERNO:['#fb923c','rgba(251,146,60,.12)'],
+      RIVA:['#c084fc','rgba(192,132,252,.12)'],
+      PESCHIERA:['#4ade80','rgba(74,222,128,.12)']
+    };
+
+    const shiftColors={
+      D1:['#5b8cff','rgba(91,140,255,.13)'],
+      R1:['#5b8cff','rgba(91,140,255,.13)'],
+      P1:['#5b8cff','rgba(91,140,255,.13)'],
+      T1:['#5b8cff','rgba(91,140,255,.13)'],
+
+      D2:['#46c98a','rgba(70,201,138,.13)'],
+      R2:['#46c98a','rgba(70,201,138,.13)'],
+      P2:['#46c98a','rgba(70,201,138,.13)'],
+      T2:['#46c98a','rgba(70,201,138,.13)'],
+
+      D3:['#f59a52','rgba(245,154,82,.13)'],
+      R3:['#f59a52','rgba(245,154,82,.13)'],
+      P3:['#f59a52','rgba(245,154,82,.13)'],
+      M1:['#f59a52','rgba(245,154,82,.13)'],
+
+      D4:['#dc74d2','rgba(220,116,210,.13)'],
+      R4:['#dc74d2','rgba(220,116,210,.13)'],
+      P4:['#dc74d2','rgba(220,116,210,.13)'],
+
+      BIS:['#67d7e6','rgba(103,215,230,.13)'],
+      DT:['#f4df57','rgba(244,223,87,.12)'],
+      POND:['#fb9292','rgba(251,146,146,.13)'],
+      PONM:['#fb9292','rgba(251,146,146,.13)'],
+      AGB:['#6eb1ff','rgba(110,177,255,.13)'],
+      AGM:['#6eb1ff','rgba(110,177,255,.13)'],
+      AGT:['#6eb1ff','rgba(110,177,255,.13)'],
+      CAR:['#f973a8','rgba(249,115,168,.13)'],
+      CAP:['#f973a8','rgba(249,115,168,.13)'],
+      SR1:['#a78bfa','rgba(167,139,250,.13)'],
+      TERRA:['#94a3b8','rgba(148,163,184,.13)']
+    };
+
+    function paintButton(button,type){
+      const raw=(button.dataset.res||button.dataset.shift||button.textContent||'')
+        .trim().toUpperCase().replace(/\s+/g,'');
+      const palette=type==='residence'
+        ? residenceColors[raw]
+        : shiftColors[raw] || ['#94a3b8','rgba(148,163,184,.13)'];
+      button.style.setProperty('--bubble-color',palette[0]);
+      button.style.setProperty('--bubble-bg',palette[1]);
+    }
+
+    function refreshFilterBubbleColors(){
+      document.querySelectorAll(
+        '#top-residence-buttons button,#coverage-residence-buttons button'
+      ).forEach(button=>paintButton(button,'residence'));
+
+      document.querySelectorAll(
+        '#shift-buttons-wrapper button,#coverage-shift-buttons button'
+      ).forEach(button=>paintButton(button,'shift'));
+    }
+
+    refreshFilterBubbleColors();
+
+    const observer=new MutationObserver(refreshFilterBubbleColors);
+    [
+      'top-residence-buttons',
+      'shift-buttons-wrapper',
+      'coverage-residence-buttons',
+      'coverage-shift-buttons'
+    ].forEach(id=>{
+      const node=document.getElementById(id);
+      if(node) observer.observe(node,{childList:true,subtree:true});
+    });
+
+    window.refreshFilterBubbleColors=refreshFilterBubbleColors;
+    setTimeout(refreshFilterBubbleColors,250);
+    setTimeout(refreshFilterBubbleColors,1000);
+  }
+
+  installFilterBubbleStyle();
+
   const diariaNavLink=sidebar.querySelector('#diariaNavLink');if(diariaNavLink)diariaNavLink.hidden=!isAdminAgent(sessionAgent);
   const archiveNavLink=sidebar.querySelector('#archiveNavLink');if(archiveNavLink)archiveNavLink.hidden=isBaristaAgent(sessionAgent);
   sidebar.classList.add('menu-ready');
