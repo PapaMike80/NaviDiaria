@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="documenti.css?v=20260718-2">
+  <link rel="stylesheet" href="documenti.css?v=1.01">
 </head>
 <body>
   <button class="mobile-menu" id="menuToggle" type="button" aria-label="Apri menu">☰</button>
@@ -28,6 +28,7 @@
     <div class="sidebar-foot">
       <span id="sourceLabel">Archivio GitHub</span>
       <small id="lastUpdate">Caricamento…</small>
+      <small class="app-version">Versione v1.01</small>
     </div>
   </aside>
 
@@ -38,11 +39,8 @@
         <h1>Turni, bozze e<br><em>ordini di servizio.</em></h1>
         <span>Tutti i PDF delle cartelle GitHub, raccolti e ordinati automaticamente.</span>
       </div>
+
       <div class="hero-tools">
-        <label class="search-box">
-          <span>⌕</span>
-          <input id="searchInput" type="search" placeholder="Cerca ODS, turno o data…" autocomplete="off">
-        </label>
         <div class="filter-row" id="filters">
           <button class="active" data-filter="tutti">Tutti</button>
           <button data-filter="turno">Turni</button>
@@ -73,20 +71,11 @@
 
       <div class="empty" id="emptyState" hidden>
         <strong>Nessun documento trovato</strong>
-        <span>Prova a cambiare ricerca o filtro.</span>
+        <span>Prova a cambiare filtro.</span>
       </div>
     </main>
   </div>
 
-  <dialog id="previewDialog" class="preview-dialog">
-    <div class="preview-head">
-      <div><small>ANTEPRIMA PDF</small><strong id="previewTitle">Documento</strong></div>
-      <button id="closePreview" type="button" aria-label="Chiudi">×</button>
-    </div>
-    <iframe id="previewFrame" title="Anteprima PDF"></iframe>
-    <div class="preview-foot"><a id="openPdfButton" target="_blank" rel="noopener">Apri PDF in una nuova scheda ↗</a></div>
-  </dialog>
-
-  <script src="documenti.js?v=20260718-2"></script>
+  <script src="documenti.js?v=1.01"></script>
 </body>
 </html>
