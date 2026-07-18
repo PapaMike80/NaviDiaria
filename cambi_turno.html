@@ -5687,7 +5687,7 @@
     box-shadow:inset 4px 0 0 #22c55e,2px 0 0 var(--line) !important;
   }
   #tbody tr.cambio-candidato td.td-name::after {
-    content:'LIBERO';
+    content:'CAMBIO';
     margin-left:6px;
     padding:1px 5px;
     border:1px solid rgba(34,197,94,.65);
@@ -6233,23 +6233,115 @@
     };
   }
 
+  function cambioShiftColor(shift) {
+    const code = ottieniTurnoPulito(shift) || 'RIP';
+    return shiftBorderColor[classify(code)] || '#94a3b8';
+  }
+
+  function cambioShiftBadge(shift) {
+    const code = displayShift(shift);
+    const visible = code === 'RIP' ? '===' : code;
+    const color = cambioShiftColor(code);
+    return `<span class="cambio-shift-badge" style="--cambio-shift-color:${color}">${visible}</span>`;
+  }
+
+  function shortCambioDate(cal) {
+    const date = new Date(`${cal.iso}T12:00:00`);
+    const value = new Intl.DateTimeFormat('it-IT', {
+      weekday:'short', day:'numeric', month:'short'
+    }).format(date);
+    return value.replace(/\./g, '').toUpperCase();
+  }
+
   function renderHoursSummary(me, colleague, selectedCal, exchangeCal) {
     const box = document.getElementById('cambio-hours-summary');
     if (!box) return;
-    const values = buildHoursComparison(me, colleague, selectedCal, exchangeCal);
+
     const myName = displaySurname(me.agente).toUpperCase();
     const colleagueName = displaySurname(colleague.agente).toUpperCase();
+
+    const mySelectedRaw = effectiveRawShift(me, selectedCal);
+    const myExchangeRaw = effectiveRawShift(me, exchangeCal);
+    const colleagueSelectedRaw = effectiveRawShift(colleague, selectedCal);
+    const colleagueExchangeRaw = effectiveRawShift(colleague, exchangeCal);
+
+    const myGivenMinutes = shiftMinutes(me, selectedCal);
+    const colleagueGivenMinutes = shiftMinutes(colleague, exchangeCal);
+
+    const myDelta = colleagueGivenMinutes.minutes - myGivenMinutes.minutes;
+    const colleagueDelta = myGivenMinutes.minutes - colleagueGivenMinutes.minutes;
+
     const deltaClass = value => value > 0 ? 'delta-plus' : value < 0 ? 'delta-minus' : 'delta-zero';
-    const note = values.unknown.length
-      ? `<div class="cambio-hours-note">Attenzione: durata non disponibile per ${values.unknown.join(', ')}; questi servizi non sono conteggiati.</div>`
-      : `<div class="cambio-hours-note">Calcolo riferito alla settimana del cambio, usando le durate dei turni presenti in NaviTurni.</div>`;
+
+    const unknown = [...new Set([
+      ...(myGivenMinutes.unknown ? [myGivenMinutes.code] : []),
+      ...(colleagueGivenMinutes.unknown ? [colleagueGivenMinutes.code] : [])
+    ])];
+
+    const note = unknown.length
+      ? `<div class="cambio-hours-note">Durata non disponibile per ${unknown.join(', ')}: la variazione potrebbe non essere completa.</div>`
+      : `<div class="cambio-hours-note">La variazione indica le ore guadagnate o perse da ciascun agente.</div>`;
+
     box.innerHTML = `
-      <div class="cambio-hours-title">Ore settimanali dopo il cambio</div>
-      <div class="cambio-hours-grid">
-        <div></div><div class="head">Prima</div><div class="head">Dopo</div><div class="head">Variazione</div>
-        <div class="agent">${myName}</div><div>${formatMinutes(values.myCurrent)}</div><div>${formatMinutes(values.myAfter)}</div><div class="${deltaClass(values.myDelta)}">${formatDelta(values.myDelta)}</div>
-        <div class="agent">${colleagueName}</div><div>${formatMinutes(values.colleagueCurrent)}</div><div>${formatMinutes(values.colleagueAfter)}</div><div class="${deltaClass(values.colleagueDelta)}">${formatDelta(values.colleagueDelta)}</div>
-      </div>${note}`;
+      <div class="cambio-hours-title">Cambio turno e variazione ore</div>
+
+      <div class="cambio-summary-table-wrap">
+        <table class="cambio-summary-table">
+          <thead>
+            <tr>
+              <th>Agente</th>
+              <th>${shortCambioDate(selectedCal)}</th>
+              <th>${shortCambioDate(exchangeCal)}</th>
+              <th>Variazione</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">${myName}</th>
+              <td>
+                <div class="cambio-cell-shifts">
+                  ${cambioShiftBadge(mySelectedRaw)}
+                  <span class="cambio-cell-arrow">→</span>
+                  ${cambioShiftBadge(colleagueSelectedRaw)}
+                </div>
+              </td>
+              <td>
+                <div class="cambio-cell-shifts">
+                  ${cambioShiftBadge(myExchangeRaw)}
+                  <span class="cambio-cell-arrow">→</span>
+                  ${cambioShiftBadge(colleagueExchangeRaw)}
+                </div>
+              </td>
+              <td>
+                <span class="cambio-exchange-delta ${deltaClass(myDelta)}">${formatDelta(myDelta)}</span>
+              </td>
+            </tr>
+
+            <tr>
+              <th scope="row">${colleagueName}</th>
+              <td>
+                <div class="cambio-cell-shifts">
+                  ${cambioShiftBadge(colleagueSelectedRaw)}
+                  <span class="cambio-cell-arrow">→</span>
+                  ${cambioShiftBadge(mySelectedRaw)}
+                </div>
+              </td>
+              <td>
+                <div class="cambio-cell-shifts">
+                  ${cambioShiftBadge(colleagueExchangeRaw)}
+                  <span class="cambio-cell-arrow">→</span>
+                  ${cambioShiftBadge(myExchangeRaw)}
+                </div>
+              </td>
+              <td>
+                <span class="cambio-exchange-delta ${deltaClass(colleagueDelta)}">${formatDelta(colleagueDelta)}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      ${note}`;
     box.classList.add('open');
   }
 
@@ -6389,40 +6481,126 @@
 
     selectedCol = cal.col;
     selectedShiftValue = myRaw;
-    let candidates = 0;
-    let possibleDays = 0;
 
-    document.querySelector(`.date-header th[data-col="${cal.col}"]`)?.classList.add('selected-day','cambio-data-selezionata');
-    myRow.querySelector(`td[data-col="${cal.col}"]`)?.classList.add('col-selected','cambio-turno-selezionato');
+    let candidateAgents = 0;
+    let selectableChanges = 0;
+    let sameDayChanges = 0;
+    let twoDayChanges = 0;
+
+    document.querySelector(`.date-header th[data-col="${cal.col}"]`)
+      ?.classList.add('selected-day','cambio-data-selezionata');
+
+    myRow.querySelector(`td[data-col="${cal.col}"]`)
+      ?.classList.add('col-selected','cambio-turno-selezionato');
 
     trElements.forEach(row => {
       if (row.classList.contains('logged-agent-row')) return;
-      const agent = getAgentForTableRow(row);
-      const freeThatDay = sameGradeAndResidence(agent, row, location) && isRest(agent, cal);
-      if (lockRows && !freeThatDay) row.classList.add('cambio-hidden');
-      if (!freeThatDay) return;
-      row.classList.add('cambio-candidato');
-      candidates++;
 
-      dateCalendario.forEach(otherCal => {
-        if (otherCal.weekKey !== cal.weekKey || otherCal.col === cal.col) return;
-        if (!isRest(me, otherCal) || isRest(agent, otherCal)) return;
-        const cell = row.querySelector(`td[data-col="${otherCal.col}"]`);
-        if (!cell?.querySelector('.cell-pill')) return;
-        cell.classList.add('cambio-possibile');
-        cell.dataset.cambioAgentId = String(agent.id ?? '');
-        cell.dataset.cambioCol = String(otherCal.col);
-        cell.title = `Tu prenderesti ${cleanShift(agent, otherCal)} il ${otherCal.labelEstesa}; ${agent.agente} prenderebbe ${myShift} il ${cal.labelEstesa}`;
-        possibleDays++;
-      });
+      const agent = getAgentForTableRow(row);
+      let rowHasSelectableChange = false;
+
+      // Devono essere dello stesso grado e della residenza attualmente ammessa.
+      if (sameGradeAndResidence(agent, row, location)) {
+        const colleagueShiftToday = cleanShift(agent, cal);
+
+        /*
+         * CAMBIO NELLA STESSA GIORNATA
+         * Il collega lavora, ma con una corsa diversa dalla mia.
+         * La bolla selezionabile è quella della data scelta.
+         */
+        if (colleagueShiftToday && colleagueShiftToday !== myShift) {
+          const cell = row.querySelector(`td[data-col="${cal.col}"]`);
+          if (cell?.querySelector('.cell-pill')) {
+            cell.classList.add('cambio-possibile');
+            cell.dataset.cambioAgentId = String(agent.id ?? '');
+            cell.dataset.cambioCol = String(cal.col);
+            cell.title =
+              `Cambio con ${agent.agente}: tu prenderesti ${colleagueShiftToday}, ` +
+              `${agent.agente} prenderebbe ${myShift}`;
+
+            rowHasSelectableChange = true;
+            selectableChanges++;
+            sameDayChanges++;
+          }
+        }
+
+        /*
+         * CAMBIO SU DUE GIORNATE
+         * Il collega è libero nella mia giornata e ha un turno,
+         * nella stessa settimana, in una giornata in cui io sono libero.
+         */
+        if (!colleagueShiftToday) {
+          dateCalendario.forEach(otherCal => {
+            if (otherCal.weekKey !== cal.weekKey || otherCal.col === cal.col) return;
+            if (!isRest(me, otherCal) || isRest(agent, otherCal)) return;
+
+            const cell = row.querySelector(`td[data-col="${otherCal.col}"]`);
+            if (!cell?.querySelector('.cell-pill')) return;
+
+            cell.classList.add('cambio-possibile');
+            cell.dataset.cambioAgentId = String(agent.id ?? '');
+            cell.dataset.cambioCol = String(otherCal.col);
+            cell.title =
+              `Cambio con ${agent.agente}: tu prenderesti ${cleanShift(agent, otherCal)} ` +
+              `il ${otherCal.labelEstesa}; ${agent.agente} prenderebbe ${myShift} ` +
+              `il ${cal.labelEstesa}`;
+
+            rowHasSelectableChange = true;
+            selectableChanges++;
+            twoDayChanges++;
+          });
+        }
+      }
+
+      /*
+       * Questa è la logica di Trova Turno:
+       * dopo la conferma si vede soltanto chi ha almeno una bolla gialla.
+       * Chi è libero ma non ha un turno scambiabile viene nascosto.
+       * Chi fa già la stessa corsa viene nascosto.
+       */
+      if (rowHasSelectableChange) {
+        row.classList.add('cambio-candidato');
+        candidateAgents++;
+      } else if (lockRows) {
+        row.classList.add('cambio-hidden');
+      }
     });
 
     removeSharedCrewDecorations();
+
     const {info} = ensurePanels();
-    const residenceButton = `<button type="button" class="cambio-residence-toggle" onclick="toggleOtherResidences()">${cambioShowOtherResidences ? 'Nascondi altre residenze' : 'Carica altre residenze'}</button>`;
-    info.innerHTML = lockRows
-      ? `<button type="button" onclick="clearCambioSearch()">Azzera</button>${residenceButton}<span>Vuoi cedere <strong>${displayShift(myRaw)}</strong> del <strong>${cal.labelEstesa}</strong>. Colleghi liberi: <strong>${candidates}</strong>. Tocca una <strong>bolla gialla</strong> per preparare la mail.</span>`
-      : `${residenceButton}<span>Anteprima del <strong>${cal.labelEstesa}</strong>: <strong>${possibleDays}</strong> cambi possibili. Clicca la data o il tuo turno per mostrare soltanto i colleghi liberi.</span>`;
+    const residenceButton =
+      `<button type="button" class="cambio-residence-toggle" onclick="toggleOtherResidences()">` +
+      `${cambioShowOtherResidences ? 'Nascondi altre residenze' : 'Carica altre residenze'}` +
+      `</button>`;
+
+    if (lockRows) {
+      if (candidateAgents > 0) {
+        info.innerHTML =
+          `<button type="button" onclick="clearCambioSearch()">Azzera</button>` +
+          residenceButton +
+          `<span>Puoi cambiare <strong>${displayShift(myRaw)}</strong> del ` +
+          `<strong>${cal.labelEstesa}</strong> con <strong>${candidateAgents}</strong> agenti. ` +
+          `Cambi nella stessa giornata: <strong>${sameDayChanges}</strong>; ` +
+          `su due giornate: <strong>${twoDayChanges}</strong>. ` +
+          `Sono visibili soltanto gli agenti con cui puoi fare cambio. ` +
+          `Tocca una <strong>bolla gialla</strong>.</span>`;
+      } else {
+        info.innerHTML =
+          `<button type="button" onclick="clearCambioSearch()">Azzera</button>` +
+          residenceButton +
+          `<span>Nessun agente disponibile per cambiare ` +
+          `<strong>${displayShift(myRaw)}</strong> del <strong>${cal.labelEstesa}</strong>. ` +
+          `Prova a caricare le altre residenze.</span>`;
+      }
+    } else {
+      info.innerHTML =
+        residenceButton +
+        `<span>Per <strong>${displayShift(myRaw)}</strong> del <strong>${cal.labelEstesa}</strong> ` +
+        `sono stati trovati <strong>${candidateAgents}</strong> agenti e ` +
+        `<strong>${selectableChanges}</strong> cambi possibili. Conferma per mostrare solo loro.</span>`;
+    }
+
     info.classList.add('open');
     return true;
   }
@@ -6860,6 +7038,271 @@
       min-width:34px !important;
       max-width:34px !important;
     }
+  }
+</style>
+
+
+<style id="cambio-exchange-summary-v2">
+  #cambio-hours-summary {
+    padding:10px 12px !important;
+  }
+
+  .cambio-exchange-list {
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+  }
+
+  .cambio-exchange-row {
+    display:grid;
+    grid-template-columns:minmax(74px,auto) minmax(0,1fr) auto;
+    align-items:center;
+    gap:9px;
+    padding:8px 9px;
+    border:1px solid rgba(124,173,189,.18);
+    border-radius:10px;
+    background:rgba(5,25,33,.42);
+  }
+
+  .cambio-exchange-agent {
+    color:var(--ink);
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.025em;
+  }
+
+  .cambio-exchange-detail {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:5px;
+    min-width:0;
+  }
+
+  .cambio-exchange-date {
+    color:var(--ink-dim);
+    font-size:8px;
+    font-weight:850;
+    letter-spacing:.045em;
+    white-space:nowrap;
+  }
+
+  .cambio-shift-badge {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:38px;
+    min-height:25px;
+    padding:4px 9px;
+    border:1px solid color-mix(in srgb,var(--cambio-shift-color) 72%,transparent);
+    border-radius:999px;
+    background:color-mix(in srgb,var(--cambio-shift-color) 17%,rgba(6,23,30,.92));
+    color:var(--cambio-shift-color);
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cambio-shift-color) 10%,transparent);
+    font-size:11px;
+    font-weight:950;
+    line-height:1;
+    white-space:nowrap;
+  }
+
+  .cambio-exchange-arrow {
+    color:#facc15;
+    font-size:15px;
+    font-weight:900;
+    line-height:1;
+  }
+
+  .cambio-exchange-delta {
+    min-width:72px;
+    padding:5px 7px;
+    border-radius:8px;
+    text-align:center;
+    font-size:11px;
+    font-weight:950;
+    white-space:nowrap;
+  }
+
+  .cambio-exchange-delta.delta-plus {
+    color:#86efac;
+    background:rgba(34,197,94,.10);
+    border:1px solid rgba(34,197,94,.25);
+  }
+
+  .cambio-exchange-delta.delta-minus {
+    color:#fca5a5;
+    background:rgba(239,68,68,.10);
+    border:1px solid rgba(239,68,68,.25);
+  }
+
+  .cambio-exchange-delta.delta-zero {
+    color:var(--ink-dim);
+    background:rgba(148,163,184,.08);
+    border:1px solid rgba(148,163,184,.18);
+  }
+
+  @media (max-width:640px) {
+    .cambio-exchange-row {
+      grid-template-columns:68px minmax(0,1fr);
+      gap:6px 8px;
+    }
+
+    .cambio-exchange-delta {
+      grid-column:2;
+      justify-self:start;
+      min-width:68px;
+    }
+
+    .cambio-exchange-date {
+      font-size:7px;
+    }
+
+    .cambio-shift-badge {
+      min-width:34px;
+      min-height:23px;
+      padding:4px 7px;
+      font-size:10px;
+    }
+  }
+</style>
+
+
+<style id="cambio-summary-table-v3">
+  .cambio-summary-table-wrap {
+    width:100%;
+    overflow-x:auto;
+    margin-top:8px;
+  }
+
+  .cambio-summary-table {
+    width:100%;
+    min-width:560px;
+    border-collapse:separate;
+    border-spacing:0;
+    table-layout:fixed;
+    overflow:hidden;
+    border:1px solid rgba(124,173,189,.22);
+    border-radius:10px;
+    background:rgba(5,25,33,.38);
+  }
+
+  .cambio-summary-table th,
+  .cambio-summary-table td {
+    padding:9px 8px;
+    border-right:1px solid rgba(124,173,189,.15);
+    border-bottom:1px solid rgba(124,173,189,.15);
+    text-align:center;
+    vertical-align:middle;
+  }
+
+  .cambio-summary-table tr:last-child th,
+  .cambio-summary-table tr:last-child td {
+    border-bottom:0;
+  }
+
+  .cambio-summary-table th:last-child,
+  .cambio-summary-table td:last-child {
+    border-right:0;
+  }
+
+  .cambio-summary-table thead th {
+    color:var(--ink-dim);
+    background:rgba(10,35,45,.78);
+    font-size:9px;
+    font-weight:900;
+    letter-spacing:.055em;
+    text-transform:uppercase;
+  }
+
+  .cambio-summary-table thead th:first-child {
+    width:110px;
+  }
+
+  .cambio-summary-table thead th:last-child {
+    width:92px;
+  }
+
+  .cambio-summary-table tbody th {
+    color:var(--ink);
+    background:rgba(10,35,45,.52);
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.025em;
+    text-align:left;
+    white-space:nowrap;
+  }
+
+  .cambio-cell-shifts {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    min-width:0;
+  }
+
+  .cambio-cell-arrow {
+    color:#facc15;
+    font-size:14px;
+    font-weight:900;
+    line-height:1;
+  }
+
+  .cambio-summary-table .cambio-shift-badge {
+    min-width:36px;
+    padding:4px 8px;
+  }
+
+  .cambio-summary-table .cambio-exchange-delta {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:70px;
+  }
+
+  @media (max-width:640px) {
+    .cambio-summary-table {
+      min-width:500px;
+    }
+
+    .cambio-summary-table th,
+    .cambio-summary-table td {
+      padding:8px 6px;
+    }
+
+    .cambio-summary-table thead th:first-child {
+      width:92px;
+    }
+
+    .cambio-summary-table thead th:last-child {
+      width:82px;
+    }
+
+    .cambio-summary-table tbody th {
+      font-size:10px;
+    }
+
+    .cambio-cell-shifts {
+      gap:4px;
+    }
+
+    .cambio-summary-table .cambio-shift-badge {
+      min-width:32px;
+      padding:4px 6px;
+      font-size:10px;
+    }
+  }
+</style>
+
+
+<style id="trova-turno-solo-cambi-v2">
+  #tbody tr.cambio-candidato td.td-name::after {
+    content:'CAMBIO' !important;
+    color:#fde68a !important;
+    border-color:rgba(250,204,21,.75) !important;
+    background:rgba(250,204,21,.10);
+  }
+
+  #tbody tr.cambio-candidato td.td-name {
+    box-shadow:inset 4px 0 0 #facc15,2px 0 0 var(--line) !important;
   }
 </style>
 
