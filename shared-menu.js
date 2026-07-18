@@ -1,5 +1,5 @@
 (function(){
-  const APP_VERSION='v1.03';
+  const APP_VERSION='v1.04';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   const page=document.body.classList.contains('trova-turno-page')?'trova':document.body.classList.contains('diaria-page')?'diaria':sidebar.id==='archive-sidebar'?'archive':'turni';
   const tabNames={turni:'NaviTurniTab',trova:'NaviTrovaTurnoTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab'};
@@ -12,7 +12,7 @@
   let common='',specific='',user='',status='<div id="odsVariationStatus" class="ods-variation-status" hidden></div>';
 
   if(page==='diaria'){
-    common=item('naviturni.html','▦','NaviTurni',false,true)+item('#oggi','≈','NaviDiaria',true,false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink');
+    common=item('naviturni.html','▦','NaviTurni',false,true)+item('cambi_turno.html','⇄','Trova turno',false,true,'trovaTurnoNavLink')+item('#oggi','≈','NaviDiaria',true,false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink');
     specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,false,'competencyNav')}${item('#adminPanel','♙','Gestione PIN',false,false,'adminNav')}`;
     user=`<div class="sidebar-user-actions"><button id="syncShifts" class="sidebar-footer-update" type="button"><span>↻</span>Aggiorna</button><small id="syncStatus" class="sidebar-data-status">Locale</small><strong id="sidebarAgentName" class="sidebar-agent-name">AGENTE</strong><button id="logoutButton" class="sidebar-action sidebar-exit" type="button" hidden>Esci</button><button id="pinSettingsButton" class="sidebar-action" type="button" hidden>Cambia PIN</button></div>`;
   }else if(page==='trova'){
