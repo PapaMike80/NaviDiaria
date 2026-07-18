@@ -2451,6 +2451,218 @@
       .panel-date-navigation .panel-arrow { min-width:36px; height:34px; }
       .panel-date-navigation .panel-today { min-width:58px; padding:0 9px; }
     }
+
+    /* Layout definitivo scheda Equipaggio */
+    #day-panel {
+      --crew-shift-color:#2dd4bf;
+      background:
+        linear-gradient(110deg, color-mix(in srgb, var(--crew-shift-color) 18%, #071820) 0%, #0b202a 48%, #0b1c25 100%) !important;
+      border-color:color-mix(in srgb, var(--crew-shift-color) 65%, #244653) !important;
+    }
+    #day-panel .panel-header {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:42px;
+      padding:7px 12px;
+      background:color-mix(in srgb, var(--crew-shift-color) 10%, rgba(7,24,32,.98));
+      border-bottom-color:color-mix(in srgb, var(--crew-shift-color) 38%, var(--line));
+    }
+    #day-panel .panel-close {
+      margin:0 auto;
+      min-width:150px;
+      text-align:center;
+    }
+    #day-panel .panel-groups {
+      display:grid;
+      grid-template-columns:minmax(360px,1fr) minmax(420px,1fr);
+      align-items:start;
+      gap:16px;
+      padding:12px 16px 14px;
+    }
+    #day-panel .crew-info-group {
+      grid-column:1;
+      width:auto;
+      min-width:0;
+      align-self:stretch;
+    }
+    #day-panel .panel-groups > .shift-group:not(.crew-info-group) {
+      grid-column:2;
+      min-width:0;
+      width:auto;
+    }
+    #day-panel .crew-info-card {
+      height:100%;
+      box-sizing:border-box;
+      border:1px solid color-mix(in srgb, var(--crew-shift-color) 62%, transparent);
+      background:color-mix(in srgb, var(--crew-shift-color) 8%, rgba(4,23,30,.82));
+    }
+    #day-panel .panel-controls-box {
+      border-bottom-color:color-mix(in srgb, var(--crew-shift-color) 38%, var(--line));
+    }
+    #day-panel .panel-header-main {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px;
+    }
+    #day-panel .panel-date {
+      border-color:color-mix(in srgb, var(--crew-shift-color) 65%, transparent);
+      background:color-mix(in srgb, var(--crew-shift-color) 18%, rgba(5,25,32,.82));
+      box-shadow:0 0 14px color-mix(in srgb, var(--crew-shift-color) 24%, transparent);
+    }
+    #day-panel .panel-date-navigation {
+      display:flex;
+      gap:7px;
+      padding:0;
+      border:0;
+      background:transparent;
+      box-shadow:none;
+    }
+    #day-panel .panel-date-navigation .panel-arrow {
+      width:38px;
+      min-width:38px;
+      height:38px;
+      padding:0;
+      border-radius:999px;
+      border:2px solid var(--crew-shift-color);
+      background:color-mix(in srgb, var(--crew-shift-color) 16%, rgba(5,25,32,.9));
+      color:#f8fafc;
+    }
+    #day-panel .panel-date-navigation .panel-today {
+      width:auto;
+      min-width:72px;
+      padding:0 15px;
+      border-radius:999px;
+      background:color-mix(in srgb, var(--crew-shift-color) 82%, white 8%);
+      color:#061c22;
+      border-color:color-mix(in srgb, var(--crew-shift-color) 85%, white);
+    }
+    #day-panel .ship-day-info {
+      margin-top:auto;
+    }
+    #day-panel .ship-day-badge {
+      border-color:color-mix(in srgb, var(--crew-shift-color) 35%, var(--line));
+      background:color-mix(in srgb, var(--crew-shift-color) 9%, rgba(255,255,255,.04));
+    }
+    #day-panel #colleague-list {
+      width:100%;
+    }
+    #day-panel #colleague-list .colleague-card {
+      min-height:30px;
+    }
+    @media(max-width:900px) {
+      #day-panel .panel-groups {
+        grid-template-columns:1fr;
+        gap:10px;
+        padding:10px;
+      }
+      #day-panel .crew-info-group,
+      #day-panel .panel-groups > .shift-group:not(.crew-info-group) {
+        grid-column:1;
+      }
+    }
+    @media(max-width:520px) {
+      #day-panel .panel-header-main { align-items:stretch; }
+      #day-panel .panel-date { flex:1 1 100%; text-align:center; }
+      #day-panel .panel-date-navigation { width:100%; justify-content:center; }
+      #day-panel .panel-date-navigation .panel-arrow { width:42px; min-width:42px; }
+      #day-panel .panel-date-navigation .panel-today { flex:0 1 92px; }
+    }
+
+
+    /* Rifiniture finali scheda equipaggio */
+    #day-panel .panel-shift-selector .crew-shift-bubble,
+    #coverage-crew-copy .panel-shift-selector .crew-shift-bubble {
+      font-weight:1000;
+    }
+    #day-panel .panel-date-navigation .panel-arrow,
+    #coverage-crew-copy .panel-date-navigation .panel-arrow {
+      font-size:25px;
+      font-weight:1000;
+      line-height:1;
+    }
+    #day-panel .panel-date-navigation .panel-today,
+    #coverage-crew-copy .panel-date-navigation .panel-today {
+      min-width:52px;
+      min-height:34px;
+      height:34px;
+      padding:7px 13px;
+      border:2px solid var(--crew-shift-color, var(--accent));
+      border-radius:999px;
+      background:color-mix(in srgb, var(--crew-shift-color, var(--accent)) 18%, transparent);
+      color:var(--crew-shift-color, var(--accent));
+      font:1000 12px/1 inherit;
+      letter-spacing:.04em;
+      box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--crew-shift-color, var(--accent)) 18%, transparent),0 4px 12px rgba(0,0,0,.14);
+    }
+    .panel-residence-selector {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:7px;
+      width:100%;
+      margin-top:8px;
+    }
+    .panel-residence-selector .coverage-residence-btn {
+      width:100%;
+      min-width:0;
+      padding:7px 5px;
+      text-align:center;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    #coverage-crew-copy {
+      --crew-shift-color:#2dd4bf;
+      display:block;
+      margin:0 0 12px;
+      border:1px solid color-mix(in srgb, var(--crew-shift-color) 65%, #244653);
+      border-radius:14px;
+      background:linear-gradient(110deg,color-mix(in srgb,var(--crew-shift-color) 18%,#071820) 0%,#0b202a 48%,#0b1c25 100%);
+      box-shadow:0 12px 30px rgba(0,0,0,.22);
+      overflow:hidden;
+    }
+    #coverage-crew-copy:empty { display:none; }
+    #coverage-crew-copy .panel-groups {
+      display:grid;
+      grid-template-columns:minmax(360px,1fr) minmax(420px,1fr);
+      align-items:start;
+      gap:16px;
+      padding:12px 16px 14px;
+    }
+    #coverage-crew-copy .crew-info-group { grid-column:1; min-width:0; }
+    #coverage-crew-copy .panel-groups > .shift-group:not(.crew-info-group) { grid-column:2; min-width:0; }
+    #coverage-crew-copy .crew-info-card {
+      height:100%;
+      box-sizing:border-box;
+      border:1px solid color-mix(in srgb,var(--crew-shift-color) 62%,transparent);
+      background:color-mix(in srgb,var(--crew-shift-color) 8%,rgba(4,23,30,.82));
+    }
+    #coverage-crew-copy .panel-controls-box { border-bottom-color:color-mix(in srgb,var(--crew-shift-color) 38%,var(--line)); }
+    #coverage-crew-copy .panel-header-main { display:flex;flex-wrap:wrap;align-items:center;gap:8px; }
+    #coverage-crew-copy .panel-date {
+      margin:0;padding:8px 12px;border-radius:10px;
+      border:1px solid color-mix(in srgb,var(--crew-shift-color) 65%,transparent);
+      background:color-mix(in srgb,var(--crew-shift-color) 18%,rgba(5,25,32,.82));
+      color:#eafffb;font-size:17px;font-weight:900;white-space:nowrap;
+    }
+    #coverage-crew-copy .panel-date-navigation { display:flex;align-items:center;gap:7px; }
+    #coverage-crew-copy .panel-date-navigation .panel-arrow:not(.panel-today) {
+      width:38px;min-width:38px;height:38px;padding:0;border-radius:999px;
+      border:2px solid var(--crew-shift-color);background:color-mix(in srgb,var(--crew-shift-color) 16%,rgba(5,25,32,.9));color:#f8fafc;
+    }
+    #coverage-crew-copy .ship-day-info { margin-top:auto; }
+    #coverage-crew-copy #coverage-copy-colleague-list { width:100%; }
+    @media(max-width:900px) {
+      #coverage-crew-copy .panel-groups { grid-template-columns:1fr;gap:10px;padding:10px; }
+      #coverage-crew-copy .crew-info-group,
+      #coverage-crew-copy .panel-groups > .shift-group:not(.crew-info-group) { grid-column:1; }
+    }
+    @media(max-width:520px) {
+      .panel-residence-selector { grid-template-columns:repeat(4,minmax(0,1fr));gap:4px; }
+      .panel-residence-selector .coverage-residence-btn { padding:6px 2px;font-size:9px; }
+    }
+
 </style>
   <link rel="stylesheet" href="shared-menu.css">
 </head>
@@ -2518,8 +2730,7 @@
     <button id="crew-drawer-toggle" type="button" onclick="toggleCrewDrawer()" aria-label="Mostra equipaggio" aria-expanded="false">⌄</button>
     <div id="day-panel" aria-hidden="true">
       <div class="panel-header">
-        <strong class="panel-title">Equipaggio</strong>
-        <button class="panel-close" onclick="resetCleanTable()">✕ Chiudi Equipaggio</button>
+        <button class="panel-close" onclick="resetCleanTable()">✕ Chiudi finestra</button>
       </div>
       <div class="panel-groups" id="panel-groups"></div>
     </div>
@@ -2546,6 +2757,7 @@
         <span class="crew-minimum-title">Numero minimo di componenti per corsa</span>
         <div class="crew-minimum-grid" id="crew-minimum-grid"></div>
       </div>
+      <div id="coverage-crew-copy" aria-label="Scheda equipaggio sempre visibile"></div>
       <div class="coverage-wrap" id="coverage-matrix-wrap">
         <table class="coverage-table">
           <thead id="coverage-thead"></thead>
@@ -2604,8 +2816,45 @@
     let showPastColumns = false;
     let isEditMode = false;
     let loggedAgentProfile = null;
+    let lastMobilePointerUpAt = 0;
+    let mobileTapTimer = null;
+    let mobileTapTarget = null;
+    let mobileTapAt = 0;
 
+    const MOBILE_DOUBLE_TAP_MS = 340;
     const AGENT_LOGIN_STORAGE_KEY = "naviturni_logged_agent";
+
+    function handleMobileTap(target, singleTapAction, doubleTapAction) {
+      const now = Date.now();
+      lastMobilePointerUpAt = now;
+      const isDoubleTap = mobileTapTarget === target && (now - mobileTapAt) <= MOBILE_DOUBLE_TAP_MS;
+
+      if (isDoubleTap) {
+        if (mobileTapTimer) clearTimeout(mobileTapTimer);
+        mobileTapTimer = null;
+        mobileTapTarget = null;
+        mobileTapAt = 0;
+        doubleTapAction?.();
+        return;
+      }
+
+      if (mobileTapTimer) {
+        clearTimeout(mobileTapTimer);
+        mobileTapTimer = null;
+      }
+      mobileTapTarget = target;
+      mobileTapAt = now;
+      mobileTapTimer = setTimeout(() => {
+        mobileTapTimer = null;
+        mobileTapTarget = null;
+        mobileTapAt = 0;
+        singleTapAction?.();
+      }, MOBILE_DOUBLE_TAP_MS);
+    }
+
+    function isSyntheticClickAfterTouch() {
+      return Date.now() - lastMobilePointerUpAt < 650;
+    }
 
     function readLoggedAgentProfile() {
       try {
@@ -3840,9 +4089,9 @@
       let html = `<td class="td-name" title="${agenteObj.id || ''} ${agenteObj.agente} — ${agenteObj.qualifica || ''}"><span class="agent-name-text">${agenteObj.agente}</span>${transferLabel}</td>`;
       tr.innerHTML = html;
 
-      tr.querySelector(".td-name").addEventListener("click", () => {
-        if (isEditMode) return;
-        if (isTemporaryTransfer) return;
+      const agentNameCell = tr.querySelector(".td-name");
+      const pinThisAgent = (targetCal = null) => {
+        if (isEditMode || isTemporaryTransfer) return;
         if (pinnedAgentIdx === ri) {
           resetCleanTable();
           return;
@@ -3850,12 +4099,25 @@
 
         placeDayPanel("main");
         pinnedAgentIdx = ri;
-        const todayCal = dateCalendario.find(cal => isTodayDate(cal.realObj));
+        // Quando il pin nasce dal doppio tap su una cella, conserva la data toccata.
+        // Il doppio tap sul nome dell'agente continua invece ad aprire la giornata odierna.
+        const calToOpen = targetCal || dateCalendario.find(cal => isTodayDate(cal.realObj));
         renderTable();
-        if (todayCal) selectDayForPinnedAgent(todayCal);
+        if (calToOpen) selectDayForPinnedAgent(calToOpen);
         setTimeout(() => {
           scrollCrewPanelIntoView();
         }, 80);
+      };
+
+      agentNameCell.addEventListener("click", () => {
+        if (isSyntheticClickAfterTouch()) return;
+        pinThisAgent();
+      });
+      agentNameCell.addEventListener("pointerup", event => {
+        if (event.pointerType !== "touch") return;
+        event.preventDefault();
+        // Su mobile il nome si pinna esclusivamente con un doppio tap.
+        handleMobileTap(agentNameCell, null, pinThisAgent);
       });
 
       dateCalendario.forEach(cal => {
@@ -3906,12 +4168,44 @@
             : "";
           const refuelIndicator = hasRefuel ? '<span class="upper-cell-refuel" aria-label="Rifornimento"></span>' : '';
           td.innerHTML = `${crewIndicators}${refuelIndicator}${pill(turnoVal)}`;
-          td.addEventListener("click", () => {
+          const groupThisShift = () => {
             clearPinnedAgentSelection();
             placeDayPanel("main");
-            // Il clic su una cella deve sempre aprire la corsa scritta nella cella,
-            // indipendentemente dal filtro o dall'agente selezionato in precedenza.
             selectDay(cal.col, cal.labelEstesa, turnoVal, agenteObj);
+          };
+          const pinCellAgent = () => {
+            if (tr.classList.contains("logged-agent-row")) {
+              groupThisShift();
+              return;
+            }
+            pinThisAgent(cal);
+          };
+          const singleTapCellAction = () => {
+            // Un solo tap, quando esiste un pin, elimina qualsiasi agente fissato.
+            if (pinnedAgentIdx !== null) {
+              pinnedAgentIdx = null;
+              selectedCrewAgent = null;
+              clearSelection();
+              renderTable();
+              return;
+            }
+            if (tr.classList.contains("logged-agent-row")) {
+              highlightCommonColleaguesForMyCell(cal, turnoVal, td);
+              return;
+            }
+            // Sulle righe dei colleghi evidenzia con il bordo giallo il collega
+            // e tutte le date nelle quali lavora insieme all'agente collegato.
+            clearMyCellCommonColleagues();
+            setSharedCrewFocus(tr, true);
+          };
+          td.addEventListener("click", () => {
+            if (isSyntheticClickAfterTouch()) return;
+            groupThisShift();
+          });
+          td.addEventListener("pointerup", event => {
+            if (event.pointerType !== "touch") return;
+            event.preventDefault();
+            handleMobileTap(td, singleTapCellAction, pinCellAgent);
           });
           td.addEventListener("pointerenter", event => {
             if (event.pointerType === "touch" || !tr.classList.contains("logged-agent-row")) return;
@@ -4013,6 +4307,8 @@
       let giornoInternoIdx = (col - 3) % 7;
       const cleanShift = ottieniTurnoPulito(cellShiftValue);
       const crewShift = getCrewShiftKey(cleanShift);
+      const crewPanelColor = shiftBorderColor[classify(cleanShift)] || "#2dd4bf";
+      document.getElementById("day-panel")?.style.setProperty("--crew-shift-color", crewPanelColor);
       const isRest = cleanShift === "";
       const crewResidence = getShiftResidence(cleanShift);
       const isCrewShift = Boolean(crewResidence);
@@ -4074,12 +4370,13 @@
       infoDiv.innerHTML = `<div class="colleague-cards"><div class="colleague-card crew-info-card">
         <div class="panel-controls-box" aria-label="Selezione corsa e data">
           <div class="panel-shift-selector" id="panel-shift-selector" aria-label="Corse della residenza"></div>
+          <div class="panel-residence-selector" id="panel-residence-selector" aria-label="Seleziona residenza"></div>
           <div class="panel-header-main">
             <div class="panel-date" id="panel-date-label"></div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
               <button class="panel-arrow" id="previous-day-btn" type="button" onclick="changeSelectedDay(-1)" aria-label="Giorno precedente">←</button>
-              <button class="panel-arrow panel-today" id="today-day-btn" type="button" onclick="goToToday()" aria-label="Vai a oggi">OGGI</button>
               <button class="panel-arrow" id="next-day-btn" type="button" onclick="changeSelectedDay(1)" aria-label="Giorno successivo">→</button>
+              <button class="panel-arrow panel-today" id="today-day-btn" type="button" onclick="goToToday()" aria-label="Vai a oggi">OGGI</button>
             </div>
           </div>
         </div>
@@ -4087,6 +4384,7 @@
       </div></div>`;
       panelGroups.appendChild(infoDiv);
       document.getElementById("panel-shift-selector").innerHTML = renderResidenceShiftBubbles(cleanShift);
+      document.getElementById("panel-residence-selector").innerHTML = renderPanelResidenceBubbles();
 
       if (isCrewShift) {
         let allColleagues = [];
@@ -4194,9 +4492,15 @@
           if (!r.isBarista) {
             card.classList.add("pinnable-colleague");
             card.title = [card.title, "Clicca per pinnare l’agente"].filter(Boolean).join(" · ");
+            const pinCrewCardAgent = () => pinCrewColleague(r.residenzaOrigine, r.id, r.agente, calInfo);
             card.addEventListener("click", event => {
-              if (event.target.closest("a, button")) return;
-              pinCrewColleague(r.residenzaOrigine, r.id, r.agente, calInfo);
+              if (event.target.closest("a, button") || isSyntheticClickAfterTouch()) return;
+              pinCrewCardAgent();
+            });
+            card.addEventListener("pointerup", event => {
+              if (event.pointerType !== "touch" || event.target.closest("a, button")) return;
+              event.preventDefault();
+              handleMobileTap(card, null, pinCrewCardAgent);
             });
           }
           list.appendChild(card);
@@ -4221,15 +4525,53 @@
           scrollCrewPanelIntoView();
         });
       }
+      syncCoverageCrewCopy();
+    }
+
+    function renderPanelResidenceBubbles() {
+      const residences = Object.keys(globalData?.residenze || {});
+      return residences.slice(0, 4).map(residence => {
+        const active = residence === currentResidence;
+        const safe = encodeURIComponent(residence);
+        return `<button class="coverage-residence-btn${active ? " active" : ""}" type="button" onclick="selectPanelResidence(decodeURIComponent('${safe}'))">${escapeAttribute(residence)}</button>`;
+      }).join("");
+    }
+
+    function selectPanelResidence(residence) {
+      const cal = dateCalendario.find(item => item.col === selectedCol) || dateCalendario[0];
+      selectResidence(residence);
+      if (!cal) return;
+      const shifts = getResidenceCrewShifts();
+      const desired = shifts.some(s => s.toUpperCase() === String(selectedShiftValue || "").toUpperCase())
+        ? selectedShiftValue
+        : (shifts[0] || selectedShiftValue);
+      selectDay(cal.col, cal.labelEstesa, desired);
+    }
+
+    function syncCoverageCrewCopy() {
+      const source = document.getElementById("panel-groups");
+      const target = document.getElementById("coverage-crew-copy");
+      const panel = document.getElementById("day-panel");
+      if (!source || !target || !source.children.length) return;
+      target.style.setProperty("--crew-shift-color", panel?.style.getPropertyValue("--crew-shift-color") || "#2dd4bf");
+      const clone = source.cloneNode(true);
+      clone.id = "coverage-copy-panel-groups";
+      clone.querySelectorAll("[id]").forEach(el => {
+        const oldId = el.id;
+        el.id = `coverage-copy-${oldId}`;
+      });
+      target.replaceChildren(clone);
     }
 
 
     function scrollGroupedCrewTableToTop() {
       const target = dayPanelPlacement === "coverage"
-        ? document.getElementById("coverage-section")
+        ? document.getElementById("coverage-matrix-wrap")
         : document.getElementById("matrix-scroll-wrap");
       if (!target) return;
-      const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - 8);
+      const panel = document.getElementById("day-panel");
+      const panelHeight = panel?.classList.contains("open") ? panel.getBoundingClientRect().height : 0;
+      const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - panelHeight - 10);
       window.scrollTo({ top, behavior:"smooth" });
     }
 
@@ -4292,7 +4634,10 @@
         requestAnimationFrame(() => {
           updateCrewDrawerOffset();
           scrollCrewPanelIntoView();
-          setTimeout(updateCrewDrawerOffset, 80);
+          setTimeout(() => {
+            updateCrewDrawerOffset();
+            scrollGroupedCrewTableToTop();
+          }, 110);
         });
       } else {
         document.documentElement.style.setProperty("--crew-drawer-offset", "0px");
@@ -5001,4 +5346,3 @@
 
 </body>
 </html>
-
