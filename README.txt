@@ -1,13 +1,15 @@
-NAVI — progetto modulare
+DOCUMENTI NAVITURNI - VERSIONE 2
 
-File principali:
-- index.html: accesso
-- naviturni.html + naviturni.css + naviturni.js: tabella turni
-- navidiaria.html + styles.css + naviturni-theme.css + app.js: diaria
-- turni.html + turni.css + archive.js: archivio ODS
-- shared-data.js, shared-menu.js, shared-menu.css, cloud-data.js: moduli condivisi
+Caricare nella cartella principale del repository:
+- documenti.html
+- documenti.css
+- documenti.js
+- documenti.json
 
-Modifica del 18/07/2026:
-- eliminati bollini e riempimenti azzurri dalle evidenziazioni
-- bordo giallo spesso e lampeggiante per tutte le evidenziazioni
-- su PC agente e data si spengono appena il mouse lascia la riga
+La pagina legge automaticamente tutti i PDF presenti nelle cartelle GitHub:
+- /ods
+- /turni
+
+Non serve aggiungere ODS 27 al JSON per farlo apparire. documenti.json serve solo per titoli, date e descrizioni personalizzate e come riserva se l'API GitHub non è raggiungibile.
+
+Configurazione repository: aprire documenti.js e modificare CONFIG se proprietario, repository o branch sono diversi.

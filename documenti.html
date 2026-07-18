@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061720">
+  <title>Documenti · NaviTurni</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="documenti.css?v=20260718-2">
+</head>
+<body>
+  <button class="mobile-menu" id="menuToggle" type="button" aria-label="Apri menu">☰</button>
+  <div class="backdrop" id="backdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="index.html"><span>N</span><strong>NaviTurni</strong></a>
+    <nav>
+      <a href="naviturni.html"><span>▦</span>NaviTurni</a>
+      <a href="navidiaria.html"><span>≈</span>NaviDiaria</a>
+      <a class="active" href="documenti.html"><span>▤</span>Documenti</a>
+      <div class="nav-label">ARCHIVIO</div>
+      <a href="#turni-docs"><span>▦</span>Turni e bozze</a>
+      <a href="#ods-docs"><span>≡</span>Ordini di servizio</a>
+      <button id="refreshButton" type="button"><span>↻</span>Aggiorna archivio</button>
+    </nav>
+    <div class="sidebar-foot">
+      <span id="sourceLabel">Archivio GitHub</span>
+      <small id="lastUpdate">Caricamento…</small>
+    </div>
+  </aside>
+
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p>DOCUMENTI OPERATIVI</p>
+        <h1>Turni, bozze e<br><em>ordini di servizio.</em></h1>
+        <span>Tutti i PDF delle cartelle GitHub, raccolti e ordinati automaticamente.</span>
+      </div>
+      <div class="hero-tools">
+        <label class="search-box">
+          <span>⌕</span>
+          <input id="searchInput" type="search" placeholder="Cerca ODS, turno o data…" autocomplete="off">
+        </label>
+        <div class="filter-row" id="filters">
+          <button class="active" data-filter="tutti">Tutti</button>
+          <button data-filter="turno">Turni</button>
+          <button data-filter="bozza">Bozze</button>
+          <button data-filter="ods">ODS</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="notice" id="notice" hidden></div>
+
+      <section id="turni-docs" class="archive-section" data-section="turni">
+        <div class="section-heading">
+          <div><p>PIANIFICAZIONE</p><h2>Turni e bozze</h2></div>
+          <span class="count" id="turniCount">0 documenti</span>
+        </div>
+        <div class="document-grid" id="turniGrid"></div>
+      </section>
+
+      <section id="ods-docs" class="archive-section ods-section" data-section="ods">
+        <div class="section-heading">
+          <div><p>ORDINI DI SERVIZIO</p><h2>Archivio ODS</h2></div>
+          <span class="count" id="odsCount">0 documenti</span>
+        </div>
+        <div class="document-grid" id="odsGrid"></div>
+      </section>
+
+      <div class="empty" id="emptyState" hidden>
+        <strong>Nessun documento trovato</strong>
+        <span>Prova a cambiare ricerca o filtro.</span>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="previewDialog" class="preview-dialog">
+    <div class="preview-head">
+      <div><small>ANTEPRIMA PDF</small><strong id="previewTitle">Documento</strong></div>
+      <button id="closePreview" type="button" aria-label="Chiudi">×</button>
+    </div>
+    <iframe id="previewFrame" title="Anteprima PDF"></iframe>
+    <div class="preview-foot"><a id="openPdfButton" target="_blank" rel="noopener">Apri PDF in una nuova scheda ↗</a></div>
+  </dialog>
+
+  <script src="documenti.js?v=20260718-2"></script>
+</body>
+</html>
