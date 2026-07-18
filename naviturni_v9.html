@@ -2663,6 +2663,66 @@
       .panel-residence-selector .coverage-residence-btn { padding:6px 2px;font-size:9px; }
     }
 
+
+    /* Impostazione definitiva dei comandi nella scheda equipaggio */
+    #day-panel .panel-header-main,
+    #coverage-crew-copy .panel-header-main {
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:8px;
+      width:100%;
+    }
+    #day-panel .panel-date-navigation,
+    #coverage-crew-copy .panel-date-navigation {
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      gap:7px;
+      width:100%;
+    }
+    #day-panel .panel-date-navigation .panel-arrow:not(.panel-today),
+    #coverage-crew-copy .panel-date-navigation .panel-arrow:not(.panel-today) {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:38px;
+      min-width:38px;
+      height:38px;
+      padding:0;
+      font-family:Arial,Helvetica,sans-serif;
+      font-size:28px;
+      font-weight:1000;
+      line-height:1;
+      text-align:center;
+    }
+    #day-panel .panel-date-navigation .panel-today,
+    #coverage-crew-copy .panel-date-navigation .panel-today {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:72px;
+      height:38px;
+      min-height:38px;
+      padding:0 13px;
+      font-family:inherit;
+      font-size:17px;
+      font-weight:900;
+      line-height:1;
+      letter-spacing:0;
+      text-align:center;
+    }
+    #day-panel .panel-residence-selector,
+    #coverage-crew-copy .panel-residence-selector {
+      display:none !important;
+    }
+    @media(max-width:520px) {
+      #day-panel .panel-header-main,
+      #coverage-crew-copy .panel-header-main { align-items:stretch; }
+      #day-panel .panel-date-navigation,
+      #coverage-crew-copy .panel-date-navigation { justify-content:center; }
+    }
+
 </style>
   <link rel="stylesheet" href="shared-menu.css">
 </head>
@@ -4370,7 +4430,6 @@
       infoDiv.innerHTML = `<div class="colleague-cards"><div class="colleague-card crew-info-card">
         <div class="panel-controls-box" aria-label="Selezione corsa e data">
           <div class="panel-shift-selector" id="panel-shift-selector" aria-label="Corse della residenza"></div>
-          <div class="panel-residence-selector" id="panel-residence-selector" aria-label="Seleziona residenza"></div>
           <div class="panel-header-main">
             <div class="panel-date" id="panel-date-label"></div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
@@ -4384,7 +4443,6 @@
       </div></div>`;
       panelGroups.appendChild(infoDiv);
       document.getElementById("panel-shift-selector").innerHTML = renderResidenceShiftBubbles(cleanShift);
-      document.getElementById("panel-residence-selector").innerHTML = renderPanelResidenceBubbles();
 
       if (isCrewShift) {
         let allColleagues = [];
