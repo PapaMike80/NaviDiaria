@@ -2793,7 +2793,7 @@
     <nav>
       <a class="active" href="#turni-operativi"><span>▦</span> NaviTurni</a>
       <a href="navidiaria.html" target="_blank" rel="noopener"><span>≈</span> NaviDiaria</a>
-      <a href="turni.html" target="_blank" rel="noopener"><span>▤</span> ODS / Turni</a>
+      <a href="documenti.html" target="_blank" rel="noopener"><span>▤</span> ODS / Turni</a>
       <button class="turni-nav-link" onclick="ricaricaDati()" id="refreshBtn" type="button"><span>↻</span> Aggiorna</button>
       <span class="turni-menu-label">TURNI</span>
       <button class="turni-nav-link" onclick="togglePastColumns()" id="togglePastBtn" type="button"><span>◷</span> Mostra passato</button>
@@ -3978,7 +3978,7 @@
     function getOdsPdfHref(ods) {
       const fileName = odsPdfFiles[String(ods || "").trim()];
       if (fileName) return `ods/${encodeURIComponent(fileName)}`;
-      return String(ods || "").trim() ? "turni.html#ods-docs" : "";
+      return String(ods || "").trim() ? "documenti.html#ods-docs" : "";
     }
 
     function renderAgentOdsBadge(variation) {
