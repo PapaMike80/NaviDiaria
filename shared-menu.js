@@ -1,4 +1,5 @@
 (function(){
+  const APP_VERSION='v1.01';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   const page=document.body.classList.contains('diaria-page')?'diaria':sidebar.id==='archive-sidebar'?'archive':'turni';
   const tabNames={turni:'NaviTurniTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab'};
@@ -9,6 +10,7 @@
   const tabForHref=href=>href.includes('naviturni')?tabNames.turni:href.includes('navidiaria')?tabNames.diaria:href.includes('documenti.html')?tabNames.archive:'';
   const item=(href,icon,label,active=false,external=false,id='')=>`<a ${id?`id="${id}" `:''}class="nav-link${active?' active':''}" href="${href}"${external?` data-navi-tab="${tabForHref(href)}"`:''}${['competencyNav','adminNav','archiveAdminNav'].includes(id)?' hidden':''}><span>${icon}</span>${label}</a>`;
   let common='',specific='',user='',status='<div id="odsVariationStatus" class="ods-variation-status" hidden></div>';
+
   if(page==='diaria'){
     common=item('naviturni.html','▦','NaviTurni',false,true)+item('#oggi','≈','NaviDiaria',true,false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink');
     specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,false,'competencyNav')}${item('#adminPanel','♙','Gestione PIN',false,false,'adminNav')}`;
@@ -22,26 +24,63 @@
     specific=`<span class="sidebar-menu-label">DOCUMENTI</span>${item('#turni-docs','▦','Turni e bozze')}${item('#ods-docs','≡','ODS 2026')}${item('#adminUploadPanel','＋','Carica documenti',false,false,'archiveAdminNav')}`;
     user=`<div class="sidebar-user-actions"><button class="sidebar-footer-update" type="button" onclick="typeof loadDocuments==='function'?loadDocuments():location.reload()"><span>↻</span>Aggiorna</button><small id="archiveMenuStatus" class="sidebar-data-status">Locale</small><strong id="archiveSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="archiveLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="archiveChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }
+
   const brandTitle=page==='diaria'?'NaviDiaria':page==='turni'?'NaviTurni':'Documenti';
-  sidebar.innerHTML=`<a class="shared-sidebar-brand" href="index.html"><span class="shared-brand-mark">N</span><strong>${brandTitle}</strong></a><nav>${common}${status}${specific}</nav>${user}`;
+  const version=`<div class="shared-app-version" aria-label="Versione applicazione">Versione ${APP_VERSION}</div>`;
+
+  sidebar.innerHTML=`<a class="shared-sidebar-brand" href="index.html"><span class="shared-brand-mark">N</span><strong>${brandTitle}</strong></a><nav>${common}${status}${specific}</nav>${version}${user}`;
+
+  const versionEl=sidebar.querySelector('.shared-app-version');
+  if(versionEl){
+    versionEl.style.cssText='margin:10px 12px 8px;padding-top:10px;border-top:1px solid rgba(124,173,189,.18);color:#19e3c1;font-size:11px;font-weight:700;letter-spacing:.04em;text-align:center';
+  }
+
   const diariaNavLink=sidebar.querySelector('#diariaNavLink');if(diariaNavLink)diariaNavLink.hidden=!isAdminAgent(sessionAgent);
   const archiveNavLink=sidebar.querySelector('#archiveNavLink');if(archiveNavLink)archiveNavLink.hidden=isBaristaAgent(sessionAgent);
   sidebar.classList.add('menu-ready');
-  sidebar.addEventListener('click',event=>{const link=event.target.closest('a[data-navi-tab]');if(!link)return;event.preventDefault();const target=window.open(link.href,link.dataset.naviTab);if(target)target.focus()});
-  const toggle=document.createElement('button');toggle.className='sidebar-collapse-button';toggle.type='button';document.body.appendChild(toggle);
-  function setCollapsed(value){document.body.classList.toggle('menu-collapsed',value);toggle.setAttribute('aria-expanded',String(!value));toggle.setAttribute('aria-label',value?'Mostra menu':'Nascondi menu');toggle.textContent=value?'›':'‹'}
-  toggle.addEventListener('click',()=>setCollapsed(!document.body.classList.contains('menu-collapsed')));sidebar.querySelector('nav')?.addEventListener('click',event=>{if(window.innerWidth<=800&&event.target.closest('a'))setCollapsed(true)});setCollapsed(true);
+
+  sidebar.addEventListener('click',event=>{
+    const link=event.target.closest('a[data-navi-tab]');
+    if(!link)return;
+    event.preventDefault();
+    const target=window.open(link.href,link.dataset.naviTab);
+    if(target)target.focus();
+  });
+
+  const toggle=document.createElement('button');
+  toggle.className='sidebar-collapse-button';
+  toggle.type='button';
+  document.body.appendChild(toggle);
+
+  function setCollapsed(value){
+    document.body.classList.toggle('menu-collapsed',value);
+    toggle.setAttribute('aria-expanded',String(!value));
+    toggle.setAttribute('aria-label',value?'Mostra menu':'Nascondi menu');
+    toggle.textContent=value?'›':'‹';
+  }
+
+  toggle.addEventListener('click',()=>setCollapsed(!document.body.classList.contains('menu-collapsed')));
+  sidebar.querySelector('nav')?.addEventListener('click',event=>{
+    if(window.innerWidth<=800&&event.target.closest('a'))setCollapsed(true);
+  });
+  setCollapsed(true);
+
   async function refreshOdsVariationStatus(){
     const target=document.getElementById('odsVariationStatus');if(!target||!window.NaviCloud)return;
     let agent=null;try{agent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null')}catch{}
-    const agentId=String(agent?.id||'');const pinHash=localStorage.getItem(`navidiaria.pin.${agentId}`)||'';
+    const agentId=String(agent?.id||'');
+    const pinHash=localStorage.getItem(`navidiaria.pin.${agentId}`)||'';
     if(!agentId||!pinHash){target.hidden=true;return}
     try{
       const result=await NaviCloud.request('variation_status',{agentId,pinHash}),info=result.variationStatus;
       if(!info||Number(info.count)<=1){target.hidden=true;return}
-      target.textContent=`Variazioni aggiornate all'ODS n. ${info.number}${info.date?` del ${info.date}`:''}`;target.hidden=false;
-    }catch{target.hidden=true}
+      target.textContent=`Variazioni aggiornate all'ODS n. ${info.number}${info.date?` del ${info.date}`:''}`;
+      target.hidden=false;
+    }catch{
+      target.hidden=true;
+    }
   }
+
   window.refreshOdsVariationStatus=refreshOdsVariationStatus;
   window.addEventListener('DOMContentLoaded',refreshOdsVariationStatus);
 })();
