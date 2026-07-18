@@ -2451,6 +2451,125 @@
       .panel-date-navigation .panel-arrow { min-width:36px; height:34px; }
       .panel-date-navigation .panel-today { min-width:58px; padding:0 9px; }
     }
+
+    /* Layout definitivo scheda Equipaggio */
+    #day-panel {
+      --crew-shift-color:#2dd4bf;
+      background:
+        linear-gradient(110deg, color-mix(in srgb, var(--crew-shift-color) 18%, #071820) 0%, #0b202a 48%, #0b1c25 100%) !important;
+      border-color:color-mix(in srgb, var(--crew-shift-color) 65%, #244653) !important;
+    }
+    #day-panel .panel-header {
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:42px;
+      padding:7px 12px;
+      background:color-mix(in srgb, var(--crew-shift-color) 10%, rgba(7,24,32,.98));
+      border-bottom-color:color-mix(in srgb, var(--crew-shift-color) 38%, var(--line));
+    }
+    #day-panel .panel-close {
+      margin:0 auto;
+      min-width:150px;
+      text-align:center;
+    }
+    #day-panel .panel-groups {
+      display:grid;
+      grid-template-columns:minmax(360px,1fr) minmax(420px,1fr);
+      align-items:start;
+      gap:16px;
+      padding:12px 16px 14px;
+    }
+    #day-panel .crew-info-group {
+      grid-column:1;
+      width:auto;
+      min-width:0;
+      align-self:stretch;
+    }
+    #day-panel .panel-groups > .shift-group:not(.crew-info-group) {
+      grid-column:2;
+      min-width:0;
+      width:auto;
+    }
+    #day-panel .crew-info-card {
+      height:100%;
+      box-sizing:border-box;
+      border:1px solid color-mix(in srgb, var(--crew-shift-color) 62%, transparent);
+      background:color-mix(in srgb, var(--crew-shift-color) 8%, rgba(4,23,30,.82));
+    }
+    #day-panel .panel-controls-box {
+      border-bottom-color:color-mix(in srgb, var(--crew-shift-color) 38%, var(--line));
+    }
+    #day-panel .panel-header-main {
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px;
+    }
+    #day-panel .panel-date {
+      border-color:color-mix(in srgb, var(--crew-shift-color) 65%, transparent);
+      background:color-mix(in srgb, var(--crew-shift-color) 18%, rgba(5,25,32,.82));
+      box-shadow:0 0 14px color-mix(in srgb, var(--crew-shift-color) 24%, transparent);
+    }
+    #day-panel .panel-date-navigation {
+      display:flex;
+      gap:7px;
+      padding:0;
+      border:0;
+      background:transparent;
+      box-shadow:none;
+    }
+    #day-panel .panel-date-navigation .panel-arrow {
+      width:38px;
+      min-width:38px;
+      height:38px;
+      padding:0;
+      border-radius:999px;
+      border:2px solid var(--crew-shift-color);
+      background:color-mix(in srgb, var(--crew-shift-color) 16%, rgba(5,25,32,.9));
+      color:#f8fafc;
+    }
+    #day-panel .panel-date-navigation .panel-today {
+      width:auto;
+      min-width:72px;
+      padding:0 15px;
+      border-radius:999px;
+      background:color-mix(in srgb, var(--crew-shift-color) 82%, white 8%);
+      color:#061c22;
+      border-color:color-mix(in srgb, var(--crew-shift-color) 85%, white);
+    }
+    #day-panel .ship-day-info {
+      margin-top:auto;
+    }
+    #day-panel .ship-day-badge {
+      border-color:color-mix(in srgb, var(--crew-shift-color) 35%, var(--line));
+      background:color-mix(in srgb, var(--crew-shift-color) 9%, rgba(255,255,255,.04));
+    }
+    #day-panel #colleague-list {
+      width:100%;
+    }
+    #day-panel #colleague-list .colleague-card {
+      min-height:30px;
+    }
+    @media(max-width:900px) {
+      #day-panel .panel-groups {
+        grid-template-columns:1fr;
+        gap:10px;
+        padding:10px;
+      }
+      #day-panel .crew-info-group,
+      #day-panel .panel-groups > .shift-group:not(.crew-info-group) {
+        grid-column:1;
+      }
+    }
+    @media(max-width:520px) {
+      #day-panel .panel-header-main { align-items:stretch; }
+      #day-panel .panel-date { flex:1 1 100%; text-align:center; }
+      #day-panel .panel-date-navigation { width:100%; justify-content:center; }
+      #day-panel .panel-date-navigation .panel-arrow { width:42px; min-width:42px; }
+      #day-panel .panel-date-navigation .panel-today { flex:0 1 92px; }
+    }
+
 </style>
   <link rel="stylesheet" href="shared-menu.css">
 </head>
@@ -2518,8 +2637,7 @@
     <button id="crew-drawer-toggle" type="button" onclick="toggleCrewDrawer()" aria-label="Mostra equipaggio" aria-expanded="false">⌄</button>
     <div id="day-panel" aria-hidden="true">
       <div class="panel-header">
-        <strong class="panel-title">Equipaggio</strong>
-        <button class="panel-close" onclick="resetCleanTable()">✕ Chiudi Equipaggio</button>
+        <button class="panel-close" onclick="resetCleanTable()">✕ Chiudi finestra</button>
       </div>
       <div class="panel-groups" id="panel-groups"></div>
     </div>
@@ -4095,6 +4213,8 @@
       let giornoInternoIdx = (col - 3) % 7;
       const cleanShift = ottieniTurnoPulito(cellShiftValue);
       const crewShift = getCrewShiftKey(cleanShift);
+      const crewPanelColor = shiftBorderColor[classify(cleanShift)] || "#2dd4bf";
+      document.getElementById("day-panel")?.style.setProperty("--crew-shift-color", crewPanelColor);
       const isRest = cleanShift === "";
       const crewResidence = getShiftResidence(cleanShift);
       const isCrewShift = Boolean(crewResidence);
@@ -4160,8 +4280,8 @@
             <div class="panel-date" id="panel-date-label"></div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
               <button class="panel-arrow" id="previous-day-btn" type="button" onclick="changeSelectedDay(-1)" aria-label="Giorno precedente">←</button>
-              <button class="panel-arrow panel-today" id="today-day-btn" type="button" onclick="goToToday()" aria-label="Vai a oggi">OGGI</button>
               <button class="panel-arrow" id="next-day-btn" type="button" onclick="changeSelectedDay(1)" aria-label="Giorno successivo">→</button>
+              <button class="panel-arrow panel-today" id="today-day-btn" type="button" onclick="goToToday()" aria-label="Vai a oggi">OGGI</button>
             </div>
           </div>
         </div>
