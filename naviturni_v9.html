@@ -2570,6 +2570,99 @@
       #day-panel .panel-date-navigation .panel-today { flex:0 1 92px; }
     }
 
+
+    /* Rifiniture finali scheda equipaggio */
+    #day-panel .panel-shift-selector .crew-shift-bubble,
+    #coverage-crew-copy .panel-shift-selector .crew-shift-bubble {
+      font-weight:1000;
+    }
+    #day-panel .panel-date-navigation .panel-arrow,
+    #coverage-crew-copy .panel-date-navigation .panel-arrow {
+      font-size:25px;
+      font-weight:1000;
+      line-height:1;
+    }
+    #day-panel .panel-date-navigation .panel-today,
+    #coverage-crew-copy .panel-date-navigation .panel-today {
+      min-width:52px;
+      min-height:34px;
+      height:34px;
+      padding:7px 13px;
+      border:2px solid var(--crew-shift-color, var(--accent));
+      border-radius:999px;
+      background:color-mix(in srgb, var(--crew-shift-color, var(--accent)) 18%, transparent);
+      color:var(--crew-shift-color, var(--accent));
+      font:1000 12px/1 inherit;
+      letter-spacing:.04em;
+      box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--crew-shift-color, var(--accent)) 18%, transparent),0 4px 12px rgba(0,0,0,.14);
+    }
+    .panel-residence-selector {
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:7px;
+      width:100%;
+      margin-top:8px;
+    }
+    .panel-residence-selector .coverage-residence-btn {
+      width:100%;
+      min-width:0;
+      padding:7px 5px;
+      text-align:center;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    #coverage-crew-copy {
+      --crew-shift-color:#2dd4bf;
+      display:block;
+      margin:0 0 12px;
+      border:1px solid color-mix(in srgb, var(--crew-shift-color) 65%, #244653);
+      border-radius:14px;
+      background:linear-gradient(110deg,color-mix(in srgb,var(--crew-shift-color) 18%,#071820) 0%,#0b202a 48%,#0b1c25 100%);
+      box-shadow:0 12px 30px rgba(0,0,0,.22);
+      overflow:hidden;
+    }
+    #coverage-crew-copy:empty { display:none; }
+    #coverage-crew-copy .panel-groups {
+      display:grid;
+      grid-template-columns:minmax(360px,1fr) minmax(420px,1fr);
+      align-items:start;
+      gap:16px;
+      padding:12px 16px 14px;
+    }
+    #coverage-crew-copy .crew-info-group { grid-column:1; min-width:0; }
+    #coverage-crew-copy .panel-groups > .shift-group:not(.crew-info-group) { grid-column:2; min-width:0; }
+    #coverage-crew-copy .crew-info-card {
+      height:100%;
+      box-sizing:border-box;
+      border:1px solid color-mix(in srgb,var(--crew-shift-color) 62%,transparent);
+      background:color-mix(in srgb,var(--crew-shift-color) 8%,rgba(4,23,30,.82));
+    }
+    #coverage-crew-copy .panel-controls-box { border-bottom-color:color-mix(in srgb,var(--crew-shift-color) 38%,var(--line)); }
+    #coverage-crew-copy .panel-header-main { display:flex;flex-wrap:wrap;align-items:center;gap:8px; }
+    #coverage-crew-copy .panel-date {
+      margin:0;padding:8px 12px;border-radius:10px;
+      border:1px solid color-mix(in srgb,var(--crew-shift-color) 65%,transparent);
+      background:color-mix(in srgb,var(--crew-shift-color) 18%,rgba(5,25,32,.82));
+      color:#eafffb;font-size:17px;font-weight:900;white-space:nowrap;
+    }
+    #coverage-crew-copy .panel-date-navigation { display:flex;align-items:center;gap:7px; }
+    #coverage-crew-copy .panel-date-navigation .panel-arrow:not(.panel-today) {
+      width:38px;min-width:38px;height:38px;padding:0;border-radius:999px;
+      border:2px solid var(--crew-shift-color);background:color-mix(in srgb,var(--crew-shift-color) 16%,rgba(5,25,32,.9));color:#f8fafc;
+    }
+    #coverage-crew-copy .ship-day-info { margin-top:auto; }
+    #coverage-crew-copy #coverage-copy-colleague-list { width:100%; }
+    @media(max-width:900px) {
+      #coverage-crew-copy .panel-groups { grid-template-columns:1fr;gap:10px;padding:10px; }
+      #coverage-crew-copy .crew-info-group,
+      #coverage-crew-copy .panel-groups > .shift-group:not(.crew-info-group) { grid-column:1; }
+    }
+    @media(max-width:520px) {
+      .panel-residence-selector { grid-template-columns:repeat(4,minmax(0,1fr));gap:4px; }
+      .panel-residence-selector .coverage-residence-btn { padding:6px 2px;font-size:9px; }
+    }
+
 </style>
   <link rel="stylesheet" href="shared-menu.css">
 </head>
@@ -2664,6 +2757,7 @@
         <span class="crew-minimum-title">Numero minimo di componenti per corsa</span>
         <div class="crew-minimum-grid" id="crew-minimum-grid"></div>
       </div>
+      <div id="coverage-crew-copy" aria-label="Scheda equipaggio sempre visibile"></div>
       <div class="coverage-wrap" id="coverage-matrix-wrap">
         <table class="coverage-table">
           <thead id="coverage-thead"></thead>
@@ -4276,6 +4370,7 @@
       infoDiv.innerHTML = `<div class="colleague-cards"><div class="colleague-card crew-info-card">
         <div class="panel-controls-box" aria-label="Selezione corsa e data">
           <div class="panel-shift-selector" id="panel-shift-selector" aria-label="Corse della residenza"></div>
+          <div class="panel-residence-selector" id="panel-residence-selector" aria-label="Seleziona residenza"></div>
           <div class="panel-header-main">
             <div class="panel-date" id="panel-date-label"></div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
@@ -4289,6 +4384,7 @@
       </div></div>`;
       panelGroups.appendChild(infoDiv);
       document.getElementById("panel-shift-selector").innerHTML = renderResidenceShiftBubbles(cleanShift);
+      document.getElementById("panel-residence-selector").innerHTML = renderPanelResidenceBubbles();
 
       if (isCrewShift) {
         let allColleagues = [];
@@ -4429,15 +4525,53 @@
           scrollCrewPanelIntoView();
         });
       }
+      syncCoverageCrewCopy();
+    }
+
+    function renderPanelResidenceBubbles() {
+      const residences = Object.keys(globalData?.residenze || {});
+      return residences.slice(0, 4).map(residence => {
+        const active = residence === currentResidence;
+        const safe = encodeURIComponent(residence);
+        return `<button class="coverage-residence-btn${active ? " active" : ""}" type="button" onclick="selectPanelResidence(decodeURIComponent('${safe}'))">${escapeAttribute(residence)}</button>`;
+      }).join("");
+    }
+
+    function selectPanelResidence(residence) {
+      const cal = dateCalendario.find(item => item.col === selectedCol) || dateCalendario[0];
+      selectResidence(residence);
+      if (!cal) return;
+      const shifts = getResidenceCrewShifts();
+      const desired = shifts.some(s => s.toUpperCase() === String(selectedShiftValue || "").toUpperCase())
+        ? selectedShiftValue
+        : (shifts[0] || selectedShiftValue);
+      selectDay(cal.col, cal.labelEstesa, desired);
+    }
+
+    function syncCoverageCrewCopy() {
+      const source = document.getElementById("panel-groups");
+      const target = document.getElementById("coverage-crew-copy");
+      const panel = document.getElementById("day-panel");
+      if (!source || !target || !source.children.length) return;
+      target.style.setProperty("--crew-shift-color", panel?.style.getPropertyValue("--crew-shift-color") || "#2dd4bf");
+      const clone = source.cloneNode(true);
+      clone.id = "coverage-copy-panel-groups";
+      clone.querySelectorAll("[id]").forEach(el => {
+        const oldId = el.id;
+        el.id = `coverage-copy-${oldId}`;
+      });
+      target.replaceChildren(clone);
     }
 
 
     function scrollGroupedCrewTableToTop() {
       const target = dayPanelPlacement === "coverage"
-        ? document.getElementById("coverage-section")
+        ? document.getElementById("coverage-matrix-wrap")
         : document.getElementById("matrix-scroll-wrap");
       if (!target) return;
-      const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - 8);
+      const panel = document.getElementById("day-panel");
+      const panelHeight = panel?.classList.contains("open") ? panel.getBoundingClientRect().height : 0;
+      const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - panelHeight - 10);
       window.scrollTo({ top, behavior:"smooth" });
     }
 
@@ -4500,7 +4634,10 @@
         requestAnimationFrame(() => {
           updateCrewDrawerOffset();
           scrollCrewPanelIntoView();
-          setTimeout(updateCrewDrawerOffset, 80);
+          setTimeout(() => {
+            updateCrewDrawerOffset();
+            scrollGroupedCrewTableToTop();
+          }, 110);
         });
       } else {
         document.documentElement.style.setProperty("--crew-drawer-offset", "0px");
