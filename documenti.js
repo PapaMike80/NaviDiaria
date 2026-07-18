@@ -1,8 +1,8 @@
 'use strict';
 
 const CONFIG = {
-  owner: 'papamike80',
-  repo: 'Naviturni_v2',
+  owner: 'PapaMike80',
+  repo: 'NaviDiaria',
   branch: 'main',
   folders: ['turni', 'ods'],
   metadataFile: 'documenti.json'
