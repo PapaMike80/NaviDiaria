@@ -5,7 +5,8 @@ const CONFIG = {
   repo: 'NaviDiaria',
   branch: 'main',
   folders: ['turni', 'ods'],
-  metadataFile: 'documenti.json'
+  metadataFile: 'documenti.json',
+  version: 'v1.03'
 };
 
 const state = {
@@ -19,11 +20,48 @@ const elements = {
   turniCount: document.getElementById('turniCount'),
   odsCount: document.getElementById('odsCount'),
   refreshButton: document.getElementById('refreshButton'),
-  sourceLabel: document.getElementById('sourceLabel'),
-  lastUpdate: document.getElementById('lastUpdate'),
   notice: document.getElementById('notice'),
   emptyState: document.getElementById('emptyState')
 };
+
+function setText(id, text) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = text;
+}
+
+function addVersionToMenu() {
+  if (document.getElementById('documentiVersion')) return;
+
+  const sidebar =
+    document.getElementById('archive-sidebar') ||
+    document.querySelector('.app-sidebar');
+
+  if (!sidebar) return;
+
+  const version = document.createElement('div');
+  version.id = 'documentiVersion';
+  version.textContent = `Documenti ${CONFIG.version}`;
+  version.style.cssText = [
+    'margin:8px 12px 0',
+    'padding-top:8px',
+    'border-top:1px solid rgba(124,173,189,.18)',
+    'color:#19e3c1',
+    'font-size:11px',
+    'font-weight:700',
+    'letter-spacing:.04em'
+  ].join(';');
+
+  const userActions =
+    sidebar.querySelector('.sidebar-user-actions') ||
+    sidebar.querySelector('.sidebar-footer') ||
+    sidebar.lastElementChild;
+
+  if (userActions && userActions !== sidebar.querySelector('nav')) {
+    userActions.insertAdjacentElement('beforebegin', version);
+  } else {
+    sidebar.appendChild(version);
+  }
+}
 
 function githubApiUrl(folder) {
   return `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${folder}?ref=${CONFIG.branch}`;
@@ -32,9 +70,7 @@ function githubApiUrl(folder) {
 async function fetchJson(url) {
   const response = await fetch(url, {
     cache: 'no-store',
-    headers: {
-      Accept: 'application/vnd.github+json'
-    }
+    headers: { Accept: 'application/vnd.github+json' }
   });
 
   if (!response.ok) {
@@ -138,11 +174,6 @@ function parseItalianRange(filename) {
 }
 
 function pagesPdfUrl(path) {
-  /*
-   * È fondamentale usare il percorso relativo della pagina GitHub Pages.
-   * file.download_url punta a raw.githubusercontent.com e può forzare
-   * il download; il percorso relativo apre invece il PDF nel browser.
-   */
   return encodeURI(path);
 }
 
@@ -169,7 +200,6 @@ function fileToDocument(file, folder) {
     data: metadata.data || null,
     inizio: metadata.inizio || range.inizio || null,
     fine: metadata.fine || range.fine || null,
-    descrizione: metadata.descrizione || '',
     filename
   };
 }
@@ -205,7 +235,6 @@ function fallbackFromJson() {
 
 function parseDate(value) {
   if (!value) return null;
-
   const date = new Date(`${value}T12:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
@@ -236,11 +265,11 @@ function isCurrentTurn(documentItem) {
 
 function documentDescription(documentItem) {
   if (documentItem.inizio && documentItem.fine) {
-    const stateText = isCurrentTurn(documentItem)
+    const currentText = isCurrentTurn(documentItem)
       ? ' · Documento in vigore'
       : '';
 
-    return `<b>Validità:</b> ${formatDate(documentItem.inizio)} – ${formatDate(documentItem.fine)}${stateText}`;
+    return `<b>Validità:</b> ${formatDate(documentItem.inizio)} – ${formatDate(documentItem.fine)}${currentText}`;
   }
 
   if (documentItem.data) {
@@ -307,9 +336,7 @@ function documentScore(documentItem) {
     documentItem.fine
   );
 
-  return date
-    ? date.getTime()
-    : Number(documentItem.numero || 0);
+  return date ? date.getTime() : Number(documentItem.numero || 0);
 }
 
 function countLabel(number) {
@@ -328,44 +355,76 @@ function renderDocuments() {
       documentScore(b) - documentScore(a)
     );
 
-  elements.turniGrid.innerHTML = turni.map(turnCard).join('');
-  elements.odsGrid.innerHTML = ods.map(odsCard).join('');
+  if (elements.turniGrid) {
+    elements.turniGrid.innerHTML = turni.map(turnCard).join('');
+  }
 
-  elements.turniCount.textContent = countLabel(turni.length);
-  elements.odsCount.textContent = countLabel(ods.length);
-  elements.emptyState.style.display =
-    state.documents.length ? 'none' : 'block';
+  if (elements.odsGrid) {
+    elements.odsGrid.innerHTML = ods.map(odsCard).join('');
+  }
+
+  if (elements.turniCount) {
+    elements.turniCount.textContent = countLabel(turni.length);
+  }
+
+  if (elements.odsCount) {
+    elements.odsCount.textContent = countLabel(ods.length);
+  }
+
+  if (elements.emptyState) {
+    elements.emptyState.style.display =
+      state.documents.length ? 'none' : 'block';
+  }
 }
 
 async function loadDocuments() {
-  elements.refreshButton.disabled = true;
-  elements.lastUpdate.textContent = 'Aggiornamento…';
-  elements.notice.hidden = true;
+  if (elements.refreshButton) elements.refreshButton.disabled = true;
+  setText('lastUpdate', 'Aggiornamento…');
+
+  if (elements.notice) elements.notice.hidden = true;
 
   state.metadata = await loadMetadata();
 
   try {
     state.documents = await scanGitHub();
-    elements.sourceLabel.textContent = 'Cartelle GitHub in tempo reale';
-    elements.lastUpdate.textContent =
+    setText('sourceLabel', 'Cartelle GitHub in tempo reale');
+    setText(
+      'lastUpdate',
       `Aggiornato ${new Date().toLocaleTimeString('it-IT', {
         hour: '2-digit',
         minute: '2-digit'
-      })}`;
+      })}`
+    );
   } catch (error) {
     state.documents = fallbackFromJson();
-    elements.sourceLabel.textContent = 'Archivio JSON di riserva';
-    elements.lastUpdate.textContent = 'GitHub non raggiungibile';
-    elements.notice.hidden = false;
-    elements.notice.textContent =
-      `Non riesco a leggere ora le cartelle GitHub (${error.message}). ` +
-      'Mostro i documenti registrati in documenti.json.';
+    setText('sourceLabel', 'Archivio JSON di riserva');
+    setText('lastUpdate', 'GitHub non raggiungibile');
+
+    if (elements.notice) {
+      elements.notice.hidden = false;
+      elements.notice.textContent =
+        `Non riesco a leggere ora le cartelle GitHub (${error.message}). ` +
+        'Mostro i documenti registrati in documenti.json.';
+    }
   }
 
   renderDocuments();
-  elements.refreshButton.disabled = false;
+  addVersionToMenu();
+
+  if (elements.refreshButton) elements.refreshButton.disabled = false;
 }
 
-elements.refreshButton.addEventListener('click', loadDocuments);
+if (elements.refreshButton) {
+  elements.refreshButton.addEventListener('click', loadDocuments);
+}
+
+/*
+ * shared-menu.js può ricostruire il menu dopo il caricamento della pagina.
+ * Riprovare ad aggiungere la versione dopo un breve ritardo evita conflitti.
+ */
+window.addEventListener('load', () => {
+  setTimeout(addVersionToMenu, 250);
+  setTimeout(addVersionToMenu, 1000);
+});
 
 loadDocuments();
