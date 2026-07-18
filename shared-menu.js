@@ -28,11 +28,16 @@
   const brandTitle=page==='diaria'?'NaviDiaria':page==='turni'?'NaviTurni':'Documenti';
   const version=`<div class="shared-app-version" aria-label="Versione applicazione">Versione ${APP_VERSION}</div>`;
 
-  sidebar.innerHTML=`<a class="shared-sidebar-brand" href="index.html"><span class="shared-brand-mark">N</span><strong>${brandTitle}</strong></a><nav>${common}${status}${specific}</nav>${version}${user}`;
+  sidebar.innerHTML=`<a class="shared-sidebar-brand" href="index.html"><span class="shared-brand-mark">N</span><strong>${brandTitle}</strong></a><nav>${common}${specific}</nav>${user}${status}${version}`;
 
   const versionEl=sidebar.querySelector('.shared-app-version');
   if(versionEl){
     versionEl.style.cssText='margin:10px 12px 8px;padding-top:10px;border-top:1px solid rgba(124,173,189,.18);color:#19e3c1;font-size:11px;font-weight:700;letter-spacing:.04em;text-align:center';
+  }
+
+  const odsStatusEl=sidebar.querySelector('#odsVariationStatus');
+  if(odsStatusEl){
+    odsStatusEl.style.cssText='margin:8px 12px 2px;color:#19e3c1;font-size:11px;font-weight:700;letter-spacing:.04em;text-align:center;white-space:nowrap;background:none;border:none;padding:0';
   }
 
   const diariaNavLink=sidebar.querySelector('#diariaNavLink');if(diariaNavLink)diariaNavLink.hidden=!isAdminAgent(sessionAgent);
@@ -74,7 +79,7 @@
     try{
       const result=await NaviCloud.request('variation_status',{agentId,pinHash}),info=result.variationStatus;
       if(!info||Number(info.count)<=1){target.hidden=true;return}
-      target.textContent=`Variazioni aggiornate all'ODS n. ${info.number}${info.date?` del ${info.date}`:''}`;
+      target.textContent=`ODS nr. ${info.number}`;
       target.hidden=false;
     }catch{
       target.hidden=true;
