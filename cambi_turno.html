@@ -6349,40 +6349,48 @@
     return formatDate(iso).toUpperCase();
   }
 
-  function makeMailText(me, colleague, selectedCal, exchangeCal) {
+  function cambioScheduleLines(me, colleague, selectedCal, exchangeCal) {
     const myName = displaySurname(me.agente).toUpperCase();
     const colleagueName = displaySurname(colleague.agente).toUpperCase();
     const myGivenShift = displayShift(effectiveRawShift(me, selectedCal));
     const colleagueGivenShift = displayShift(effectiveRawShift(colleague, exchangeCal));
+    const visibleShift = shift => shift === 'RIP' ? '===' : shift;
+
+    if (selectedCal.iso === exchangeCal.iso) {
+      return [
+        odsDate(selectedCal.iso),
+        `${myName}: ${visibleShift(colleagueGivenShift)}`,
+        `${colleagueName}: ${visibleShift(myGivenShift)}`
+      ];
+    }
+
     return [
-      'Buongiorno.',
-      `In accordo con l'agente ${colleagueName}, chiedo un cambio turno senza oneri per l'azienda.`,
       odsDate(exchangeCal.iso),
-      `${myName}: ${colleagueGivenShift === 'RIP' ? '===' : colleagueGivenShift}`,
+      `${myName}: ${visibleShift(colleagueGivenShift)}`,
       `${colleagueName}: ===`,
       odsDate(selectedCal.iso),
       `${myName}: ===`,
-      `${colleagueName}: ${myGivenShift === 'RIP' ? '===' : myGivenShift}`,
+      `${colleagueName}: ${visibleShift(myGivenShift)}`
+    ];
+  }
+
+  function makeMailText(me, colleague, selectedCal, exchangeCal) {
+    const colleagueName = displaySurname(colleague.agente).toUpperCase();
+    return [
+      'Buongiorno.',
+      `In accordo con l'agente ${colleagueName}, chiedo un cambio turno senza oneri per l'azienda.`,
+      ...cambioScheduleLines(me, colleague, selectedCal, exchangeCal),
       'Cordiali saluti',
       displaySurname(me.agente).charAt(0).toUpperCase() + displaySurname(me.agente).slice(1).toLowerCase()
     ].join('\n');
   }
 
   function makeWhatsappText(me, colleague, selectedCal, exchangeCal) {
-    const myName = displaySurname(me.agente).toUpperCase();
     const colleagueSurname = displaySurname(colleague.agente);
-    const colleagueName = colleagueSurname.toUpperCase();
-    const myGivenShift = displayShift(effectiveRawShift(me, selectedCal));
-    const colleagueGivenShift = displayShift(effectiveRawShift(colleague, exchangeCal));
     const hours = buildHoursComparison(me, colleague, selectedCal, exchangeCal);
     return [
       `Ciao ${colleagueSurname.charAt(0).toUpperCase() + colleagueSurname.slice(1).toLowerCase()}. Ti chiedo questo cambio:`,
-      odsDate(exchangeCal.iso),
-      `${myName}: ${colleagueGivenShift === 'RIP' ? '===' : colleagueGivenShift}`,
-      `${colleagueName}: ===`,
-      odsDate(selectedCal.iso),
-      `${myName}: ===`,
-      `${colleagueName}: ${myGivenShift === 'RIP' ? '===' : myGivenShift}`,
+      ...cambioScheduleLines(me, colleague, selectedCal, exchangeCal),
       `Tu avresti una variazione di ${formatDelta(hours.colleagueDelta)}.`,
       'Fammi sapere se per te va bene.'
     ].join('\n');
