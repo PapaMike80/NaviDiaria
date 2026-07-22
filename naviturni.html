@@ -1377,6 +1377,14 @@
     thead tr th,.date-header th,.date-header th:nth-child(1),.date-header th:nth-child(2) { background:#eef5f3 !important; color:var(--ink); }
     tr td.td-num,tr td.td-name { color:var(--ink)!important; }
     .cell-pill { border-radius:999px; }
+    .cell-pill.private-shift {
+      min-width:22px;
+      min-height:22px;
+      color:transparent!important;
+      border-color:#273746!important;
+      background:#202936!important;
+      box-shadow:none!important;
+    }
     #day-panel.open { box-shadow:0 10px 30px rgba(17,55,49,.08); }
     .compact .scroll-wrap table td { padding-top:2px; padding-bottom:2px; }
     .compact .cell-pill { padding:1px 5px; font-size:9px; }
@@ -2550,6 +2558,38 @@
       align-items:center;
       gap:8px;
     }
+    #day-panel .panel-title-row,
+    #coverage-crew-copy .panel-title-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      width:100%;
+    }
+    #day-panel .panel-course-name,
+    #coverage-crew-copy .panel-course-name {
+      display:flex;
+      align-items:baseline;
+      gap:9px;
+      margin-left:auto;
+      color:var(--crew-shift-color);
+      text-transform:uppercase;
+      text-shadow:0 0 18px color-mix(in srgb, var(--crew-shift-color) 42%, transparent);
+    }
+    #day-panel .panel-course-name small,
+    #coverage-crew-copy .panel-course-name small {
+      color:#88a5af;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.16em;
+    }
+    #day-panel .panel-course-name strong,
+    #coverage-crew-copy .panel-course-name strong {
+      font-size:clamp(30px,4vw,58px);
+      font-weight:1000;
+      line-height:.9;
+      letter-spacing:.04em;
+    }
     #day-panel .panel-date {
       border-color:color-mix(in srgb, var(--crew-shift-color) 65%, transparent);
       background:color-mix(in srgb, var(--crew-shift-color) 18%, rgba(5,25,32,.82));
@@ -2815,7 +2855,6 @@
       <div class="login-message" id="login-message" aria-live="polite"></div>
       <div class="login-actions">
         <button class="login-submit" type="submit">Accedi</button>
-        <button type="button" onclick="continueWithoutLogin()">Continua senza accesso</button>
       </div>
     </form>
   </div>
@@ -2924,6 +2963,7 @@
     let selectedCol = null;
     let selectedShiftValue = "";
     let selectedCrewAgent = null;
+    let crewNavigationMode = "fixed";
     let trElements = [];
     let pinnedAgentIdx = null;
     let activeShiftFilter = null;
@@ -2933,8 +2973,10 @@
     let coverageRenderHandle = null;
     let lastLoadedDataSignature = "";
     let showPastColumns = false;
+    let automaticPastFromTime = null;
     let isEditMode = false;
     let loggedAgentProfile = null;
+    let baristaAccessApplied = false;
     let lastMobilePointerUpAt = 0;
     let mobileTapTimer = null;
     let mobileTapTarget = null;
@@ -2944,6 +2986,7 @@
     const MOBILE_TAP_MOVE_TOLERANCE = 12;
     const mobilePointerGestures = new WeakMap();
     const AGENT_LOGIN_STORAGE_KEY = "naviturni_logged_agent";
+    const BARISTA_PRIVATE_SHIFT = "__PRIVATE__";
 
     function beginMobileTapGesture(target, event) {
       if (event.pointerType !== "touch") return;
@@ -3007,7 +3050,11 @@
 
     function readLoggedAgentProfile() {
       try {
-        return JSON.parse(localStorage.getItem(AGENT_LOGIN_STORAGE_KEY) || "null");
+        return JSON.parse(
+          localStorage.getItem(AGENT_LOGIN_STORAGE_KEY) ||
+          localStorage.getItem("navidiaria.activeAgent") ||
+          "null"
+        );
       } catch (e) {
         localStorage.removeItem(AGENT_LOGIN_STORAGE_KEY);
         return null;
@@ -3015,9 +3062,39 @@
     }
 
     function getBaristaRecords() {
-      return Array.isArray(globalData?.bariste)
+      const explicit = Array.isArray(globalData?.bariste)
         ? globalData.bariste
         : (Array.isArray(globalData?.barista) ? globalData.barista : []);
+      const records = explicit.slice();
+      const seen = new Set(records.map(record => [
+        normalizeOdsAgentName(record.barista || record.agente || record.nome),
+        String(record.data || "").slice(0, 10),
+        String(record.corsa || "").trim().toUpperCase()
+      ].join("|")));
+
+      // Foglio1 contiene già le righe della residenza BARISTE. Se il vecchio
+      // tab BARISTA non esiste, ricava da qui le presenze per l'equipaggio.
+      (globalData?.residenze?.BARISTE || []).forEach(agent => {
+        settimaneInfo.forEach(week => {
+          const shifts = agent.turni_settimanali?.[week.key] || [];
+          (week.dateIso || []).forEach((iso, index) => {
+            const shift = ottieniTurnoPulito(shifts[index] || "");
+            if (!shift) return;
+            const key = [normalizeOdsAgentName(agent.agente), iso, shift].join("|");
+            if (seen.has(key)) return;
+            seen.add(key);
+            records.push({
+              attiva: true,
+              data: iso,
+              corsa: shift,
+              id: agent.id || "",
+              barista: agent.agente,
+              note: ""
+            });
+          });
+        });
+      });
+      return records;
     }
 
     function isBaristaProfile(profile = loggedAgentProfile) {
@@ -3028,6 +3105,123 @@
     function getBaristaProfileId(record, name) {
       if (record?.id) return String(record.id);
       return `BARISTA_${String(name || "").toLocaleUpperCase("it").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "")}`;
+    }
+
+    function getAgentShiftOnDate(agent, iso) {
+      const week = settimaneInfo.find(item => Array.isArray(item.dateIso) && item.dateIso.includes(iso));
+      if (!week) return "rip";
+      const dayIndex = week.dateIso.indexOf(iso);
+      return (agent?.turni_settimanali?.[week.key] || [])[dayIndex] || "rip";
+    }
+
+    function getLoggedBaristaSchedule() {
+      const baristas = globalData?.residenze?.BARISTE || [];
+      return baristas.find(agent =>
+        String(agent.id || "") === String(loggedAgentProfile?.id || "") ||
+        normalizeOdsAgentName(agent.agente) === normalizeOdsAgentName(loggedAgentProfile?.name)
+      ) || null;
+    }
+
+    function restrictBaristaInterface() {
+      if (!isBaristaProfile()) return;
+      document.body.classList.add("barista-restricted");
+
+      const sidebar = document.getElementById("turni-sidebar");
+      sidebar?.querySelectorAll("nav a").forEach(link => {
+        link.hidden = !String(link.getAttribute("href") || "").startsWith("#turni-operativi");
+      });
+      sidebar?.querySelectorAll("nav .sidebar-menu-label").forEach(label => { label.hidden = true; });
+      const filterBlock = document.getElementById("shift-filter-container");
+      if (filterBlock) filterBlock.hidden = true;
+      const pastButton = document.getElementById("togglePastBtn");
+      if (pastButton) {
+        pastButton.hidden = false;
+        pastButton.style.display = "flex";
+      }
+      showPastColumns = false;
+      automaticPastFromTime = null;
+      const brand = sidebar?.querySelector(".shared-sidebar-brand, .turni-sidebar-brand");
+      if (brand) brand.setAttribute("href", "#turni-operativi");
+      const odsStatus = document.getElementById("odsVariationStatus");
+      if (odsStatus) odsStatus.hidden = true;
+
+      const residenceStat = document.getElementById("stat-residence")?.closest(".stat-card");
+      if (residenceStat) residenceStat.hidden = true;
+      const coverage = document.getElementById("coverage-section");
+      if (coverage) coverage.hidden = true;
+      const upload = document.getElementById("upload-container");
+      if (upload) upload.hidden = true;
+    }
+
+    function applyBaristaAccessScope() {
+      if (!isBaristaProfile() || baristaAccessApplied || !globalData) return false;
+
+      const originalResidences = globalData.residenze || {};
+      const personalRow = getLoggedBaristaSchedule();
+      if (!personalRow) return false;
+
+      const assignments = [];
+      dateCalendario.forEach(cal => {
+        const shift = ottieniTurnoPulito(getAgentShiftOnDate(personalRow, cal.iso));
+        if (shift) assignments.push({ iso:cal.iso, shift });
+      });
+
+      // Compatibilità con il calendario BARISTA quando il relativo parser sarà popolato.
+      const profileName = normalizeOdsAgentName(loggedAgentProfile.name);
+      getBaristaRecords().forEach(record => {
+        const name = normalizeOdsAgentName(record.barista || record.agente || record.nome);
+        const iso = String(record.data || "").slice(0, 10);
+        const shift = ottieniTurnoPulito(record.corsa);
+        const active = record.attiva !== false && !/^(no|false|0)$/i.test(String(record.attiva || ""));
+        if (!active || name !== profileName || !/^\d{4}-\d{2}-\d{2}$/.test(iso) || !shift) return;
+        if (!assignments.some(item => item.iso === iso && isSameCrewShift(item.shift, shift))) assignments.push({ iso, shift });
+      });
+      assignments.sort((a, b) => a.iso.localeCompare(b.iso));
+
+      const assignmentByDate = new Map(assignments.map(item => [item.iso, item.shift]));
+      const colleagues = new Map();
+      Object.entries(originalResidences).forEach(([residence, agents]) => {
+        if (residence === "BARISTE") return;
+        (agents || []).forEach(agent => {
+          const workedTogether = assignments.some(item =>
+            isSameCrewShift(getAgentShiftOnDate(agent, item.iso), item.shift)
+          );
+          if (!workedTogether) return;
+          const key = String(agent.id || "") || `${residence}|${normalizeOdsAgentName(agent.agente)}`;
+          if (!colleagues.has(key)) {
+            const maskedWeeks = {};
+            settimaneInfo.forEach(week => {
+              const originalShifts = agent.turni_settimanali?.[week.key] || [];
+              maskedWeeks[week.key] = (week.dateIso || []).map((iso, index) => {
+                const baristaShift = assignmentByDate.get(iso);
+                const agentShift = originalShifts[index] || "rip";
+                return baristaShift && isSameCrewShift(agentShift, baristaShift)
+                  ? agentShift
+                  : BARISTA_PRIVATE_SHIFT;
+              });
+            });
+            colleagues.set(key, {
+              ...agent,
+              turni_settimanali:maskedWeeks,
+              variazioni_ods:{},
+              residenzaOrigine:residence
+            });
+          }
+        });
+      });
+
+      globalData = {
+        ...globalData,
+        residenze: { BARISTE:[personalRow, ...colleagues.values()] }
+      };
+      baristaAccessApplied = true;
+      pinnedAgentIdx = null;
+      activeShiftFilter = null;
+      buildTableHeader();
+      renderResidenceButtons();
+      restrictBaristaInterface();
+
+      return true;
     }
 
     function updateLoginUserPanel() {
@@ -3049,6 +3243,7 @@
         diariaNavLink.hidden = !isAdmin;
       }
       if (archiveNavLink) archiveNavLink.hidden = isBaristaProfile();
+      restrictBaristaInterface();
       if (welcome) {
         const agentData = Object.values(globalData?.residenze || {}).flat().find(agent => String(agent.id || "") === String(loggedAgentProfile?.id || ""));
         const grade = String(agentData?.qualifica || loggedAgentProfile?.qualifica || "Agente").trim().toLocaleLowerCase("it").replace(/(^|\s)\S/g, letter => letter.toLocaleUpperCase("it"));
@@ -3098,12 +3293,7 @@
     }
 
     function continueWithoutLogin() {
-      localStorage.removeItem(AGENT_LOGIN_STORAGE_KEY);
-      loggedAgentProfile = null;
-      pinnedAgentIdx = null;
-      updateLoginUserPanel();
-      if (globalData) renderTable();
-      document.getElementById("login-overlay").classList.remove("open");
+      location.replace("index.html");
     }
 
     function getLoginMatches(surname) {
@@ -3118,7 +3308,9 @@
             matches.push({
               id: String(agent.id || ""),
               name: agent.agente,
-              residence
+              residence,
+              qualifica: agent.qualifica || "",
+              role: String(agent.qualifica || "").toLowerCase() === "barista" ? "barista" : ""
             });
           }
         });
@@ -3204,17 +3396,8 @@
         return true;
       }
       if (isBaristaProfile()) {
-        const today = formatDateISOClient(new Date());
-        const profileName = normalizeOdsAgentName(loggedAgentProfile.name);
-        const assignment = getBaristaRecords()
-          .filter(record => normalizeOdsAgentName(record.barista || record.agente || record.nome) === profileName)
-          .filter(record => !record.data || String(record.data).slice(0, 10) >= today)
-          .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))[0];
-        const targetResidence = getShiftResidence(assignment?.corsa) ||
-          Object.keys(globalData?.residenze || {}).find(name => name.trim().toLowerCase() === "desenzano") ||
-          Object.keys(globalData?.residenze || {})[0];
-        if (!targetResidence) return false;
-        selectResidence(targetResidence);
+        if (!applyBaristaAccessScope()) return false;
+        selectResidence("BARISTE");
         pinnedAgentIdx = null;
         renderTable();
         updateLoginUserPanel();
@@ -3268,7 +3451,7 @@
       DESENZANO: ["AGB", "DT", "POND"],
       MADERNO: ["AGM", "AGT", "PONM"]
     };
-    const ordineServiziTerra = { AGB: 1, DT: 2, POND: 3, AGM: 1, AGT: 2, PONM: 3 };
+    const ordineServiziTerra = { DT: 1, AGB: 2, POND: 3, AGM: 1, AGT: 2, PONM: 3 };
     const etichetteServiziTerra = { AGB: "AgB", DT: "DT", POND: "PonD", AGM: "AgM", AGT: "AgT", PONM: "PonM" };
 
     function getCrewShiftKey(shiftValue) {
@@ -3480,6 +3663,9 @@
     }
 
     function pill(v) {
+      if (String(v || "") === BARISTA_PRIVATE_SHIFT) {
+        return '<span class="cell-pill c-rip private-shift" aria-label="Turno non condiviso"></span>';
+      }
       if (!v || v.trim() === "" || v.trim() === "----" || v.trim().toLowerCase() === "rip" || v.trim().toLowerCase() === "rip.") {
         return '<span class="cell-pill c-rip">rip</span>';
       }
@@ -3574,6 +3760,7 @@
 
       // La data deve aprire sempre la MIA corsa effettiva di quel giorno,
       // esattamente come il clic sulla cella della mia riga.
+      crewNavigationMode = "personal";
       activeShiftFilter = getCrewShiftKey(ottieniTurnoPulito(myEffectiveShift)) || null;
       generaFiltriTurnoRiferimento();
       selectDay(cal.col, cal.labelEstesa, myEffectiveShift, loggedAgent);
@@ -3590,6 +3777,37 @@
       activeShiftFilter = getCrewShiftKey(cleanShift) || null;
       generaFiltriTurnoRiferimento();
       selectDay(cal.col, cal.labelEstesa, rawShift, agent);
+    }
+
+    function selectDayForLoggedBarista(cal) {
+      if (!isBaristaProfile() || !cal) return false;
+      const barista = getLoggedBaristaSchedule();
+      if (!barista) return false;
+      const rawShift = getAgentShiftOnDate(barista, cal.iso);
+      const cleanShift = ottieniTurnoPulito(rawShift);
+
+      // La scheda della barista segue sempre la sua corsa personale del giorno.
+      crewNavigationMode = "personal";
+      activeShiftFilter = getCrewShiftKey(cleanShift) || null;
+      generaFiltriTurnoRiferimento();
+      selectDay(cal.col, cal.labelEstesa, rawShift, barista);
+      return true;
+    }
+
+    function selectDayForLoggedAgent(cal) {
+      if (!cal) return false;
+      if (isBaristaProfile()) return selectDayForLoggedBarista(cal);
+      const location = getLoggedAgentLocation();
+      const agent = location?.agent;
+      if (!agent) return false;
+      const dayIndex = (cal.col - 3) % 7;
+      const weeklyShift = (agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip";
+      const odsShift = agent.variazioni_ods?.[cal.iso]?.turno_nuovo;
+      const effectiveShift = odsShift || weeklyShift;
+      activeShiftFilter = getCrewShiftKey(ottieniTurnoPulito(effectiveShift)) || null;
+      generaFiltriTurnoRiferimento();
+      selectDay(cal.col, cal.labelEstesa, effectiveShift, agent);
+      return true;
     }
 
     function generaFiltriTurnoRiferimento() {
@@ -3897,6 +4115,9 @@
       let hasTransfer = false;
       Object.entries(globalData.residenze || {}).forEach(([residence, agents]) => {
         (agents || []).forEach(agent => {
+          // Le bariste vengono gestite separatamente e non fanno parte del
+          // conteggio minimo dell'equipaggio operativo.
+          if (isBaristaProfile(agent)) return;
           const rawShift = (agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip";
           if (isSameCrewShift(rawShift, cleanShift)) {
             count++;
@@ -4082,7 +4303,7 @@
       }
       const residenceButtons = document.getElementById("coverage-residence-buttons");
       if (residenceButtons) {
-        residenceButtons.innerHTML = Object.keys(globalData.residenze || {}).map(residence =>
+        residenceButtons.innerHTML = getVisibleResidences().map(residence =>
           `<button class="coverage-residence-btn ${residence === currentResidence ? "active" : ""}" data-res="${escapeAttribute(residence)}" type="button" onclick="selectCoverageResidence(decodeURIComponent('${encodeURIComponent(residence)}'))">${residence}</button>`
         ).join("");
       }
@@ -4105,6 +4326,7 @@
           let hasTransfer = false;
           Object.entries(globalData.residenze || {}).forEach(([residence, agents]) => {
             (agents || []).forEach(agent => {
+              if (isBaristaProfile(agent)) return;
               const rawShift = (agent.turni_settimanali?.[cal.weekKey] || [])[dayIndex] || "rip";
               if (isSameCrewShift(rawShift, shift)) {
                 const rawUpper = String(rawShift).trim().toUpperCase();
@@ -4195,6 +4417,7 @@
         if (residence === currentResidence) return;
 
         globalData.residenze[residence].forEach((agent, rowIndex) => {
+          if (isBaristaProfile(agent)) return;
           if (loggedLocation && residence === loggedLocation.residence && rowIndex === loggedLocation.index) return;
           const shifts = agent.turni_settimanali[calInfo.weekKey] || [];
           const rawShift = shifts[dayIndex] || "rip";
@@ -4364,8 +4587,12 @@
           const refuelIndicator = hasRefuel ? '<span class="upper-cell-refuel" aria-label="Rifornimento"></span>' : '';
           td.innerHTML = `${crewIndicators}${refuelIndicator}${pill(turnoVal)}`;
           const groupThisShift = () => {
+            if (turnoVal === BARISTA_PRIVATE_SHIFT) return;
             clearPinnedAgentSelection();
             placeDayPanel("main");
+            // La prima riga rappresenta l'utente collegato: come il clic sulla
+            // data, deve seguire i suoi turni personali scorrendo i giorni.
+            crewNavigationMode = tr.classList.contains("logged-agent-row") ? "personal" : "fixed";
             selectDay(cal.col, cal.labelEstesa, turnoVal, agenteObj);
           };
           const pinCellAgent = () => {
@@ -4495,8 +4722,8 @@
         clearSelection();
         return;
       }
-      // Ogni nuova selezione usa il giorno scelto come prima colonna visibile.
-      showPastColumns = false;
+      // Mantiene la scelta dell'utente: se il passato è visibile, l'apertura
+      // di una scheda equipaggio non deve nasconderlo nuovamente.
       selectedCol = col;
       selectedShiftValue = cellShiftValue || selectedShiftValue;
       selectedCrewAgent = focusAgent;
@@ -4515,6 +4742,9 @@
       const crewResidence = getShiftResidence(cleanShift);
       const isCrewShift = Boolean(crewResidence);
       const myShiftPuro = isRest ? "RIPOSO" : (isGroundCrewShiftKey(crewShift) ? "TERRA" : crewShift);
+      const panelShiftLabel = myShiftPuro === "TERRA"
+        ? (etichetteServiziTerra[cleanShift.toUpperCase()] || cleanShift.toUpperCase() || "TERRA")
+        : myShiftPuro;
       updateCoverageShiftButtons(crewShift);
       updateCoverageCellSelection(col, crewShift);
 
@@ -4526,6 +4756,8 @@
         document.getElementById("day-panel").setAttribute("aria-hidden", "true");
         return;
       }
+
+      updateAutomaticPastWindow(calInfo);
 
       document.getElementById("tbody").classList.add("has-selection");
 
@@ -4573,7 +4805,10 @@
         <div class="panel-controls-box" aria-label="Selezione corsa e data">
           <div class="panel-shift-selector" id="panel-shift-selector" aria-label="Corse della residenza"></div>
           <div class="panel-header-main">
-            <div class="panel-date" id="panel-date-label"></div>
+            <div class="panel-title-row">
+              <div class="panel-date" id="panel-date-label"></div>
+              <div class="panel-course-name" aria-label="${isRest ? "Riposo" : (myShiftPuro === "TERRA" ? "Servizi a terra" : "Corsa selezionata")}">${isRest ? "" : (myShiftPuro === "TERRA" ? "<small>Servizi</small>" : "<small>Corsa</small>")}<strong>${escapeAttribute(panelShiftLabel)}</strong></div>
+            </div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
               <button class="panel-arrow" id="previous-day-btn" type="button" onclick="changeSelectedDay(-1)" aria-label="Giorno precedente"><svg class="panel-arrow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"/></svg></button>
               <button class="panel-arrow" id="next-day-btn" type="button" onclick="changeSelectedDay(1)" aria-label="Giorno successivo"><svg class="panel-arrow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6"/></svg></button>
@@ -4590,6 +4825,9 @@
         let allColleagues = [];
         Object.keys(globalData.residenze).forEach(resKey => {
         globalData.residenze[resKey].forEach(ag => {
+          // Evita la prima copia "trasferta da BARISTE": la presenza corretta
+          // viene aggiunta una sola volta da getCrewBaristas qui sotto.
+          if (isBaristaProfile(ag)) return;
           let turniSett = ag.turni_settimanali[calInfo.weekKey] || [];
           let hisShiftRaw = turniSett[giornoInternoIdx] || "rip";
           let hisShiftPuro = ottieniTurnoPulito(hisShiftRaw);
@@ -4600,7 +4838,8 @@
 
           if (isSameCrewShift(hisShiftPuro, cleanShift) && !movedAwayByOds) {
             let rawUpper = hisShiftRaw.toUpperCase();
-            let isTrasfertaFlag = rawUpper.startsWith("C") || rawUpper.endsWith("C") || resKey !==
+            const originResidence = ag.residenzaOrigine || resKey;
+            let isTrasfertaFlag = rawUpper.startsWith("C") || rawUpper.endsWith("C") || originResidence !==
               crewResidence;
 
             allColleagues.push({
@@ -4608,7 +4847,7 @@
               id: ag.id,
               agente: ag.agente,
               qualifica: ag.qualifica,
-              residenzaOrigine: resKey,
+              residenzaOrigine: originResidence,
               isTrasferta: isTrasfertaFlag,
               rawShift: hisShiftRaw,
               isInstructor: /\*/.test(String(hisShiftRaw)),
@@ -4714,6 +4953,14 @@
       document.getElementById("next-day-btn").disabled = currentIndex < 0 || currentIndex >= dateCalendario.length - 1;
       const drawer = document.getElementById("day-panel");
       const drawerToggle = document.getElementById("crew-drawer-toggle");
+      if (isCrewShift || crewNavigationMode === "personal") {
+        // Una corsa apre il suo equipaggio; in modalità personale la scheda
+        // resta aperta anche nei giorni di riposo.
+        drawer.classList.add("open");
+        document.body.classList.add("crew-drawer-open");
+        document.body.classList.toggle("crew-drawer-main", dayPanelPlacement !== "coverage");
+        document.body.classList.toggle("crew-drawer-coverage", dayPanelPlacement === "coverage");
+      }
       drawerToggle.hidden = false;
       drawerToggle.textContent = drawer.classList.contains("open") ? "⌃" : "⌄";
       drawerToggle.setAttribute("aria-expanded", String(drawer.classList.contains("open")));
@@ -4729,7 +4976,7 @@
     }
 
     function renderPanelResidenceBubbles() {
-      const residences = Object.keys(globalData?.residenze || {});
+      const residences = getVisibleResidences();
       return residences.slice(0, 4).map(residence => {
         const active = residence === currentResidence;
         const safe = encodeURIComponent(residence);
@@ -4916,6 +5163,7 @@
       if (!cal) return;
       clearPinnedAgentSelection();
       placeDayPanel("coverage");
+      crewNavigationMode = "fixed";
       selectDay(cal.col, cal.labelEstesa, shift);
     }
 
@@ -4960,7 +5208,9 @@
       const currentIndex = dateCalendario.findIndex(c => c.col === selectedCol);
       const target = dateCalendario[currentIndex + direction];
       if (!target) return;
-      if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
+      if ((isBaristaProfile() || crewNavigationMode === "personal") && selectDayForLoggedAgent(target)) {
+        // Modalità personale: usa il turno effettivo dell'utente nel nuovo giorno.
+      } else if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
         selectDayForPinnedAgent(target);
       } else {
         const shift = activeShiftFilter || selectedShiftValue;
@@ -5010,6 +5260,7 @@
       const cal = dateCalendario.find(item => item.col === selectedCol);
       if (!cal || !getResidenceCrewShifts().some(item => item.toUpperCase() === String(shift).toUpperCase())) return;
       clearPinnedAgentSelection();
+      crewNavigationMode = "fixed";
       activeShiftFilter = shift;
       generaFiltriTurnoRiferimento();
       selectDay(cal.col, cal.labelEstesa, shift);
@@ -5027,6 +5278,7 @@
         : (currentIndex + direction + shifts.length) % shifts.length;
       const targetShift = shifts[targetIndex];
       clearPinnedAgentSelection();
+      crewNavigationMode = "fixed";
       activeShiftFilter = targetShift;
       generaFiltriTurnoRiferimento();
       selectDay(cal.col, cal.labelEstesa, targetShift);
@@ -5041,7 +5293,9 @@
         return date.getTime() === now.getTime();
       });
       if (!target) return;
-      if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
+      if ((isBaristaProfile() || crewNavigationMode === "personal") && selectDayForLoggedAgent(target)) {
+        // Modalità personale: usa il turno effettivo dell'utente nel nuovo giorno.
+      } else if (pinnedAgentIdx !== null && currentAgentsList[pinnedAgentIdx]) {
         selectDayForPinnedAgent(target);
       } else {
         const shift = activeShiftFilter || selectedShiftValue;
@@ -5074,6 +5328,7 @@
       });
       restoreDefaultTableOrder();
       showPastColumns = false;
+      automaticPastFromTime = null;
       hidePastColumns();
 
       // Quando la scheda equipaggio viene chiusa, riporta dolcemente
@@ -5137,6 +5392,7 @@
     }
 
     function selectResidence(resName) {
+      if (String(resName || "").toUpperCase() === "BARISTE" && !isBaristaProfile()) return;
       if (isEditMode) {
         if (!confirm("Uscire dalla modalità modifica senza salvare i cambi correnti?")) return;
         toggleEditMode();
@@ -5170,7 +5426,8 @@
       referenceDate.setHours(0, 0, 0, 0);
       dateCalendario.forEach(cal => {
         const isPast = cal.realObj < referenceDate;
-        const displayValue = (!showPastColumns && isPast) ? "none" : "table-cell";
+        const isBeforeAutomaticWindow = automaticPastFromTime === null || cal.realObj.getTime() < automaticPastFromTime;
+        const displayValue = (!showPastColumns && isPast && isBeforeAutomaticWindow) ? "none" : "table-cell";
         document.querySelectorAll(`th[data-col="${cal.col}"]`).forEach(el => {
           el.style.display = displayValue;
           el.style.opacity = "1";
@@ -5185,8 +5442,21 @@
       if (btn) btn.textContent = showPastColumns ? "🙈 Nascondi passato" : "👁 Mostra passato";
     }
 
+    function updateAutomaticPastWindow(cal) {
+      if (showPastColumns || !cal?.realObj) return;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedDate = new Date(cal.realObj);
+      selectedDate.setHours(0, 0, 0, 0);
+      automaticPastFromTime = selectedDate < today ? selectedDate.getTime() : null;
+    }
+
     function togglePastColumns() {
       showPastColumns = !showPastColumns;
+      if (!showPastColumns) {
+        automaticPastFromTime = null;
+        updateAutomaticPastWindow(dateCalendario.find(cal => cal.col === selectedCol));
+      }
       hidePastColumns();
       const selectedCal = dateCalendario.find(cal => cal.col === selectedCol);
       setTimeout(() => selectedCal ? scrollDateColumnIntoView(selectedCal, "auto") : scrollToToday(), 30);
@@ -5252,7 +5522,7 @@
       const container = document.getElementById("top-residence-buttons");
       if (!container) return;
       container.innerHTML = "";
-      Object.keys(globalData.residenze).forEach(res => {
+      getVisibleResidences().forEach(res => {
         const btn = document.createElement("button");
         btn.className = "coverage-residence-btn";
         btn.dataset.res = res;
@@ -5260,6 +5530,12 @@
         btn.addEventListener("click", () => selectResidence(res));
         container.appendChild(btn);
       });
+    }
+
+    function getVisibleResidences() {
+      return Object.keys(globalData?.residenze || {}).filter(residence =>
+        String(residence || "").toUpperCase() !== "BARISTE" || isBaristaProfile()
+      );
     }
 
 
@@ -5400,6 +5676,19 @@
     function processJSONData(data) {
       data = adattaFormatoNaviturni(data);
       data = applyOdsVariations(data);
+      // Ogni risposta (cache locale o rete) contiene nuovamente il dataset
+      // completo. Il perimetro delle bariste deve quindi essere ricostruito
+      // ad ogni caricamento, mai riutilizzato tramite un vecchio flag.
+      baristaAccessApplied = false;
+      if (isBaristaProfile()) {
+        showPastColumns = false;
+        automaticPastFromTime = null;
+        pinnedAgentIdx = null;
+        activeShiftFilter = null;
+        selectedCol = null;
+        selectedShiftValue = "";
+        selectedCrewAgent = null;
+      }
       globalData = data;
       inizializzaCalendario();
       buildTableHeader();
@@ -5417,14 +5706,13 @@
       updateLoginUserPanel();
       if (loggedAgentProfile && applyLoggedAgentProfile()) return;
       if (loggedAgentProfile) {
-        localStorage.removeItem(AGENT_LOGIN_STORAGE_KEY);
-        loggedAgentProfile = null;
-        updateLoginUserPanel();
+        // La copia locale può essere precedente all'aggiunta dell'agente (in
+        // particolare per le bariste). Conserva la sessione: il caricamento
+        // dalla rete applicherà il profilo appena arrivano i dati aggiornati.
+        restrictBaristaInterface();
+        return;
       }
-      const keys = Object.keys(data.residenze || {});
-      const defaultResidence = keys.find(key => key.trim().toLowerCase() === "desenzano") || keys[0];
-      if (defaultResidence) selectResidence(defaultResidence);
-      showLoginModal();
+      location.replace("index.html");
     }
 
     function loadPastedJSON() {
@@ -5555,6 +5843,13 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+      loggedAgentProfile = readLoggedAgentProfile();
+      if (!loggedAgentProfile) {
+        location.replace("index.html");
+        return;
+      }
+      document.getElementById("login-overlay").classList.remove("open");
+      restrictBaristaInterface();
       const dayPanel = document.getElementById("day-panel");
       dayPanel.classList.remove("open");
       dayPanel.setAttribute("aria-hidden", "true");

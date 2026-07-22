@@ -1,15 +1,22 @@
-DOCUMENTI NAVITURNI - VERSIONE 2
+NAVIDIARIA - VERSIONE LOCALE PULITA
 
-Caricare nella cartella principale del repository:
-- documenti.html
-- documenti.css
-- documenti.js
-- documenti.json
+Avvio consigliato su Windows:
+1. Aprire il terminale nella cartella del progetto.
+2. Eseguire: node server.js
+3. Aprire: http://127.0.0.1:8765/
 
-La pagina legge automaticamente tutti i PDF presenti nelle cartelle GitHub:
-- /ods
-- /turni
+Non aprire direttamente le pagine con file://: la condivisione della sessione tra
+le pagine non è garantita dai browser in questa modalità.
 
-Non serve aggiungere ODS 27 al JSON per farlo apparire. documenti.json serve solo per titoli, date e descrizioni personalizzate e come riserva se l'API GitHub non è raggiungibile.
+Pagina iniziale e accesso unico: index.html
+Turni: naviturni.html
+Ricerca cambi: cambi_turno.html
+Diaria: navidiaria.html
+Documenti: documenti.html
+Impostazioni: impostazioni.html
 
-Configurazione repository: aprire documenti.js e modificare CONFIG se proprietario, repository o branch sono diversi.
+La pagina Documenti legge i PDF nelle cartelle /ods e /turni. Il file
+documenti.json contiene titoli, date e descrizioni di riserva.
+
+I file non più caricati dal portale sono conservati in /archivio/legacy-code e
+non devono essere pubblicati su GitHub.

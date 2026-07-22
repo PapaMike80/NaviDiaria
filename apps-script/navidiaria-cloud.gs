@@ -10,9 +10,13 @@ const NAVIDIARIA_CLOUD_CONFIG = {
   usersSheetName: "NAVIDIARIA_UTENTI",
   dataSheetName: "NAVIDIARIA_DATI",
   documentsSheetName: "NAVI_DOCUMENTI",
+  directorySheetName: "NAVI_UTENTI",
+  telegramSheetName: "NAVI_TELEGRAM",
   documentsFolderName: "NaviDiaria - Documenti condivisi",
   adminAgentId: "92",
   movementAgentId: "MOVIMENTO",
+  // Hash del PIN iniziale. Il valore in chiaro non viene salvato.
+  initialPinHash: "229813e5b7c9b61fb1faf10da6acc4abae6f1bef0fd806e8a0dedf3dfca1058b",
   maxPayloadChars: 45000,
   maxPdfBytes: 10 * 1024 * 1024
 };
@@ -20,6 +24,9 @@ const NAVIDIARIA_CLOUD_CONFIG = {
 function doPost(e) {
   try {
     const request = JSON.parse(e && e.postData && e.postData.contents || "{}");
+    if (request && (request.update_id || request.message || request.callback_query)) {
+      return jsonOutput(handleNaviTelegramWebhook_(request));
+    }
     const action = String(request.action || "").trim().toLowerCase();
     if (!action) throw new Error("Azione mancante.");
 
@@ -30,12 +37,19 @@ function doPost(e) {
       if (action === "auth") return jsonOutput(authNavidiaria_(sheets, request));
 
       const user = authenticateNavidiaria_(sheets.users, request.agentId, request.pinHash);
+      if (user.mustChangePin && action !== "change_pin") {
+        throw new Error("Prima di continuare devi scegliere un PIN personale.");
+      }
       if (action === "load_diaria") return jsonOutput(loadNavidiaria_(sheets.data, user));
       if (action === "save_diaria") return jsonOutput(saveNavidiaria_(sheets.data, user, request.entries));
       if (action === "list_users") return jsonOutput(listNavidiariaUsers_(sheets.users, user));
       if (action === "reset_pin") return jsonOutput(resetNavidiariaPin_(sheets.users, user, request.targetAgentId));
       if (action === "change_pin") return jsonOutput(changeNavidiariaPin_(sheets.users, user, request.newPinHash));
       if (action === "reset_own_pin") return jsonOutput(resetNavidiariaOwnPin_(sheets.users, user));
+      if (action === "telegram_status") return jsonOutput(getNaviTelegramStatus_(sheets.telegram, user));
+      if (action === "telegram_link") return jsonOutput(createNaviTelegramLink_(sheets.telegram, user));
+      if (action === "telegram_preferences") return jsonOutput(saveNaviTelegramPreferences_(sheets.telegram, user, request));
+      if (action === "telegram_disconnect") return jsonOutput(disconnectNaviTelegram_(sheets.telegram, user));
       if (action === "list_documents") return jsonOutput(listNaviDocuments_(sheets.documents));
       if (action === "variation_status") return jsonOutput(getNaviVariationStatus_(sheets.documents));
       if (action === "upload_document") return jsonOutput(uploadNaviDocument_(sheets.documents, user, request));
@@ -92,19 +106,23 @@ function ensureNavidiariaCloudSheets_() {
   let users = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
   let data = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
   let documents = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.documentsSheetName);
+  let telegram = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.telegramSheetName);
 
   if (!users) users = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
   if (!data) data = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
   if (!documents) documents = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.documentsSheetName);
+  if (!telegram) telegram = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.telegramSheetName);
 
   ensureNavidiariaHeader_(users, ["ID_AGENTE", "AGENTE", "PIN_HASH", "REGISTRATO_IL", "ULTIMO_ACCESSO"]);
   ensureNavidiariaHeader_(data, ["ID_AGENTE", "JSON_DATI", "VERSIONE", "AGGIORNATO_IL"]);
   ensureNavidiariaHeader_(documents, ["ID_FILE", "TIPO", "TITOLO", "CREATO_IL", "CARICATO_DA", "URL"]);
+  ensureNavidiariaHeader_(telegram, ["ID_AGENTE", "AGENTE", "CHAT_ID", "USERNAME", "ATTIVO", "ORA_INVIO", "RESIDENZA", "COLLEGATO_IL", "ULTIMO_INVIO"]);
   users.hideColumns(3);
   users.setFrozenRows(1);
   data.setFrozenRows(1);
   documents.setFrozenRows(1);
-  return { users: users, data: data, documents: documents };
+  telegram.setFrozenRows(1);
+  return { users: users, data: data, documents: documents, telegram: telegram };
 }
 
 function ensureNavidiariaHeader_(sheet, headers) {
@@ -122,16 +140,31 @@ function authNavidiaria_(sheets, request) {
   const directoryAgent = agentId === NAVIDIARIA_CLOUD_CONFIG.movementAgentId
     ? { id: agentId, name: "Ufficio Movimento", qualifica: "ufficio", residence: "UFFICIO MOVIMENTO", role: "admin" }
     : findNavidiariaDirectoryAgent_(agentId);
-  if (!directoryAgent) throw new Error("Agente non presente in Foglio1.");
+  if (!directoryAgent) throw new Error("Agente o barista non presente nell’anagrafica NaviTurni.");
 
   const found = findNavidiariaRow_(sheets.users, agentId);
   const now = new Date();
   if (!found) {
-    sheets.users.appendRow([agentId, directoryAgent.name, pinHash, now, now]);
-    return { ok: true, registered: true, agent: directoryAgent };
+    if (pinHash !== NAVIDIARIA_CLOUD_CONFIG.initialPinHash) {
+      throw new Error("PIN non corretto.");
+    }
+    sheets.users.appendRow([agentId, directoryAgent.name, NAVIDIARIA_CLOUD_CONFIG.initialPinHash, now, now]);
+    return { ok: true, registered: true, mustChangePin: true, agent: directoryAgent };
   }
 
   const savedHash = String(found.values[2] || "");
+  if (!savedHash) {
+    if (pinHash !== NAVIDIARIA_CLOUD_CONFIG.initialPinHash) {
+      throw new Error("PIN non corretto.");
+    }
+    sheets.users.getRange(found.row, 2, 1, 4).setValues([[
+      directoryAgent.name,
+      NAVIDIARIA_CLOUD_CONFIG.initialPinHash,
+      found.values[3] || now,
+      now
+    ]]);
+    return { ok: true, registered: true, mustChangePin: true, agent: directoryAgent };
+  }
   if (savedHash && savedHash !== pinHash) throw new Error("PIN non corretto.");
   sheets.users.getRange(found.row, 2, 1, 4).setValues([[
     directoryAgent.name,
@@ -139,7 +172,12 @@ function authNavidiaria_(sheets, request) {
     found.values[3] || now,
     now
   ]]);
-  return { ok: true, registered: !savedHash, agent: directoryAgent };
+  return {
+    ok: true,
+    registered: false,
+    mustChangePin: savedHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash,
+    agent: directoryAgent
+  };
 }
 
 function authenticateNavidiaria_(usersSheet, agentIdValue, pinHashValue) {
@@ -147,7 +185,11 @@ function authenticateNavidiaria_(usersSheet, agentIdValue, pinHashValue) {
   const pinHash = cleanNavidiariaHash_(pinHashValue);
   const found = findNavidiariaRow_(usersSheet, agentId);
   if (!found || !found.values[2] || String(found.values[2]) !== pinHash) throw new Error("Sessione non valida: accedi nuovamente.");
-  return { id: agentId, name: String(found.values[1] || "") };
+  return {
+    id: agentId,
+    name: String(found.values[1] || ""),
+    mustChangePin: pinHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash
+  };
 }
 
 function loadNavidiaria_(dataSheet, user) {
@@ -208,6 +250,9 @@ function resetNavidiariaPin_(usersSheet, user, targetAgentIdValue) {
 function changeNavidiariaPin_(usersSheet, user, newPinHashValue) {
   const newPinHash = cleanNavidiariaHash_(newPinHashValue);
   if (!newPinHash) throw new Error("Nuovo PIN non valido.");
+  if (newPinHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash) {
+    throw new Error("Scegli un PIN diverso da quello iniziale.");
+  }
   const found = findNavidiariaRow_(usersSheet, user.id);
   if (!found) throw new Error("Utente non registrato.");
   usersSheet.getRange(found.row, 3).setValue(newPinHash);
@@ -223,7 +268,9 @@ function resetNavidiariaOwnPin_(usersSheet, user) {
 
 function requireNavidiariaAdmin_(user) {
   const id = String(user.id);
-  if (id !== NAVIDIARIA_CLOUD_CONFIG.adminAgentId && id !== NAVIDIARIA_CLOUD_CONFIG.movementAgentId) {
+  const directoryUser = findNavidiariaDirectoryAgent_(id);
+  const hasAdminRole = String(directoryUser && directoryUser.role || "").toLowerCase() === "admin";
+  if (id !== NAVIDIARIA_CLOUD_CONFIG.adminAgentId && id !== NAVIDIARIA_CLOUD_CONFIG.movementAgentId && !hasAdminRole) {
     throw new Error("Operazione riservata all’amministratore.");
   }
 }
@@ -506,17 +553,39 @@ function sanitizeNavidiariaEntry_(entry) {
 }
 
 function findNavidiariaDirectoryAgent_(agentId) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVITURNI_CONFIG.sheetName);
-  if (!sheet || sheet.getLastRow() < 2) return null;
-  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getDisplayValues();
-  for (let i = 0; i < rows.length; i++) {
-    if (cleanNavidiariaId_(rows[i][1]) === agentId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const directory = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.directorySheetName);
+
+  // NAVI_UTENTI è l'anagrafica canonica per accesso, ruolo e residenza.
+  if (directory && directory.getLastRow() >= 2) {
+    const users = directory.getRange(2, 1, directory.getLastRow() - 1, 9).getDisplayValues();
+    for (let i = 0; i < users.length; i++) {
+      if (cleanNavidiariaId_(users[i][0]) !== agentId) continue;
+      if (/^(no|false|0)$/i.test(String(users[i][5] || "").trim())) return null;
       return {
         id: agentId,
-        name: String(rows[i][3] || "").trim(),
-        qualifica: typeof normalizzaQualifica === "function" ? normalizzaQualifica(rows[i][2]) : String(rows[i][2] || "marinaio"),
-        residence: String(rows[i][0] || "").trim().toUpperCase()
+        name: String(users[i][1] || "").trim(),
+        role: String(users[i][2] || "agent").trim().toLowerCase(),
+        qualifica: String(users[i][3] || "").trim().toLowerCase(),
+        residence: String(users[i][4] || "").trim().toUpperCase()
       };
+    }
+  }
+
+  // Compatibilità: gli agenti non ancora sincronizzati vengono cercati in Foglio1.
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (sheet && sheet.getLastRow() >= 2) {
+    const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getDisplayValues();
+    for (let i = 0; i < rows.length; i++) {
+      if (cleanNavidiariaId_(rows[i][1]) === agentId) {
+        return {
+          id: agentId,
+          name: String(rows[i][3] || "").trim(),
+          role: "agent",
+          qualifica: typeof normalizzaQualifica === "function" ? normalizzaQualifica(rows[i][2]) : String(rows[i][2] || "marinaio"),
+          residence: String(rows[i][0] || "").trim().toUpperCase()
+        };
+      }
     }
   }
   return null;
