@@ -44,6 +44,7 @@ function doPost(e) {
       if (action === "save_diaria") return jsonOutput(saveNavidiaria_(sheets.data, user, request.entries));
       if (action === "list_users") return jsonOutput(listNavidiariaUsers_(sheets.users, user));
       if (action === "reset_pin") return jsonOutput(resetNavidiariaPin_(sheets.users, user, request.targetAgentId));
+      if (action === "delete_user") return jsonOutput(deleteNavidiariaUser_(sheets, user, request.targetAgentId));
       if (action === "change_pin") return jsonOutput(changeNavidiariaPin_(sheets.users, user, request.newPinHash));
       if (action === "reset_own_pin") return jsonOutput(resetNavidiariaOwnPin_(sheets.users, user));
       if (action === "telegram_status") return jsonOutput(getNaviTelegramStatus_(sheets.telegram, user));
@@ -245,6 +246,43 @@ function resetNavidiariaPin_(usersSheet, user, targetAgentIdValue) {
   if (!found) throw new Error("Utente non registrato.");
   usersSheet.getRange(found.row, 3).clearContent();
   return { ok: true };
+}
+
+function deleteNavidiariaUser_(sheets, user, targetAgentIdValue) {
+  requireNavidiariaAdmin_(user);
+  const targetAgentId = cleanNavidiariaId_(targetAgentIdValue);
+  if (!targetAgentId) throw new Error("Utente non valido.");
+  if (targetAgentId === cleanNavidiariaId_(user.id)) {
+    throw new Error("Non puoi eliminare l’account amministratore con cui sei collegato.");
+  }
+  const registered = findNavidiariaRow_(sheets.users, targetAgentId);
+  if (!registered) throw new Error("Utente non registrato.");
+
+  function deleteRowsByAgentId_(sheet) {
+    if (!sheet || sheet.getLastRow() < 2) return 0;
+    const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues();
+    let deleted = 0;
+    for (let index = ids.length - 1; index >= 0; index--) {
+      if (cleanNavidiariaId_(ids[index][0]) !== targetAgentId) continue;
+      sheet.deleteRow(index + 2);
+      deleted++;
+    }
+    return deleted;
+  }
+
+  const removed = {
+    users: deleteRowsByAgentId_(sheets.users),
+    data: deleteRowsByAgentId_(sheets.data),
+    telegram: deleteRowsByAgentId_(sheets.telegram)
+  };
+
+  // Conserva l’anagrafica e i turni, ma azzera gli eventuali indicatori di accesso.
+  const directory = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVIDIARIA_CLOUD_CONFIG.directorySheetName);
+  const directoryRow = directory && findNavidiariaRow_(directory, targetAgentId);
+  if (directoryRow && directory.getLastColumn() >= 7) {
+    directory.getRange(directoryRow.row, 7, 1, Math.min(3, directory.getLastColumn() - 6)).clearContent();
+  }
+  return { ok: true, removed: removed };
 }
 
 function changeNavidiariaPin_(usersSheet, user, newPinHashValue) {
