@@ -1,39 +1,46 @@
 (function(){
-  const APP_VERSION='v1.04';
+  const APP_VERSION='v1.07';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
-  const page=document.body.classList.contains('trova-turno-page')?'trova':document.body.classList.contains('diaria-page')?'diaria':sidebar.id==='archive-sidebar'?'archive':'turni';
-  const tabNames={turni:'NaviTurniTab',trova:'NaviTrovaTurnoTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab'};
+  const page=document.body.classList.contains('impostazioni-page')?'settings':document.body.classList.contains('trova-turno-page')?'trova':document.body.classList.contains('diaria-page')?'diaria':sidebar.id==='archive-sidebar'?'archive':'turni';
+  const tabNames={turni:'NaviTurniTab',trova:'NaviTrovaTurnoTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab',settings:'NaviImpostazioniTab'};
   let sessionAgent=null;try{sessionAgent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null')}catch{}
-  const isAdminAgent=agent=>['92','MOVIMENTO'].includes(String(agent?.id||''))||String(agent?.role||'').toLowerCase()==='admin';
+  const isAdminAgent=agent=>['91','92','MOVIMENTO'].includes(String(agent?.id||''))||String(agent?.role||'').toLowerCase()==='admin';
   const isBaristaAgent=agent=>String(agent?.role||'').toLowerCase()==='barista'||String(agent?.qualifica||'').toLowerCase()==='barista';
   window.name=tabNames[page];
-  const tabForHref=href=>href.includes('cambi_turno')?tabNames.trova:href.includes('naviturni')?tabNames.turni:href.includes('navidiaria')?tabNames.diaria:href.includes('documenti.html')?tabNames.archive:'';
+  const tabForHref=href=>href.includes('impostazioni')?tabNames.settings:href.includes('cambi_turno')?tabNames.trova:href.includes('naviturni')?tabNames.turni:href.includes('navidiaria')?tabNames.diaria:href.includes('documenti.html')?tabNames.archive:'';
   const item=(href,icon,label,active=false,external=false,id='')=>`<a ${id?`id="${id}" `:''}class="nav-link${active?' active':''}" href="${href}"${external?` data-navi-tab="${tabForHref(href)}"`:''}${['competencyNav','adminNav','archiveAdminNav'].includes(id)?' hidden':''}><span>${icon}</span>${label}</a>`;
   let common='',specific='',user='',status='<div id="odsVariationStatus" class="ods-variation-status" hidden></div>';
 
   if(page==='diaria'){
-    common=item('naviturni.html','▦','NaviTurni',false,true)+item('cambi_turno.html','⇄','Trova turno',false,true,'trovaTurnoNavLink')+item('#oggi','≈','NaviDiaria',true,false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink');
-    specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,false,'competencyNav')}${item('#adminPanel','♙','Gestione PIN',false,false,'adminNav')}`;
+    common=item('naviturni.html','▦','NaviTurni',false,true)+item('cambi_turno.html','⇄','Trova turno',false,true,'trovaTurnoNavLink')+item('#oggi','≈','NaviDiaria',true,false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink')+item('impostazioni.html','⚙','Impostazioni',false,true);
+    specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,false,'competencyNav')}${item('impostazioni.html#gestione-utenti','♙','Gestione utenti',false,true,'adminNav')}`;
     user=`<div class="sidebar-user-actions"><button id="syncShifts" class="sidebar-footer-update" type="button"><span>↻</span>Aggiorna</button><small id="syncStatus" class="sidebar-data-status">Locale</small><strong id="sidebarAgentName" class="sidebar-agent-name">AGENTE</strong><button id="logoutButton" class="sidebar-action sidebar-exit" type="button" hidden>Esci</button><button id="pinSettingsButton" class="sidebar-action" type="button" hidden>Cambia PIN</button></div>`;
   }else if(page==='trova'){
-    common=item('naviturni.html','▦','NaviTurni',false,true)+item('#turni-operativi','⇄','Trova turno',true)+item('navidiaria.html','≈','NaviDiaria',false,true,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink');
+    common=item('naviturni.html','▦','NaviTurni',false,true)+item('#turni-operativi','⇄','Trova turno',true)+item('navidiaria.html','≈','NaviDiaria',false,true,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink')+item('impostazioni.html','⚙','Impostazioni',false,true);
     // Elementi tecnici richiesti dal codice di NaviTurni: restano nel DOM ma non sono visibili.
     specific=`<div hidden aria-hidden="true"><button id="togglePastBtn" type="button"></button><div id="shift-filter-container"><div id="top-residence-buttons"></div><div id="shift-buttons-wrapper"></div></div></div>`;
     user=`<div class="sidebar-user-actions login-user-panel" id="login-user-panel"><button id="refreshBtn" class="sidebar-footer-update" onclick="ricaricaDati()" type="button"><span>↻</span>Aggiorna</button><small id="turniMenuStatus" class="sidebar-data-status">Locale</small><button class="sidebar-agent-name login-user-name" id="login-user-name" type="button" onclick="repinLoggedAgent()"></button><button id="login-exit-button" class="sidebar-action sidebar-exit" type="button" onclick="logoutAgent()">Esci</button><button id="login-change-button" class="sidebar-action" type="button" onclick="location.href='navidiaria.html?pin=1'">Cambia PIN</button></div>`;
   }else if(page==='turni'){
-    common=item('#turni-operativi','▦','NaviTurni',true)+item('cambi_turno.html','⇄','Trova turno',false,true,'trovaTurnoNavLink')+item('navidiaria.html','≈','NaviDiaria',false,true,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink');
+    common=item('#turni-operativi','▦','NaviTurni',true)+item('cambi_turno.html','⇄','Trova turno',false,true,'trovaTurnoNavLink')+item('navidiaria.html','≈','NaviDiaria',false,true,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink')+item('impostazioni.html','⚙','Impostazioni',false,true);
     specific=`<span class="sidebar-menu-label">TURNI</span><button id="togglePastBtn" class="nav-link sidebar-nav-button" onclick="togglePastColumns()" type="button"><span>◷</span>Mostra passato</button><div class="shifts-filter-block" id="shift-filter-container"><div class="top-filter-controls"><div class="top-residence-controls"><span class="filter-label">Residenze</span><div class="coverage-residence-buttons" id="top-residence-buttons"></div></div><div class="top-filter-group"><span class="filter-label">Corse</span><div class="shift-buttons-grid" id="shift-buttons-wrapper"></div></div></div></div>`;
     user=`<div class="sidebar-user-actions login-user-panel" id="login-user-panel"><button id="refreshBtn" class="sidebar-footer-update" onclick="ricaricaDati()" type="button"><span>↻</span>Aggiorna</button><small id="turniMenuStatus" class="sidebar-data-status">Locale</small><button class="sidebar-agent-name login-user-name" id="login-user-name" type="button" onclick="repinLoggedAgent()"></button><button id="login-exit-button" class="sidebar-action sidebar-exit" type="button" onclick="logoutAgent()">Esci</button><button id="login-change-button" class="sidebar-action" type="button" onclick="location.href='navidiaria.html?pin=1'">Cambia PIN</button></div>`;
+  }else if(page==='settings'){
+    common=item('naviturni.html','▦','NaviTurni',false,true)+item('cambi_turno.html','⇄','Trova turno',false,true,'trovaTurnoNavLink')+item('navidiaria.html','≈','NaviDiaria',false,true,'diariaNavLink')+item('documenti.html','▤','Documenti',false,true,'archiveNavLink')+item('#telegram','⚙','Impostazioni',true);
+    specific=`<span class="sidebar-menu-label">PREFERENZE</span>${item('#telegram','◇','Notifiche Telegram')}${item('#altre-preferenze','≡','Altre preferenze')}${isAdminAgent(sessionAgent)?item('#gestione-utenti','♙','Gestione utenti'):''}`;
+    user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong></div>`;
   }else{
-    common=item('naviturni.html','▦','NaviTurni',false,true)+item('navidiaria.html','≈','NaviDiaria',false,true,'diariaNavLink')+item('#turni-docs','▤','Documenti',true,false,'archiveNavLink');
+    common=item('naviturni.html','▦','NaviTurni',false,true)+item('navidiaria.html','≈','NaviDiaria',false,true,'diariaNavLink')+item('#turni-docs','▤','Documenti',true,false,'archiveNavLink')+item('impostazioni.html','⚙','Impostazioni',false,true);
     specific=`<span class="sidebar-menu-label">DOCUMENTI</span>${item('#turni-docs','▦','Turni e bozze')}${item('#ods-docs','≡','ODS 2026')}${item('#adminUploadPanel','＋','Carica documenti',false,false,'archiveAdminNav')}`;
     user=`<div class="sidebar-user-actions"><button class="sidebar-footer-update" type="button" onclick="typeof loadDocuments==='function'?loadDocuments():location.reload()"><span>↻</span>Aggiorna</button><small id="archiveMenuStatus" class="sidebar-data-status">Locale</small><strong id="archiveSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="archiveLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="archiveChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }
 
-  const brandTitle=page==='diaria'?'NaviDiaria':page==='trova'?'Trova turno':page==='turni'?'NaviTurni':'Documenti';
+  const brandTitle=page==='diaria'?'NaviDiaria':page==='trova'?'Trova turno':page==='turni'?'NaviTurni':page==='settings'?'Impostazioni':'Documenti';
   const version=`<div class="shared-app-version" aria-label="Versione applicazione">Versione ${APP_VERSION}</div>`;
 
   sidebar.innerHTML=`<a class="shared-sidebar-brand" href="index.html"><span class="shared-brand-mark">N</span><strong>${brandTitle}</strong></a><nav>${common}${specific}</nav>${user}${status}${version}`;
+
+  const settingsAgent=sidebar.querySelector('#settingsSidebarAgent');
+  if(settingsAgent) settingsAgent.textContent=String(sessionAgent?.name||sessionAgent?.cognome||'AGENTE').toLocaleUpperCase('it');
 
   const versionEl=sidebar.querySelector('.shared-app-version');
   if(versionEl){
