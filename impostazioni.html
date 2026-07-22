@@ -18,7 +18,7 @@
     .switch-row{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:24px 0 18px;padding:15px 0;border-top:1px solid #203e48;border-bottom:1px solid #203e48}.switch-copy strong{display:block;font-size:14px}.switch-copy span{color:var(--muted);font-size:12px}.switch{position:relative;width:48px;height:28px;flex:none}.switch input{position:absolute;opacity:0}.switch i{display:block;width:100%;height:100%;border-radius:999px;background:#49626a;transition:.2s}.switch i:after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#eaf5f5;box-shadow:0 2px 6px #0006;transition:.2s}.switch input:checked+i{background:var(--accent)}.switch input:checked+i:after{transform:translateX(20px)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:grid;gap:7px}.field label{font-size:12px;font-weight:800;color:#b7cbd0}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);outline:none;color-scheme:dark}.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #2dd4bf22}
     .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.btn{padding:11px 16px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);font-weight:800;cursor:pointer}.btn.primary{border-color:var(--accent);background:var(--accent);color:#06221f}.btn:disabled{opacity:.45;cursor:not-allowed}.status{min-height:22px;margin-top:13px;color:#63dfca;font-size:13px;font-weight:700}.future{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.future div{padding:16px;border:1px dashed #36545d;border-radius:10px;background:#0d232c;color:var(--muted);font-size:13px}.future strong{display:block;margin-bottom:4px;color:#c5d7da}
-    .admin-section[hidden]{display:none}.table-wrap{margin-top:20px;overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:12px 14px;border-bottom:1px solid #203e48;text-align:left;font-size:13px}th{background:#0b2029;color:#9db7be;font-size:11px;letter-spacing:.06em;text-transform:uppercase}tbody tr:hover{background:#14323d}tr:last-child td{border-bottom:0}.user-name{font-weight:800}.user-meta{display:block;margin-top:3px;color:var(--muted);font-size:11px}.pin-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#123f3d;color:#6ce9d5;font-size:11px;font-weight:800}.reset-btn{padding:7px 10px;border:1px solid #80424a;border-radius:8px;background:#351e24;color:#ff9ba4;font-size:11px;font-weight:800;cursor:pointer}.reset-btn:hover{background:#b83b45;color:#fff}.empty-row{padding:25px!important;text-align:center;color:var(--muted)}
+    .admin-section[hidden]{display:none}.table-wrap{margin-top:20px;overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:12px 14px;border-bottom:1px solid #203e48;text-align:left;font-size:13px}th{background:#0b2029;color:#9db7be;font-size:11px;letter-spacing:.06em;text-transform:uppercase}tbody tr:hover{background:#14323d}tr:last-child td{border-bottom:0}.user-name{font-weight:800}.user-meta{display:block;margin-top:3px;color:var(--muted);font-size:11px}.pin-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#123f3d;color:#6ce9d5;font-size:11px;font-weight:800}.reset-btn,.delete-user-btn{padding:7px 10px;border:1px solid #80424a;border-radius:8px;background:#351e24;color:#ff9ba4;font-size:11px;font-weight:800;cursor:pointer}.reset-btn:hover{background:#b83b45;color:#fff}.delete-user-btn{margin-left:6px;border-color:#b83b45;background:#6b2029;color:#fff}.delete-user-btn:hover{background:#dc3545}.empty-row{padding:25px!important;text-align:center;color:var(--muted)}
     @media(max-width:800px){body{padding-left:0}.sidebar{z-index:15}header{padding-left:66px}main{width:min(100% - 24px,920px);margin-top:18px}.section{padding:19px}.grid,.future{grid-template-columns:1fr}}
   </style>
 </head>
@@ -138,7 +138,7 @@
     function renderUsers(users){
       if(!users.length){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Nessun utente registrato.</td></tr>';return;}
       const ordered=[...users].sort((a,b)=>accessTimestamp(b.lastAccess)-accessTimestamp(a.lastAccess)||String(a.name||'').localeCompare(String(b.name||''),'it'));
-      usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}</span></td><td>${safeText(user.registeredAt||'—')}</td><td>${safeText(user.lastAccess||'—')}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button></td></tr>`).join('');
+      usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}</span></td><td>${safeText(user.registeredAt||'—')}</td><td>${safeText(user.lastAccess||'—')}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button><button class="delete-user-btn" type="button" data-delete-user="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Elimina</button></td></tr>`).join('');
     }
     async function loadRegisteredUsers(){
       if(!isAdmin)return;
@@ -150,14 +150,17 @@
       }catch(error){usersList.innerHTML=`<tr><td class="empty-row" colspan="4">${safeText(error.message||'Impossibile caricare gli utenti.')}</td></tr>`;}
     }
     usersList.addEventListener('click',async event=>{
-      const button=event.target.closest('[data-reset-pin]');if(!button)return;
-      const targetAgentId=button.dataset.resetPin;
+      const button=event.target.closest('[data-reset-pin],[data-delete-user]');if(!button)return;
+      const deleting=button.hasAttribute('data-delete-user');
+      const targetAgentId=deleting?button.dataset.deleteUser:button.dataset.resetPin;
       const userName=button.dataset.userName||targetAgentId;
-      if(!confirm(`Resettare il PIN di ${userName}? Al prossimo accesso dovrà impostarne uno nuovo.`))return;
-      button.disabled=true;usersStatus.textContent='Reset PIN in corso…';
+      const question=deleting?`Eliminare l’account di ${userName}? Saranno cancellati PIN, accessi, dati NaviDiaria e collegamento Telegram. L’agente resterà nell’anagrafica dei turni e potrà registrarsi di nuovo.`:`Resettare il PIN di ${userName}? Al prossimo accesso dovrà impostarne uno nuovo.`;
+      if(!confirm(question))return;
+      button.disabled=true;usersStatus.textContent=deleting?'Eliminazione utente in corso…':'Reset PIN in corso…';
       try{
-        await NaviCloud.request('reset_pin',{agentId:String(profile.id),pinHash,targetAgentId});
-        usersStatus.textContent=`PIN di ${userName} resettato.`;
+        await NaviCloud.request(deleting?'delete_user':'reset_pin',{agentId:String(profile.id),pinHash,targetAgentId});
+        localStorage.removeItem(`navidiaria.pin.${targetAgentId}`);
+        usersStatus.textContent=deleting?`Account di ${userName} eliminato.`:`PIN di ${userName} resettato.`;
         await loadRegisteredUsers();
       }catch(error){usersStatus.textContent=error.message||'Reset PIN non riuscito.';button.disabled=false;}
     });
