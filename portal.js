@@ -101,7 +101,7 @@ $('loginForm').addEventListener('submit', async event => {
   try {
     const digest = await hashPin(pin);
     const auth = await NaviCloud.request('auth', { agentId:agent.id, pinHash:digest });
-    if (auth.mustChangePin) {
+    if (auth.mustChangePin || auth.registered) {
       pendingFirstLogin = { agent, pinHash:digest };
       $('loginForm').hidden = true;
       $('firstPinForm').hidden = false;
