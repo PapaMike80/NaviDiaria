@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#071923">
+  <title>Impostazioni · NaviTurni</title>
+  <link rel="stylesheet" href="shared-menu.css">
+  <style>
+    :root{--nav:#071923;--nav-2:#102d37;--accent:#2dd4bf;--bg:#081a23;--card:#102833;--line:#22424d;--ink:#e8f3f4;--muted:#91aab2;--danger:#f47782;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding-left:230px;background:var(--bg);color:var(--ink)}
+    button,input,select{font:inherit}.sidebar{position:fixed;inset:0 auto 0 0;width:230px;padding:28px 20px;display:flex;flex-direction:column;background:var(--nav);border-right:1px solid #173542;color:#fff}
+    .brand{display:flex;align-items:center;gap:11px;margin:0 7px 32px;color:#fff;text-decoration:none;font-weight:800;font-size:18px}.brand span{display:grid;place-items:center;width:37px;height:37px;border-radius:11px;background:var(--accent);color:#06221f}
+    nav{display:grid;gap:6px}nav a{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid transparent;border-radius:9px;color:#9fb8c2;text-decoration:none;font-size:13px;font-weight:700}nav a span{width:20px;color:var(--accent);font-size:17px;text-align:center}nav a:hover,nav a.active{border-color:#28505a;background:var(--nav-2);color:#fff}
+    .user{margin-top:auto;padding:15px 10px 0;border-top:1px solid #193946;color:#9fb8c2;font-size:12px}.user strong{display:block;margin-top:4px;color:#fff}
+    header{min-height:98px;padding:22px 32px;background:#0c222c;border-bottom:1px solid var(--line)}header small{font-size:10px;font-weight:900;letter-spacing:.16em;color:#7898a2}h1{margin:5px 0 0;font-size:26px}main{width:min(920px,calc(100% - 40px));margin:30px auto 60px}.intro{margin-bottom:22px;color:var(--muted)}
+    .section{margin-bottom:18px;padding:25px;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:0 12px 32px rgba(0,0,0,.2)}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.section h2{margin:0;font-size:18px}.section p{margin:7px 0 0;color:var(--muted);font-size:14px;line-height:1.5}.badge{padding:5px 9px;border-radius:999px;background:#123f3d;color:#6ce9d5;font-size:11px;font-weight:800;white-space:nowrap}
+    .switch-row{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:24px 0 18px;padding:15px 0;border-top:1px solid #203e48;border-bottom:1px solid #203e48}.switch-copy strong{display:block;font-size:14px}.switch-copy span{color:var(--muted);font-size:12px}.switch{position:relative;width:48px;height:28px;flex:none}.switch input{position:absolute;opacity:0}.switch i{display:block;width:100%;height:100%;border-radius:999px;background:#49626a;transition:.2s}.switch i:after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#eaf5f5;box-shadow:0 2px 6px #0006;transition:.2s}.switch input:checked+i{background:var(--accent)}.switch input:checked+i:after{transform:translateX(20px)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:grid;gap:7px}.field label{font-size:12px;font-weight:800;color:#b7cbd0}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);outline:none;color-scheme:dark}.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #2dd4bf22}
+    .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.btn{padding:11px 16px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);font-weight:800;cursor:pointer}.btn.primary{border-color:var(--accent);background:var(--accent);color:#06221f}.btn:disabled{opacity:.45;cursor:not-allowed}.status{min-height:22px;margin-top:13px;color:#63dfca;font-size:13px;font-weight:700}.future{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.future div{padding:16px;border:1px dashed #36545d;border-radius:10px;background:#0d232c;color:var(--muted);font-size:13px}.future strong{display:block;margin-bottom:4px;color:#c5d7da}
+    .admin-section[hidden]{display:none}.table-wrap{margin-top:20px;overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:12px 14px;border-bottom:1px solid #203e48;text-align:left;font-size:13px}th{background:#0b2029;color:#9db7be;font-size:11px;letter-spacing:.06em;text-transform:uppercase}tbody tr:hover{background:#14323d}tr:last-child td{border-bottom:0}.user-name{font-weight:800}.user-meta{display:block;margin-top:3px;color:var(--muted);font-size:11px}.pin-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#123f3d;color:#6ce9d5;font-size:11px;font-weight:800}.reset-btn{padding:7px 10px;border:1px solid #80424a;border-radius:8px;background:#351e24;color:#ff9ba4;font-size:11px;font-weight:800;cursor:pointer}.reset-btn:hover{background:#b83b45;color:#fff}.empty-row{padding:25px!important;text-align:center;color:var(--muted)}
+    @media(max-width:800px){body{padding-left:0}.sidebar{z-index:15}header{padding-left:66px}main{width:min(100% - 24px,920px);margin-top:18px}.section{padding:19px}.grid,.future{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="impostazioni-page">
+  <aside class="sidebar app-sidebar" id="settings-sidebar">
+    <a class="brand" href="index.html"><span>N</span> NaviTurni</a>
+    <nav>
+      <a href="naviturni.html"><span>▦</span> NaviTurni</a>
+      <a href="navidiaria.html"><span>≈</span> NaviDiaria</a>
+      <a href="turni.html"><span>▤</span> ODS / Turni</a>
+      <a class="active" href="impostazioni.html"><span>⚙</span> Impostazioni</a>
+    </nav>
+    <div class="user">PROFILO<strong id="profile-name">—</strong></div>
+  </aside>
+  <header><small>AREA PERSONALE</small><h1>Impostazioni</h1></header>
+  <main>
+    <p class="intro">Gestisci le preferenze personali di NaviTurni. Le impostazioni sono associate al tuo profilo.</p>
+    <section class="section" id="telegram">
+      <div class="section-head"><div><h2>Notifiche Telegram</h2><p>Ricevi automaticamente l'equipaggio e il servizio del giorno successivo.</p></div><span class="badge" id="telegram-state">Verifica…</span></div>
+      <div class="switch-row"><div class="switch-copy"><strong>Invio automatico</strong><span>Il messaggio viene preparato usando i dati aggiornati di NaviTurni.</span></div><label class="switch"><input id="telegram-enabled" type="checkbox"><i></i></label></div>
+      <div class="grid">
+        <div class="field"><label for="send-time">Orario di invio</label><input id="send-time" type="time" value="20:00"></div>
+        <div class="field"><label for="residence">Residenza</label><select id="residence"><option>Desenzano</option><option>Peschiera</option><option>Riva</option></select></div>
+      </div>
+      <div class="actions"><button class="btn" id="disconnect" type="button" hidden>Disconnetti</button><button class="btn" id="connect" type="button" disabled>Collega Telegram</button><button class="btn primary" type="button" id="save">Salva impostazioni</button></div>
+      <div class="status" id="status" aria-live="polite"></div>
+    </section>
+    <section class="section" id="altre-preferenze">
+      <div class="section-head"><div><h2>Altre preferenze</h2><p>Questa pagina potrà raccogliere altre impostazioni senza aggiungere nuove pagine al portale.</p></div><span class="badge">In futuro</span></div>
+      <div class="future" style="margin-top:20px"><div><strong>Aspetto</strong>Tema e leggibilità</div><div><strong>NaviTurni</strong>Vista e filtri predefiniti</div><div><strong>Altri canali</strong>WhatsApp e nuove notifiche</div></div>
+    </section>
+    <section class="section admin-section" id="gestione-utenti" hidden>
+      <div class="section-head"><div><h2>Gestione utenti</h2><p>Utenti che hanno completato almeno una volta la registrazione con il proprio PIN.</p></div><span class="badge">Solo amministratori</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Utente</th><th>Registrato il</th><th>Ultimo accesso</th><th>PIN</th></tr></thead>
+          <tbody id="users-list"><tr><td class="empty-row" colspan="4">Caricamento utenti…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="status" id="users-status" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="cloud-data.js"></script>
+  <script src="shared-menu.js"></script>
+  <script>
+    const LOGIN_KEY="naviturni_logged_agent";
+    const profile=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem(LOGIN_KEY)||"null");
+    if(!profile){location.replace("index.html");}
+    const profileName=profile?.name||profile?.cognome||"Agente";
+    const profileNameElement=document.getElementById("profile-name");
+    if(profileNameElement)profileNameElement.textContent=String(profileName).toLocaleUpperCase("it");
+    const preferenceKey=`naviturni_settings_${profile?.id||profileName}`;
+    const saved=JSON.parse(localStorage.getItem(preferenceKey)||"{}");
+    if(typeof saved.telegramEnabled==="boolean")document.getElementById("telegram-enabled").checked=saved.telegramEnabled;
+    if(saved.sendTime)document.getElementById("send-time").value=saved.sendTime;
+    if(saved.residence)document.getElementById("residence").value=saved.residence;
+    document.getElementById("save").addEventListener("click",async()=>{
+      localStorage.setItem(preferenceKey,JSON.stringify({telegramEnabled:document.getElementById("telegram-enabled").checked,sendTime:document.getElementById("send-time").value,residence:document.getElementById("residence").value}));
+      const status=document.getElementById("status");
+      if(!window.NaviCloud||!pinHash){status.textContent="Impostazioni salvate solo su questo dispositivo.";return;}
+      try{
+        await NaviCloud.request('telegram_preferences',{agentId:String(profile.id),pinHash,enabled:document.getElementById("telegram-enabled").checked,sendTime:document.getElementById("send-time").value,residence:document.getElementById("residence").value});
+        status.textContent="Impostazioni Telegram salvate.";
+        await loadTelegramStatus();
+      }catch(error){status.textContent=error.message||"Salvataggio Telegram non riuscito.";}
+    });
+    const isAdmin=['91','92','MOVIMENTO'].includes(String(profile?.id||''))||String(profile?.role||'').toLowerCase()==='admin';
+    const adminSection=document.getElementById('gestione-utenti');
+    const usersList=document.getElementById('users-list');
+    const usersStatus=document.getElementById('users-status');
+    const pinHash=localStorage.getItem(`navidiaria.pin.${profile?.id||''}`)||'';
+    const telegramState=document.getElementById('telegram-state');
+    const connectButton=document.getElementById('connect');
+    const disconnectButton=document.getElementById('disconnect');
+
+    async function loadTelegramStatus(){
+      if(!window.NaviCloud||!pinHash){telegramState.textContent='Sessione mancante';connectButton.disabled=true;return;}
+      try{
+        const result=await NaviCloud.request('telegram_status',{agentId:String(profile.id),pinHash});
+        if(!result.configured){telegramState.textContent='Bot da configurare';connectButton.disabled=true;disconnectButton.hidden=true;return;}
+        if(result.connected){
+          telegramState.textContent='Collegato';connectButton.hidden=true;disconnectButton.hidden=false;
+          document.getElementById('telegram-enabled').checked=result.enabled;
+          document.getElementById('send-time').value=result.sendTime||'20:00';
+          document.getElementById('residence').value=String(result.residence||'DESENZANO').replace(/^./,letter=>letter.toUpperCase()).toLowerCase().replace(/^./,letter=>letter.toUpperCase());
+        }else{telegramState.textContent=`Disponibile · @${result.botUsername}`;connectButton.hidden=false;connectButton.disabled=false;disconnectButton.hidden=true;}
+      }catch(error){telegramState.textContent='Errore collegamento';document.getElementById('status').textContent=error.message||'Stato Telegram non disponibile.';}
+    }
+    connectButton.addEventListener('click',async()=>{
+      connectButton.disabled=true;document.getElementById('status').textContent='Creo il collegamento sicuro…';
+      try{
+        const result=await NaviCloud.request('telegram_link',{agentId:String(profile.id),pinHash});
+        const target=window.open(result.url,'NaviTelegramLink');
+        if(target)target.focus();
+        document.getElementById('status').textContent='In Telegram premi Avvia, poi torna qui.';
+      }catch(error){document.getElementById('status').textContent=error.message||'Collegamento non disponibile.';connectButton.disabled=false;}
+    });
+    disconnectButton.addEventListener('click',async()=>{
+      if(!confirm('Disconnettere Telegram da NaviTurni?'))return;
+      try{await NaviCloud.request('telegram_disconnect',{agentId:String(profile.id),pinHash});document.getElementById('telegram-enabled').checked=false;await loadTelegramStatus();}
+      catch(error){document.getElementById('status').textContent=error.message||'Disconnessione non riuscita.';}
+    });
+    window.addEventListener('focus',loadTelegramStatus);
+
+    function safeText(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
+    function accessTimestamp(value){
+      const raw=String(value||'').trim();
+      if(!raw)return 0;
+      const italian=raw.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:\s+(?:alle\s*)?(\d{1,2})[:.](\d{2})(?::(\d{2}))?)?/i);
+      if(italian){
+        const year=Number(italian[3].length===2?`20${italian[3]}`:italian[3]);
+        return new Date(year,Number(italian[2])-1,Number(italian[1]),Number(italian[4]||0),Number(italian[5]||0),Number(italian[6]||0)).getTime();
+      }
+      const parsed=Date.parse(raw);
+      return Number.isFinite(parsed)?parsed:0;
+    }
+    function renderUsers(users){
+      if(!users.length){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Nessun utente registrato.</td></tr>';return;}
+      const ordered=[...users].sort((a,b)=>accessTimestamp(b.lastAccess)-accessTimestamp(a.lastAccess)||String(a.name||'').localeCompare(String(b.name||''),'it'));
+      usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}</span></td><td>${safeText(user.registeredAt||'—')}</td><td>${safeText(user.lastAccess||'—')}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button></td></tr>`).join('');
+    }
+    async function loadRegisteredUsers(){
+      if(!isAdmin)return;
+      adminSection.hidden=false;
+      if(!window.NaviCloud||!pinHash){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Sessione amministratore non disponibile. Accedi nuovamente.</td></tr>';return;}
+      try{
+        const result=await NaviCloud.request('list_users',{agentId:String(profile.id),pinHash});
+        renderUsers(Array.isArray(result.users)?result.users:[]);
+      }catch(error){usersList.innerHTML=`<tr><td class="empty-row" colspan="4">${safeText(error.message||'Impossibile caricare gli utenti.')}</td></tr>`;}
+    }
+    usersList.addEventListener('click',async event=>{
+      const button=event.target.closest('[data-reset-pin]');if(!button)return;
+      const targetAgentId=button.dataset.resetPin;
+      const userName=button.dataset.userName||targetAgentId;
+      if(!confirm(`Resettare il PIN di ${userName}? Al prossimo accesso dovrà impostarne uno nuovo.`))return;
+      button.disabled=true;usersStatus.textContent='Reset PIN in corso…';
+      try{
+        await NaviCloud.request('reset_pin',{agentId:String(profile.id),pinHash,targetAgentId});
+        usersStatus.textContent=`PIN di ${userName} resettato.`;
+        await loadRegisteredUsers();
+      }catch(error){usersStatus.textContent=error.message||'Reset PIN non riuscito.';button.disabled=false;}
+    });
+    loadRegisteredUsers();
+    loadTelegramStatus();
+  </script>
+</body>
+</html>
