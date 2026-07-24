@@ -1,0 +1,3105 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Orario grafico interattivo Garda Estate 2026</title>
+<style>:root {
+  color-scheme: light dark;
+  background-color: transparent !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --main-surface-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+  --red: light-dark(rgb(186 38 35), rgb(250 66 62));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 10px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z'/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-visualize-standalone] {
+  background-color: var(--background) !important;
+}
+
+/* Generic mobile code-block hosts provide light/dark mode but no series palette.
+   AppBlock hosts set all six variables themselves. */
+:root:not([data-app-block-surface]) {
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(#f3883b, #f59a56);
+  --viz-series-3: light-dark(#5dc977, #74d58b);
+  --viz-series-4: light-dark(#eb77b1, #f08fc0);
+  --viz-series-5: light-dark(#9b79ec, #aa91ef);
+  --viz-series-6: light-dark(#3ab9b1, #5acbc2);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html > body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+:root:not([data-app-block-surface]) > body {
+  padding: 12px;
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive > .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align="right"]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align="center"]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget > :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The bundled tooltip runtime owns [data-tooltip]. AppBlock's CSS-only
+   pseudo-tooltip can widen dense grids even while hidden. */
+main [data-tooltip]::after {
+  content: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls > .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls > .form-label > :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--interactive-label-primary-default, var(--primary-foreground));
+  background: var(--interactive-bg-primary-default, var(--foreground));
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(
+    in srgb,
+    var(--interactive-label-primary-default, var(--primary-foreground)) 50%,
+    transparent
+  );
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type="file"] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type="file"]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type="file"]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed="true"],
+    [aria-selected="true"],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget > svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+</style>
+</head>
+<body>
+<div id="orario-garda-viz">
+  <div class="viz-controls" role="tablist" aria-label="Sezioni">
+    <button class="btn btn-primary og-tab-chart" type="button"
+      role="tab" aria-selected="true">Grafico</button>
+    <button class="btn og-tab-matrix" type="button"
+      role="tab" aria-selected="false">Percorrenze</button>
+  </div>
+  <section class="og-page-chart" role="tabpanel">
+  <div class="viz-controls og-selection-tools" aria-label="Selezione dell'orario">
+    <div class="viz-row" aria-label="Selezione rapida dei turni">
+      <button class="btn" id="og-tutte" type="button">Tutte</button>
+      <button class="btn btn-ghost" id="og-nessuna" type="button">Nessuna</button>
+    </div>
+  </div>
+
+  <div class="og-summary" aria-live="polite"></div>
+  <div class="og-chart-wrap">
+    <div class="og-residences" aria-label="Turni per residenza"></div>
+    <div class="og-zoom-controls" aria-label="Controlli zoom">
+      <button class="og-coincidence-toggle" type="button" aria-pressed="true"
+        aria-label="Mostra o nascondi le coincidenze ufficiali">⇄ ON</button>
+      <button class="og-zoom-out" type="button" aria-label="Riduci">−</button>
+      <button class="og-zoom-value" type="button"
+        aria-label="Ripristina lo zoom al 100%">100%</button>
+      <button class="og-zoom-in" type="button" aria-label="Ingrandisci">+</button>
+    </div>
+    <div class="og-chart-stage">
+      <div class="og-stop-axis" aria-label="Fermate"></div>
+      <div class="og-time-axis" aria-label="Orari"></div>
+      <svg class="og-chart" role="img" aria-labelledby="og-svg-title og-svg-desc">
+        <title id="og-svg-title">Orario grafico interattivo del Lago di Garda</title>
+        <desc id="og-svg-desc">Diagramma spazio-tempo delle corse, filtrabile per turno e direzione.</desc>
+      </svg>
+      <div class="tooltip og-tooltip" hidden></div>
+    </div>
+  </div>
+  <div class="og-detail text-small text-muted" aria-live="polite">
+    Passa su una linea o selezionala per vedere gli orari.
+  </div>
+  <dialog class="card og-course-card" aria-live="polite">
+    <div class="og-course-heading">
+      <div>
+        <div class="og-course-kicker">CORSA</div>
+        <h3 class="og-course-title"></h3>
+      </div>
+      <div class="og-course-code" aria-hidden="true"></div>
+    </div>
+    <div class="og-course-actions">
+      <div class="viz-row">
+        <button class="btn og-course-prev" type="button"
+          aria-label="Corsa precedente">←</button>
+        <button class="btn og-course-next" type="button"
+          aria-label="Corsa successiva">→</button>
+        <button class="btn btn-primary og-course-close" type="button">Chiudi</button>
+      </div>
+    </div>
+    <div class="og-course-summary"></div>
+    <div class="og-course-layout">
+      <svg class="og-mini-chart" role="img" aria-label="Grafico della corsa selezionata"></svg>
+      <table class="table og-course-stops">
+        <thead>
+          <tr><th>Fermata</th><th class="text-end">Orario</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </dialog>
+  </section>
+  <section class="og-page-matrix" role="tabpanel" hidden>
+  <h3>Corse normali</h3>
+  <div class="table-responsive">
+    <table class="table table-sm og-matrix og-normal-matrix">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <h3>Servizi rapidi</h3>
+  <div class="table-responsive">
+    <table class="table table-sm og-matrix og-rapid-matrix">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  </section>
+</div>
+
+<style>
+  #orario-garda-viz {
+    --background: #0b1c26;
+    --foreground: #eaf2f4;
+    --card: #102733;
+    --card-foreground: #eaf2f4;
+    --muted: #143140;
+    --muted-foreground: #9fb8c2;
+    --border: #1f4250;
+    --accent: #2dd4bf;
+    --accent-foreground: #06201c;
+    color: var(--foreground);
+    width: 100%;
+    min-height: 100vh;
+    padding: 1rem;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, #123544 0%, transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, #0e2a36 0%, transparent 55%),
+      var(--background);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    box-sizing: border-box;
+  }
+  #orario-garda-viz * { box-sizing: border-box; }
+  #orario-garda-viz .og-summary {
+    margin: 0.75rem 0 0.5rem;
+    font-weight: 500;
+  }
+  #orario-garda-viz .og-summary,
+  #orario-garda-viz .og-selection-tools {
+    display: none;
+  }
+  #orario-garda-viz .og-residences {
+    position: absolute;
+    z-index: 7;
+    top: 0.45rem;
+    left: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    width: 3.25rem;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  #orario-garda-viz .og-residence {
+    display: block;
+    padding: 0.12rem 0.16rem 0.18rem;
+    border: 2px solid var(--residence-color);
+    border-radius: 1.65rem;
+    background: rgba(7, 23, 32, 0.96);
+    min-width: 0;
+  }
+  #orario-garda-viz .og-residence-shifts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.13rem;
+    margin-top: 0.08rem;
+  }
+  #orario-garda-viz .og-shift-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  #orario-garda-viz .og-residence-name,
+  #orario-garda-viz .og-shift-button {
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+  #orario-garda-viz .og-residence-name {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 1.12rem;
+    padding: 0 0.2rem;
+    border: 0;
+    color: var(--residence-color);
+    background: transparent;
+    font-weight: 800;
+    font-size: 0.72rem;
+    letter-spacing: 0.045em;
+    text-align: center;
+  }
+  #orario-garda-viz .og-residence-name[aria-pressed="true"] {
+    background: transparent;
+    color: var(--residence-color);
+    box-shadow: none;
+  }
+  #orario-garda-viz .og-shift-button {
+    width: 100%;
+    min-width: 0;
+    height: 1.45rem;
+    padding: 0 0.08rem;
+    border: 1px solid var(--shift-color);
+    color: var(--shift-color);
+    background: color-mix(in oklab, var(--shift-color) 9%, var(--background));
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+  #orario-garda-viz .og-shift-button[aria-pressed="true"] {
+    background: color-mix(in oklab, var(--shift-color) 70%, var(--background));
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--shift-color) 55%, transparent);
+  }
+  #orario-garda-viz .og-shift-button.is-route-muted {
+    opacity: 0.14;
+  }
+  #orario-garda-viz .og-shift-button.is-route-active {
+    opacity: 1;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--shift-color) 45%, transparent),
+      0 0 10px color-mix(in oklab, var(--shift-color) 35%, transparent);
+  }
+  #orario-garda-viz .og-shift-expand {
+    position: absolute;
+    right: -0.08rem;
+    top: -0.08rem;
+    z-index: 2;
+    width: 0.82rem;
+    height: 0.82rem;
+    padding: 0;
+    border: 1px solid var(--shift-color);
+    border-radius: 999px;
+    color: var(--foreground);
+    background: color-mix(in oklab, var(--shift-color) 58%, var(--background));
+    font-size: 0.56rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  #orario-garda-viz .og-shift-expand[aria-expanded="true"] {
+    transform: rotate(90deg);
+  }
+  #orario-garda-viz .og-race-list {
+    position: absolute;
+    z-index: 12;
+    left: calc(100% + 0.45rem);
+    top: -0.2rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(2.7rem, 1fr));
+    gap: 0.22rem;
+    min-width: 9rem;
+    max-width: 12rem;
+    padding: 0.38rem;
+    border: 2px solid var(--shift-color);
+    border-radius: 0.75rem;
+    background: rgba(7, 23, 32, 0.98);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  }
+  #orario-garda-viz .og-race-list[hidden] {
+    display: none;
+  }
+  #orario-garda-viz .og-race-button {
+    position: relative;
+    min-width: 0;
+    height: 1.55rem;
+    padding: 0 0.22rem;
+    border: 1px solid color-mix(in oklab, var(--shift-color) 72%, var(--border));
+    border-radius: 999px;
+    color: var(--shift-color);
+    background: color-mix(in oklab, var(--shift-color) 8%, var(--background));
+    font-size: 0.62rem;
+    font-weight: 700;
+  }
+  #orario-garda-viz .og-race-button.is-selected {
+    border-width: 2px;
+    color: var(--foreground);
+    background: color-mix(in oklab, var(--shift-color) 72%, var(--background));
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--shift-color) 30%, transparent);
+  }
+  #orario-garda-viz .og-race-check {
+    display: none;
+    margin-left: 0.12rem;
+  }
+  #orario-garda-viz .og-race-button.is-selected .og-race-check {
+    display: inline;
+  }
+  #orario-garda-viz .og-menu-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+    padding: 0.18rem;
+    border: 1px solid var(--border);
+    border-radius: 1.4rem;
+    background: rgba(7, 23, 32, 0.96);
+  }
+  #orario-garda-viz .og-menu-action {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 1.65rem;
+    padding: 0 0.1rem;
+    border-radius: 999px;
+    font-size: 0.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  #orario-garda-viz .og-menu-master {
+    border: 1px solid #ef4444;
+    color: var(--foreground);
+    background: color-mix(in oklab, #ef4444 72%, var(--background));
+  }
+  #orario-garda-viz .og-chart-wrap {
+    position: relative;
+    width: 100%;
+    height: min(76vh, 760px);
+    min-height: 720px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(7, 23, 32, 0.86);
+    scrollbar-color: var(--accent) #071720;
+    scrollbar-width: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  }
+  #orario-garda-viz .og-chart-wrap::-webkit-scrollbar {
+    display: none;
+  }
+  @media (max-height: 820px) {
+    #orario-garda-viz .og-chart-wrap {
+      height: 72vh;
+      min-height: 520px;
+    }
+  }
+  #orario-garda-viz .og-zoom-controls {
+    position: sticky;
+    z-index: 9;
+    top: 0.6rem;
+    right: 0.6rem;
+    width: max-content;
+    margin: 0.6rem 0.6rem -2.3rem auto;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.35rem;
+    border: 1px solid var(--line, #1f4250);
+    border-radius: 999px;
+    background: rgba(16, 39, 51, 0.94);
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+  }
+  #orario-garda-viz .og-zoom-out,
+  #orario-garda-viz .og-zoom-in {
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    padding: 0;
+    border: 1px solid var(--line, #1f4250);
+    border-radius: 50%;
+    background: #143140;
+    color: var(--accent);
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  #orario-garda-viz .og-zoom-value {
+    min-width: 3rem;
+    padding: 0.2rem 0.3rem;
+    border: 0;
+    background: transparent;
+    color: var(--muted-foreground);
+    text-align: center;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #orario-garda-viz .og-coincidence-toggle {
+    min-width: 3.5rem;
+    height: 1.8rem;
+    padding: 0 0.45rem;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--accent) 18%, var(--background));
+    color: var(--accent);
+    font-size: 0.62rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  #orario-garda-viz .og-coincidence-toggle[aria-pressed="false"] {
+    border-color: var(--border);
+    color: var(--muted-foreground);
+    background: var(--muted);
+  }
+  #orario-garda-viz .og-chart {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    min-height: 720px;
+    color: var(--foreground);
+    transform-origin: top left;
+  }
+  #orario-garda-viz .og-chart-stage {
+    position: relative;
+    min-width: 100%;
+    min-height: 720px;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+  #orario-garda-viz .og-chart-stage.is-panning {
+    cursor: grabbing;
+  }
+  #orario-garda-viz .og-stop-axis {
+    position: absolute;
+    z-index: 4;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #071720 82%, rgba(7, 23, 32, 0.92) 94%, transparent);
+    box-shadow: 2px 0 0 rgba(31, 66, 80, 0.75);
+  }
+  #orario-garda-viz .og-time-axis {
+    position: absolute;
+    z-index: 6;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2rem;
+    border-bottom: 1px solid rgba(31, 66, 80, 0.9);
+    background: linear-gradient(180deg, #071720 72%, rgba(7, 23, 32, 0.88) 88%, transparent);
+    pointer-events: none;
+  }
+  #orario-garda-viz .og-time-axis span {
+    position: absolute;
+    top: 0.55rem;
+    color: var(--foreground);
+    font-size: 0.68rem;
+    font-weight: 700;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  #orario-garda-viz .og-stop-axis .og-axis-label {
+    position: absolute;
+    right: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.12rem;
+    width: calc(100% - 1rem);
+    padding: 0 0 0 3.7rem;
+    border: 0;
+    background: transparent;
+    color: var(--foreground);
+    font-family: inherit;
+    line-height: 1;
+    text-align: right;
+    white-space: nowrap;
+    transform: translateY(calc(-50% + var(--selection-offset, 0px)));
+  }
+  #orario-garda-viz .og-stop-axis .og-stop-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #orario-garda-viz .og-stop-axis .og-stop-time {
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--time-color, var(--route-color));
+    font-size: 0.82em;
+    font-weight: 800;
+    line-height: 1;
+  }
+  #orario-garda-viz .og-stop-axis .og-axis-label.is-route-stop {
+    color: var(--route-color);
+    font-weight: 700;
+  }
+  #orario-garda-viz .og-stop-axis .og-axis-label.is-shared-stop .og-stop-name {
+    padding: 0.18rem 0.42rem;
+    border: 1px solid var(--route-color);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--route-color) 18%, #071720);
+    box-shadow: 0 0 8px color-mix(in oklab, var(--route-color) 24%, transparent);
+  }
+  #orario-garda-viz .og-stop-axis .og-axis-label.is-route-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #orario-garda-viz .og-grid {
+    stroke: var(--border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  #orario-garda-viz .og-hour {
+    stroke: var(--muted-foreground);
+  }
+  #orario-garda-viz .og-route {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+    transition: opacity 140ms ease, stroke-width 140ms ease;
+  }
+  #orario-garda-viz .og-route-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 20;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    pointer-events: stroke;
+    cursor: pointer;
+  }
+  #orario-garda-viz .og-route[data-direction="S"] {
+    stroke-dasharray: 7 3;
+  }
+  #orario-garda-viz .og-series-0 { stroke: var(--viz-series-1); }
+  #orario-garda-viz .og-series-1 { stroke: var(--green); }
+  #orario-garda-viz .og-series-2 { stroke: var(--viz-series-3); }
+  #orario-garda-viz .og-series-3 { stroke: var(--viz-series-4); }
+  #orario-garda-viz .og-series-4 { stroke: var(--viz-series-5); }
+  #orario-garda-viz .og-series-5 { stroke: var(--viz-series-6); }
+  #orario-garda-viz .og-series-6 { stroke: color-mix(in oklab, var(--viz-series-1) 65%, var(--foreground)); }
+  #orario-garda-viz .og-series-7 { stroke: color-mix(in oklab, var(--viz-series-2) 65%, var(--foreground)); }
+  #orario-garda-viz .og-series-8 { stroke: color-mix(in oklab, var(--viz-series-3) 65%, var(--foreground)); }
+  #orario-garda-viz .og-series-9 { stroke: color-mix(in oklab, var(--viz-series-4) 65%, var(--foreground)); }
+  #orario-garda-viz .og-series-10 { stroke: color-mix(in oklab, var(--viz-series-5) 65%, var(--foreground)); }
+  #orario-garda-viz .og-series-11 { stroke: color-mix(in oklab, var(--viz-series-6) 65%, var(--foreground)); }
+  #orario-garda-viz .og-series-12 { stroke: color-mix(in oklab, var(--viz-series-1) 72%, var(--background)); }
+  #orario-garda-viz .og-series-13 { stroke: color-mix(in oklab, var(--viz-series-3) 72%, var(--background)); }
+  #orario-garda-viz .og-series-14 { stroke: color-mix(in oklab, var(--viz-series-5) 72%, var(--background)); }
+  #orario-garda-viz .og-route:hover,
+  #orario-garda-viz .og-route.is-active {
+    stroke-width: 5;
+  }
+  #orario-garda-viz .og-route.is-muted {
+    opacity: 0.24;
+  }
+  #orario-garda-viz .og-stop-dot.is-muted {
+    opacity: 0.24;
+  }
+  #orario-garda-viz .og-coincidence-line {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+  }
+  #orario-garda-viz .og-coincidence-continuation {
+    fill: none;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+  #orario-garda-viz .og-coincidence-continuation-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 20;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    cursor: pointer;
+    pointer-events: stroke;
+  }
+  #orario-garda-viz .og-coincidence-dot {
+    fill: var(--background);
+    stroke-width: 2.5;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+  }
+  #orario-garda-viz .og-coincidence-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 18;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    cursor: pointer;
+    pointer-events: stroke;
+  }
+  #orario-garda-viz .og-coincidence-ring {
+    fill: var(--background);
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+  }
+  #orario-garda-viz .og-coincidence-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: var(--background);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  #orario-garda-viz .og-course-label.is-muted {
+    opacity: 0.24;
+  }
+  #orario-garda-viz .og-stop-dot {
+    fill: var(--background);
+    stroke-width: 1.8;
+    vector-effect: non-scaling-stroke;
+    cursor: pointer;
+  }
+  #orario-garda-viz .og-axis-label,
+  #orario-garda-viz .og-course-label {
+    fill: var(--foreground);
+    font-size: 11px;
+  }
+  #orario-garda-viz .og-axis-label[data-stop] {
+    cursor: pointer;
+  }
+  #orario-garda-viz .og-axis-label[data-stop]:hover,
+  #orario-garda-viz .og-axis-label.is-stop-filter {
+    fill: var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+  }
+  #orario-garda-viz .og-axis-label.is-stop-active {
+    font-weight: 500;
+    fill: var(--foreground);
+  }
+  #orario-garda-viz .og-course-label {
+    font-weight: 500;
+    pointer-events: none;
+    paint-order: stroke;
+    stroke: var(--background);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+  #orario-garda-viz .og-tooltip {
+    position: absolute;
+    pointer-events: none;
+    max-width: 270px;
+  }
+  #orario-garda-viz .og-detail {
+    min-height: 1.5rem;
+    margin-top: 0.5rem;
+  }
+  #orario-garda-viz .og-course-card {
+    width: min(92%, 980px);
+    max-height: 90vh;
+    overflow: auto;
+    background:
+      linear-gradient(145deg, rgba(18, 43, 55, 0.98), rgba(7, 23, 32, 0.99)) !important;
+    color: var(--foreground) !important;
+    opacity: 1;
+    border: 1px solid color-mix(in oklab, var(--course-color) 75%, var(--border));
+    box-shadow: 0 20px 60px color-mix(in oklab, var(--course-color) 28%, transparent);
+  }
+  #orario-garda-viz .og-course-card::backdrop {
+    background-color: rgba(2, 10, 15, 0.78);
+  }
+  #orario-garda-viz .og-course-close {
+    background-color: var(--course-color) !important;
+    color: var(--background) !important;
+  }
+  #orario-garda-viz .og-course-heading,
+  #orario-garda-viz .og-course-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #orario-garda-viz .og-course-heading {
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--course-color) 55%, var(--border));
+  }
+  #orario-garda-viz .og-course-kicker {
+    color: var(--muted-foreground);
+    font-size: calc(var(--font-size-base) * 0.75);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+  }
+  #orario-garda-viz .og-course-title {
+    margin: 0.2rem 0 0;
+  }
+  #orario-garda-viz .og-course-code {
+    color: var(--course-color);
+    font-size: calc(var(--font-size-base) * 3.2);
+    font-weight: 500;
+  }
+  #orario-garda-viz .og-course-actions {
+    margin: 0.75rem 0;
+  }
+  #orario-garda-viz .og-course-prev,
+  #orario-garda-viz .og-course-next {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 999px;
+    border: 2px solid var(--course-color);
+    color: var(--course-color);
+    background: transparent;
+    font-size: calc(var(--font-size-base) * 1.35);
+  }
+  #orario-garda-viz .og-course-summary {
+    padding: 0.65rem 0.8rem;
+    border: 1px solid color-mix(in oklab, var(--course-color) 55%, var(--border));
+    border-radius: 0.55rem;
+    background: color-mix(in oklab, var(--course-color) 12%, transparent);
+  }
+  #orario-garda-viz .og-mini-chart {
+    display: block;
+    width: 92px;
+    flex: 0 0 92px;
+    align-self: flex-start;
+    margin-top: 54px;
+  }
+  #orario-garda-viz .og-course-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  #orario-garda-viz .og-course-stops {
+    width: 100%;
+    margin: 0;
+  }
+  #orario-garda-viz .og-course-stops th,
+  #orario-garda-viz .og-course-stops td {
+    height: 54px;
+    padding-block: 0;
+    vertical-align: middle;
+    font-size: calc(var(--font-size-base) * 1.2);
+  }
+  #orario-garda-viz .og-course-stops th {
+    color: var(--course-color);
+    border-bottom-color: color-mix(in oklab, var(--course-color) 70%, var(--border));
+  }
+  #orario-garda-viz .og-course-stops tbody tr {
+    background: rgba(7, 25, 35, 0.84);
+  }
+  #orario-garda-viz .og-course-stops tbody tr:nth-child(even) {
+    background: rgba(16, 39, 51, 0.82);
+  }
+  #orario-garda-viz .og-page-matrix {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(7, 23, 32, 0.86);
+  }
+  #orario-garda-viz .og-page-matrix .table-responsive,
+  #orario-garda-viz .og-matrix,
+  #orario-garda-viz .og-matrix td {
+    background-color: #0d222d;
+    color: var(--foreground);
+  }
+  #orario-garda-viz .og-course-stops td:last-child {
+    font-size: calc(var(--font-size-base) * 1.35);
+    font-weight: 500;
+  }
+  #orario-garda-viz .og-mini-line {
+    fill: none;
+    stroke: var(--course-color, var(--viz-series-1));
+    stroke-width: 4;
+    vector-effect: non-scaling-stroke;
+  }
+  #orario-garda-viz .og-mini-dot {
+    fill: var(--background);
+    stroke: var(--course-color, var(--viz-series-1));
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+  }
+  #orario-garda-viz .og-mini-leg-time {
+    fill: var(--muted-foreground);
+    font-size: calc(var(--font-size-base) * 0.8);
+    font-weight: 500;
+  }
+  #orario-garda-viz .og-matrix th {
+    white-space: nowrap;
+  }
+  #orario-garda-viz .og-matrix td {
+    text-align: center;
+    white-space: nowrap;
+  }
+  #orario-garda-viz .og-matrix td:first-child {
+    text-align: left;
+  }
+  #orario-garda-viz .og-matrix thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: color-mix(in oklab, var(--viz-series-1) 18%, var(--background));
+  }
+  #orario-garda-viz .og-matrix tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: color-mix(in oklab, var(--viz-series-2) 18%, var(--background));
+  }
+  #orario-garda-viz .og-matrix thead th:first-child {
+    left: 0;
+    z-index: 4;
+    background: color-mix(in oklab, var(--viz-series-1) 45%, var(--viz-series-2));
+    color: var(--foreground);
+  }
+  #orario-garda-viz .og-matrix .is-highlighted {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+  @media (max-width: 520px) {
+    #orario-garda-viz .og-chart {
+      min-height: 760px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #orario-garda-viz .og-route {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById("orario-garda-viz");
+  const data = {"stops":["DESENZANO","PESCHIERA","SIRMIONE","PADENGHE","MONIGA","LAZISE","MANERBA (Dusano)","CISANO","BARDOLINO","GARDA","TORRI","PORTESE","SALÒ","GARDONE","MADERNO","BOGLIACO","GARGNANO","TIGNALE","CASTELLETTO","BRENZONE","ASSENZA di Brenzone","CAMPIONE (Tremosine)","MALCESINE centro","LIMONE multipiano","LIMONE centro","TORBOLE","RIVA"],"services":[{"r":"14","s":"P2","d":"N","p":[[1,480],[5,508],[8,525],[9,540]]},{"r":"28","s":"D3","d":"N","p":[[0,480],[2,500],[4,522],[6,536],[11,566],[12,577],[13,591]]},{"r":"40","s":"D4","d":"N","p":[[0,495],[6,525]]},{"r":"8","s":"D2","d":"N","p":[[0,500],[2,520],[8,560],[9,575]]},{"r":"62","s":"R2","d":"N","p":[[22,535],[24,555],[25,585],[26,600]]},{"r":"72","s":"R3","d":"N","p":[[22,585],[24,610],[25,643],[26,660]]},{"r":"92","s":"M1","d":"N","p":[[11,518],[12,530],[13,544],[14,559],[16,590],[19,620],[24,660]]},{"r":"110","s":"SR1","d":"N","p":[[1,530],[2,550],[9,571],[10,585],[12,609],[13,619],[16,636],[22,655],[24,665]]},{"r":"82","s":"R4","d":"N","p":[[21,642],[22,660],[24,680],[26,715]]},{"r":"64","s":"R2","d":"N","p":[[22,675],[23,703],[25,740],[26,755]]},{"r":"74","s":"R3","d":"N","p":[[22,745],[24,770],[26,810]]},{"r":"22","s":"D1","d":"N","p":[[0,535],[2,555],[5,637],[7,625],[8,615],[9,600]]},{"r":"2","s":"P1","d":"N","p":[[1,550],[5,578],[7,590],[8,600],[9,615],[11,657],[12,668],[13,682],[14,696],[15,721],[16,729],[17,747],[21,763],[22,782],[24,804],[26,840]]},{"r":"160","s":"CAP1","d":"N","p":[[0,560],[9,591],[12,621],[13,633],[16,654],[18,667],[19,675],[22,693],[24,710],[26,735]]},{"r":"42","s":"D4","d":"N","p":[[2,580],[5,620],[7,633],[8,643],[9,660]]},{"r":"34","s":"P3","d":"N","p":[[1,585],[2,625],[9,670]]},{"r":"16","s":"P2","d":"N","p":[[0,615],[2,637],[5,678],[8,695],[9,711],[11,753],[13,764],[14,780]]},{"r":"24","s":"D1","d":"N","p":[[1,680],[5,708],[7,721],[8,731],[9,746],[10,773],[18,806],[19,816],[20,827],[22,845]]},{"r":"84","s":"R4","d":"N","p":[[22,850],[24,870]]},{"r":"10","s":"D2","d":"N","p":[[0,690],[2,715],[5,755],[8,773],[9,790]]},{"r":"66","s":"R2","d":"N","p":[[22,870],[23,890],[24,898],[25,928],[26,945]]},{"r":"152","s":"CAR1","d":"N","p":[[0,760],[2,780],[9,808]]},{"r":"36","s":"P3","d":"N","p":[[1,790],[2,836],[5,885],[7,898],[8,909],[9,925]]},{"r":"86","s":"R4","d":"N","p":[[22,895],[24,918],[26,955]]},{"r":"76","s":"R3","d":"N","p":[[22,945],[26,1000]]},{"r":"96","s":"M1","d":"N","p":[[11,855],[12,865],[13,879],[16,919],[19,948],[24,990]]},{"r":"30","s":"D3","d":"N","p":[[0,825],[2,850],[7,890],[8,900],[9,915],[11,960],[12,975],[13,990]]},{"r":"44","s":"D4","d":"N","p":[[1,860],[2,900],[4,923],[6,937]]},{"r":"112","s":"SR1","d":"N","p":[[0,870],[2,881],[9,903],[12,924],[13,933],[16,950],[22,969],[24,980],[26,1005]]},{"r":"68","s":"R2","d":"N","p":[[22,995],[24,1018],[25,1050],[26,1065]]},{"r":"162","s":"CAP1","d":"N","p":[[2,937],[8,960],[9,971],[14,995],[24,1035]]},{"r":"88","s":"R4","d":"N","p":[[20,1040],[22,1060],[24,1080],[26,1115]]},{"r":"78","s":"R3","d":"N","p":[[22,1085],[24,1110],[25,1143],[26,1160]]},{"r":"70","s":"R2","d":"N","p":[[22,1125],[26,1170]]},{"r":"6","s":"R1","d":"N","p":[[0,900],[2,922],[9,967],[11,1009],[12,1020],[13,1033],[14,1046],[15,1071],[16,1078],[17,1095],[20,1123],[21,1110],[22,1140],[24,1160],[25,1190],[26,1205]]},{"r":"12","s":"D2","d":"N","p":[[1,930],[5,958],[7,970],[8,980],[9,995]]},{"r":"46","s":"D4","d":"N","p":[[0,995],[2,1018],[6,1041]]},{"r":"156","s":"CAR1","d":"N","p":[[0,1000],[1,970],[2,1012],[9,1034],[12,1060],[13,1070],[16,1095],[18,1109],[19,1117],[22,1133],[24,1148],[25,1166],[26,1180]]},{"r":"38","s":"P3","d":"N","p":[[1,995],[5,1023],[8,1040],[9,1055]]},{"r":"18","s":"P2","d":"N","p":[[0,1030],[2,1055],[9,1100]]},{"r":"98","s":"M1","d":"N","p":[[9,1105],[11,1145],[12,1158],[13,1173],[14,1190]]},{"r":"26","s":"D1","d":"N","p":[[1,1080],[5,1109],[7,1122],[8,1132],[9,1150]]},{"r":"48","s":"D4","d":"N","p":[[0,1095],[2,1115],[6,1138]]},{"r":"114","s":"SR1","d":"N","p":[[0,1140],[1,1170],[2,1153]]},{"r":"90","s":"R4","d":"N","p":[[22,1185],[26,1230]]},{"r":"61","s":"R2","d":"S","p":[[26,480],[23,515],[22,535]]},{"r":"91","s":"M1","d":"S","p":[[14,500],[11,518]]},{"r":"41","s":"D4","d":"S","p":[[6,525],[4,540],[3,554],[2,580]]},{"r":"159","s":"CAP1","d":"S","p":[[2,538],[1,510],[0,555]]},{"r":"33","s":"P3","d":"S","p":[[9,515],[8,530],[5,547],[1,575]]},{"r":"15","s":"P2","d":"S","p":[[9,540],[8,525],[5,508],[2,585],[0,605]]},{"r":"9","s":"D2","d":"S","p":[[9,575],[8,590],[7,598],[5,610],[2,657],[0,680]]},{"r":"23","s":"D1","d":"S","p":[[9,600],[8,615],[7,625],[5,637],[1,665]]},{"r":"151","s":"CAR1","d":"S","p":[[26,500],[25,507],[24,525],[22,537],[19,553],[16,568],[14,589],[13,601],[12,615],[11,625],[9,655],[2,685],[0,700]]},{"r":"29","s":"D3","d":"S","p":[[13,591],[12,605],[11,617],[9,663],[8,678],[5,697],[2,743],[0,765]]},{"r":"35","s":"P3","d":"S","p":[[9,670],[8,685],[5,702],[1,730]]},{"r":"43","s":"D4","d":"S","p":[[9,660],[6,700],[4,714],[3,728],[2,758],[1,800]]},{"r":"71","s":"R3","d":"S","p":[[26,520],[24,560],[22,585]]},{"r":"5","s":"R1","d":"S","p":[[26,530],[25,545],[24,575],[22,595],[20,611],[21,625],[17,640],[16,657],[15,664],[14,690],[13,703],[12,718],[11,728],[9,770],[2,816],[0,840]]},{"r":"81","s":"R4","d":"S","p":[[26,560],[25,575],[24,605],[22,625],[21,642]]},{"r":"63","s":"R2","d":"S","p":[[26,605],[25,620],[23,653],[22,675]]},{"r":"93","s":"M1","d":"S","p":[[24,660],[22,680],[18,715],[13,770],[12,785]]},{"r":"111","s":"SR1","d":"S","p":[[24,670],[22,681],[13,719],[12,729],[10,705],[9,749],[8,758],[2,776],[0,785]]},{"r":"73","s":"R3","d":"S","p":[[26,670],[25,687],[24,720],[22,745]]},{"r":"83","s":"R4","d":"S","p":[[26,720],[25,735],[24,765],[22,785]]},{"r":"161","s":"CAP1","d":"S","p":[[26,805],[24,825],[22,839],[14,875],[13,887],[12,900],[2,932]]},{"r":"65","s":"R2","d":"S","p":[[26,815],[23,850],[22,870]]},{"r":"153","s":"CAR1","d":"S","p":[[9,808],[8,820],[5,835],[2,865],[1,900]]},{"r":"11","s":"D2","d":"S","p":[[9,855],[8,871],[7,881],[5,894],[1,925]]},{"r":"45","s":"D4","d":"S","p":[[6,937],[2,962],[0,985]]},{"r":"155","s":"CAR1","d":"S","p":[[1,970],[0,995]]},{"r":"95","s":"M1","d":"S","p":[[12,845],[11,855]]},{"r":"17","s":"P2","d":"S","p":[[14,840],[13,855],[12,868],[11,879],[9,922],[8,937],[5,954],[2,996],[0,1025]]},{"r":"37","s":"P3","d":"S","p":[[9,930],[8,945],[5,962],[1,990]]},{"r":"85","s":"R4","d":"S","p":[[24,875],[22,895]]},{"r":"25","s":"D1","d":"S","p":[[22,905],[20,922],[19,933],[18,943],[10,975],[9,1005],[8,1020],[7,1030],[5,1045],[1,1075]]},{"r":"75","s":"R3","d":"S","p":[[26,870],[25,887],[24,920],[22,945]]},{"r":"47","s":"D4","d":"S","p":[[6,1041],[4,1055],[3,1068],[0,1090]]},{"r":"13","s":"D2","d":"S","p":[[9,1015],[8,1030],[2,1075],[0,1105]]},{"r":"39","s":"P3","d":"S","p":[[9,1055],[2,1100],[1,1140]]},{"r":"31","s":"D3","d":"S","p":[[13,990],[12,1004],[11,1016],[9,1061],[8,1076],[5,1094],[2,1135],[0,1160]]},{"r":"49","s":"D4","d":"S","p":[[6,1138],[4,1152],[3,1165],[0,1185]]},{"r":"19","s":"P2","d":"S","p":[[9,1100],[8,1115],[5,1132],[1,1160]]},{"r":"97","s":"M1","d":"S","p":[[24,990],[22,1012],[19,1038],[10,1080],[9,1105]]},{"r":"3","s":"P1","d":"S","p":[[26,915],[24,950],[22,975],[21,993],[17,1009],[16,1027],[15,1034],[14,1060],[13,1074],[12,1088],[11,1099],[9,1142],[8,1156],[7,1165],[5,1178],[1,1210]]},{"r":"67","s":"R2","d":"S","p":[[26,950],[22,995]]},{"r":"87","s":"R4","d":"S","p":[[26,965],[24,1000],[22,1020],[20,1040]]},{"r":"113","s":"SR1","d":"S","p":[[26,1005],[24,1030],[22,1041],[13,1087],[12,1077],[10,1102],[8,1117],[2,1153],[1,1170],[0,1135]]},{"r":"163","s":"CAP1","d":"S","p":[[24,1040],[22,1055],[16,1081],[14,1100],[13,1112],[9,1135],[8,1146],[5,1156],[1,1175]]},{"r":"77","s":"R3","d":"S","p":[[26,1010],[25,1027],[24,1060],[22,1085]]},{"r":"69","s":"R2","d":"S","p":[[26,1070],[24,1105],[22,1125]]},{"r":"89","s":"R4","d":"S","p":[[26,1120],[25,1135],[24,1165],[22,1185]]},{"r":"27","s":"D1","d":"S","p":[[9,1150],[8,1132],[7,1122],[5,1109],[2,1195],[0,1215]]}],"shifts":{"D1":{"r":["22","23","24","25","26","27"],"h":"13:00","diaria":"24%","meal":"1"},"D2":{"r":["8","9","10","11","12","13"],"h":"11:25","diaria":"24%","meal":"1"},"D3":{"r":["28","29","30","31"],"h":"13:20","diaria":"24%","meal":"1"},"D4":{"r":["40","41","42","43","44","45","46","47","48","49"],"h":"13:15","diaria":"24%","meal":"1"},"T1":{"r":["201T","202T","203T","204T","205T","206T","207T","208T","209T","210T","211T","212T","213T","214T","215T","216T","217T","218T"],"h":"13:35","diaria":"24%","meal":"1"},"T2":{"r":["231T","232T","233T","234T","235T","236T","237T","238T","239T","240T","241T","242T","243T","244T","245T","246T"],"h":"12:29","diaria":"24%","meal":"1"},"M1":{"r":["91","92","93","95","96","97","98"],"h":"13:30","diaria":"24%","meal":"1"},"R1":{"r":["5","6"],"h":"13:15","diaria":"24%","meal":"1"},"R2":{"r":["61","62","63","64","65","66","67","68","69","70"],"h":"13:15","diaria":"24%","meal":"1"},"R3":{"r":["71","72","73","74","75","76","77","78"],"h":"12:20","diaria":"24%","meal":"1"},"R4":{"r":["81","82","83","84","85","86","87","88","89","90"],"h":"12:40","diaria":"24%","meal":"1"},"CAR1":{"r":["151","152","153","155","156"],"h":"12:10","diaria":"24%","meal":"1"},"P1":{"r":["2","3"],"h":"12:45","diaria":"24%","meal":"1"},"P2":{"r":["14","15","16","17","18","19"],"h":"13:05","diaria":"24%","meal":"1"},"P3":{"r":["33","34","35","36","37","38","39"],"h":"12:55","diaria":"24%","meal":"1"},"CAP1":{"r":["159","160","161","162","163"],"h":"12:55","diaria":"24%","meal":"1"},"SR1":{"r":["110","111","112","113","114"],"h":"12:15","diaria":"24%","meal":"1"}}};
+  data.services.push(
+    {r:"201",s:"T1",d:"S",p:[[14,480],[10,510]]},
+    {r:"202",s:"T1",d:"N",p:[[10,515],[14,545]]},
+    {r:"203",s:"T1",d:"S",p:[[14,550],[10,580]]},
+    {r:"204",s:"T1",d:"N",p:[[10,585],[14,615]]},
+    {r:"205",s:"T1",d:"S",p:[[14,625],[10,655]]},
+    {r:"206",s:"T1",d:"N",p:[[10,665],[14,695]]},
+    {r:"207",s:"T1",d:"S",p:[[14,705],[10,735]]},
+    {r:"208",s:"T1",d:"N",p:[[10,745],[14,780]]},
+    {r:"209",s:"T1",d:"S",p:[[14,840],[10,870]]},
+    {r:"210",s:"T1",d:"N",p:[[10,880],[14,910]]},
+    {r:"211",s:"T1",d:"S",p:[[14,920],[10,950]]},
+    {r:"212",s:"T1",d:"N",p:[[10,960],[14,990]]},
+    {r:"213",s:"T1",d:"S",p:[[14,1000],[10,1030]]},
+    {r:"214",s:"T1",d:"N",p:[[10,1040],[14,1070]]},
+    {r:"215",s:"T1",d:"S",p:[[14,1080],[10,1110]]},
+    {r:"216",s:"T1",d:"N",p:[[10,1120],[14,1150]]},
+    {r:"217",s:"T1",d:"S",p:[[14,1155],[10,1185]]},
+    {r:"218",s:"T1",d:"N",p:[[10,1190],[14,1220]]},
+    {r:"231",s:"T2",d:"S",p:[[14,515],[10,545]]},
+    {r:"232",s:"T2",d:"N",p:[[10,550],[14,580]]},
+    {r:"233",s:"T2",d:"S",p:[[14,585],[10,615]]},
+    {r:"234",s:"T2",d:"N",p:[[10,625],[14,655]]},
+    {r:"235",s:"T2",d:"S",p:[[14,665],[10,695]]},
+    {r:"236",s:"T2",d:"N",p:[[10,705],[14,735]]},
+    {r:"237",s:"T2",d:"S",p:[[14,745],[10,780]]},
+    {r:"238",s:"T2",d:"N",p:[[10,840],[14,870]]},
+    {r:"239",s:"T2",d:"S",p:[[14,880],[10,910]]},
+    {r:"240",s:"T2",d:"N",p:[[10,920],[14,950]]},
+    {r:"241",s:"T2",d:"S",p:[[14,960],[10,990]]},
+    {r:"242",s:"T2",d:"N",p:[[10,1000],[14,1030]]},
+    {r:"243",s:"T2",d:"S",p:[[14,1040],[10,1070]]},
+    {r:"244",s:"T2",d:"N",p:[[10,1080],[14,1110]]},
+    {r:"245",s:"T2",d:"S",p:[[14,1120],[10,1150]]},
+    {r:"246",s:"T2",d:"N",p:[[10,1155],[14,1185]]}
+  );
+  const removedStopIndex = data.stops.indexOf("LIMONE multipiano");
+  if (removedStopIndex >= 0) {
+    data.stops.splice(removedStopIndex, 1);
+    data.services.forEach((service) => {
+      service.p = service.p
+        .filter(([stop]) => stop !== removedStopIndex)
+        .map(([stop, minute]) => [
+          stop > removedStopIndex ? stop - 1 : stop,
+          minute
+        ]);
+    });
+  }
+  const shortenedStopNames = {
+    "MANERBA (Dusano)": "MANERBA",
+    "ASSENZA di Brenzone": "ASSENZA",
+    "CAMPIONE (Tremosine)": "CAMPIONE",
+    "MALCESINE centro": "MALCESINE",
+    "LIMONE centro": "LIMONE"
+  };
+  data.stops = data.stops.map((stop) => shortenedStopNames[stop] || stop);
+  const officialConnections = [
+    {from:["22"], stop:"GARDA", at:600, to:[["2",615]]},
+    {from:["22"], stop:"RIVA", at:840, to:[["75",870]]},
+    {from:["24"], stop:"MALCESINE", at:845, to:[["84",850],["66",870]]},
+    {from:["25"], stop:"GARDA", at:1005, to:[["13",1015]]},
+    {from:["25"], stop:"SIRMIONE", at:1075, to:[["48",1115]]},
+    {from:["25"], stop:"MANERBA", at:1138, to:[["49",1138]]},
+    {from:["8"], stop:"SIRMIONE", at:520, to:[["110",550]]},
+    {from:["8"], stop:"GARDA", at:575, to:[["160",591]]},
+    {from:["12"], stop:"GARDA", at:995, to:[["156",1034]]},
+    {from:["28"], stop:"SALÒ", at:577, to:[["110",609]]},
+    {from:["41","42"], stop:"GARDA", at:660, to:[["24",746]]},
+    {from:["44"], stop:"SIRMIONE", at:900, to:[["6",922],["162",937]]},
+    {from:["2"], stop:"RIVA", at:840, to:[["75",870]]},
+    {from:["3"], stop:"GARDA", at:1142, to:[["27",1150]]},
+    {from:["14"], stop:"GARDA", at:540, to:[["110",571]]},
+    {from:["16"], stop:"GARDA", at:711, to:[["24",746]]},
+    {from:["36"], stop:"SIRMIONE", at:836, to:[["112",881]]},
+    {from:["36"], stop:"GARDA", at:925, to:[["6",967],["162",971]]},
+    {from:["161"], stop:"SIRMIONE", at:932, to:[["45",962],["46",1018]]},
+    {from:["162"], stop:"LIMONE", at:1035, to:[["88",1080]]},
+    {from:["163"], stop:"GARDA", at:1135, to:[["3",1142],["27",1150]]},
+    {from:["110"], stop:"MALCESINE", at:655, to:[["82",660]]},
+    {from:["111"], stop:"GARDA", at:749, to:[["153",808]]},
+    {from:["112"], stop:"MALCESINE", at:969, to:[["3",975],["97",1012],["87",1020]]},
+    {from:["112"], stop:"RIVA", at:1005, to:[["77",1010]]},
+    {from:["113"], stop:"LIMONE", at:1030, to:[["163",1040]]},
+    {from:["113"], stop:"SALÒ", at:1087, to:[["3",1088]]},
+    {from:["5"], stop:"GARDA", at:770, to:[["153",808]]},
+    {from:["6"], stop:"SIRMIONE", at:922, to:[["162",937]]},
+    {from:["63"], stop:"MALCESINE", at:675, to:[["111",681]]},
+    {from:["64"], stop:"RIVA", at:755, to:[["161",805]]},
+    {from:["65"], stop:"MALCESINE", at:870, to:[["25",905]]},
+    {from:["66"], stop:"RIVA", at:945, to:[["113",1005]]},
+    {from:["66","67"], stop:"MALCESINE", at:995, to:[["97",1012]]},
+    {from:["75"], stop:"MALCESINE", at:945, to:[["3",975]]},
+    {from:["81"], stop:"MALCESINE", at:625, to:[["93",680]]},
+    {from:["82"], stop:"MALCESINE", at:660, to:[["93",680],["111",681]]},
+    {from:["85"], stop:"MALCESINE", at:895, to:[["25",905]]},
+    {from:["151"], stop:"GARDA", at:655, to:[["43",660],["29",663],["35",670]]},
+    {from:["153"], stop:"SIRMIONE", at:865, to:[["112",881]]},
+    {from:["91","92"], stop:"LIMONE", at:660, to:[["82",680]]},
+    {from:["96"], stop:"LIMONE", at:990, to:[["68",1018]]},
+    {from:["97"], stop:"GARDA", at:1105, to:[["3",1142],["27",1150]]},
+
+    {from:["8","28","14"], stop:"MALCESINE", at:655,
+      to:[["82",660],["64",675]]},
+    {from:["41","42","16"], stop:"MALCESINE", at:845,
+      to:[["84",850],["66",870]]},
+    {from:["44","36","6"], stop:"LIMONE", at:1035, to:[["88",1080]]},
+    {from:["44","36","6"], stop:"RIVA", at:1115, to:[["89",1120]]},
+    {from:["36","153"], stop:"RIVA", at:1005, to:[["77",1010]]},
+    {from:["161","64"], stop:"SIRMIONE", at:932,
+      to:[["45",962],["46",1018]]},
+    {from:["161","64"], stop:"MANERBA", at:1041, to:[["47",1041]]},
+    {from:["162"], stop:"RIVA", at:1115, to:[["89",1120]]},
+    {from:["113"], stop:"GARDA", at:1135, to:[["3",1142]]},
+    {from:["63","82"], stop:"GARDA", at:749, to:[["153",808]]},
+    {from:["65","85"], stop:"GARDA", at:1005, to:[["13",1015]]},
+    {from:["65","85"], stop:"SIRMIONE", at:1075, to:[["48",1115]]},
+    {from:["65","85"], stop:"MANERBA", at:1138, to:[["49",1138]]},
+    {from:["66"], stop:"SALÒ", at:1087, to:[["3",1088]]},
+    {from:["66","67"], stop:"GARDA", at:1105,
+      to:[["3",1142],["27",1150]]},
+    {from:["75"], stop:"GARDA", at:1142, to:[["27",1150]]},
+    {from:["91","92","110"], stop:"RIVA", at:715, to:[["83",720]]}
+  ];
+  const svg = root.querySelector(".og-chart");
+  const chartStage = root.querySelector(".og-chart-stage");
+  const stopAxis = root.querySelector(".og-stop-axis");
+  const timeAxis = root.querySelector(".og-time-axis");
+  const allRacesButton = root.querySelector("#og-tutte");
+  const noRacesButton = root.querySelector("#og-nessuna");
+  const summary = root.querySelector(".og-summary");
+  const detail = root.querySelector(".og-detail");
+  const tooltip = root.querySelector(".og-tooltip");
+  const coincidenceToggle = root.querySelector(".og-coincidence-toggle");
+  const residences = root.querySelector(".og-residences");
+  const normalMatrix = root.querySelector(".og-normal-matrix");
+  const rapidMatrix = root.querySelector(".og-rapid-matrix");
+  const tabChart = root.querySelector(".og-tab-chart");
+  const tabMatrix = root.querySelector(".og-tab-matrix");
+  const pageChart = root.querySelector(".og-page-chart");
+  const pageMatrix = root.querySelector(".og-page-matrix");
+  const courseCard = root.querySelector(".og-course-card");
+  const courseTitle = root.querySelector(".og-course-title");
+  const courseCode = root.querySelector(".og-course-code");
+  const courseSummary = root.querySelector(".og-course-summary");
+  const miniChart = root.querySelector(".og-mini-chart");
+  const courseStopsBody = root.querySelector(".og-course-stops tbody");
+  const courseClose = root.querySelector(".og-course-close");
+  const coursePrev = root.querySelector(".og-course-prev");
+  const courseNext = root.querySelector(".og-course-next");
+  const ns = "http://www.w3.org/2000/svg";
+  let activePath = null;
+  let activeCourseIndex = -1;
+  let visibleCourseEntries = [];
+  let chartZoom = 1;
+  let chartBaseWidth = 736;
+  let chartBaseHeight = 720;
+  let selectedStopFilter = null;
+  let chartScales = null;
+  const selectedRoutes = new Map();
+
+  const shiftOrder = Object.keys(data.shifts).filter((shift) =>
+    data.services.some((service) => service.s === shift)
+  );
+  const residenceOrder = [
+    ["Desenzano", ["D1", "D2", "D3", "D4"]],
+    ["Peschiera", ["P1", "P2", "P3", "CAP1", "SR1"]],
+    ["Maderno", ["T1", "T2", "M1"]],
+    ["Riva", ["R1", "R2", "R3", "R4", "CAR1"]]
+  ].map(([name, shifts]) => [name, shifts.filter((shift) => shiftOrder.includes(shift))])
+    .filter(([, shifts]) => shifts.length);
+  const shiftColorMap = {
+    D1: "#3b82f6", D2: "#10b981", D3: "#f97316", D4: "#d946ef",
+    P1: "#06b6d4", P2: "#84cc16", P3: "#ef4444", CAP1: "#a78bfa",
+    SR1: "#eab308", T1: "#2563eb", T2: "#14b8a6", M1: "#f59e0b",
+    R1: "#8b5cf6", R2: "#22c55e", R3: "#f43f5e", R4: "#ec4899",
+    CAR1: "#64748b"
+  };
+  const residenceColorMap = {
+    Desenzano: "#22d3ee", Peschiera: "#34d399",
+    Maderno: "#fb923c", Riva: "#c084fc"
+  };
+  const residenceShortMap = {
+    Desenzano: "D", Peschiera: "P", Maderno: "M", Riva: "R"
+  };
+  residences.innerHTML = residenceOrder.map(([name, shifts]) =>
+    '<section class="og-residence" style="--residence-color:' +
+    residenceColorMap[name] + '">' +
+    '<button class="btn og-residence-name" type="button" data-residence="' + name +
+    '" aria-pressed="true" style="--residence-color:' + residenceColorMap[name] +
+    '" aria-label="Mostra o nascondi tutti i turni della residenza ' + name + '">' +
+    residenceShortMap[name] + "</button>" +
+    '<div class="og-residence-shifts">' +
+    shifts.map((shift) =>
+      '<div class="og-shift-row">' +
+      '<button class="btn og-shift-button" type="button" data-shift="' + shift +
+      '" aria-pressed="true" style="--shift-color:' +
+      shiftColorMap[shift] + '">' +
+      shift + "</button>" +
+      '<button class="btn og-shift-expand" type="button" data-shift="' + shift +
+      '" aria-expanded="false" aria-label="Espandi le corse del turno ' + shift +
+      '" style="--shift-color:' + shiftColorMap[shift] + '">›</button>' +
+      '<div class="og-race-list" data-shift="' + shift + '" hidden style="--shift-color:' +
+      shiftColorMap[shift] + '">' +
+      data.shifts[shift].r.slice().sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
+        .map((race) =>
+          '<button class="btn og-race-button" type="button" data-shift="' + shift +
+          '" data-race="' + race + '" data-route-key="' + shift + ":" + race +
+          '" aria-pressed="false" style="--shift-color:' + shiftColorMap[shift] + '">' +
+          race + '<span class="og-race-check" aria-hidden="true">✓</span></button>'
+        ).join("") +
+      "</div>" +
+      "</div>"
+    ).join("") +
+    "</div>" +
+    "</section>"
+  ).join("");
+  residences.insertAdjacentHTML("beforeend",
+    '<div class="og-menu-actions" aria-label="Visibilità di tutte le corse">' +
+    '<button class="btn og-menu-action og-menu-master" type="button" ' +
+    'aria-pressed="true" aria-label="Nascondi tutte le corse">Ness.</button>' +
+    "</div>"
+  );
+  const rapidRaces = new Set([
+    "110", "111", "112", "113", "114",
+    "151", "155", "156", "160", "161", "162", "163"
+  ]);
+
+  function selectedShifts() {
+    return new Set(
+      Array.from(root.querySelectorAll(".og-shift-button[aria-pressed='true']"),
+        (button) => button.dataset.shift)
+    );
+  }
+
+  function selectOnly(shifts) {
+    const wanted = new Set(shifts);
+    root.querySelectorAll(".og-shift-button").forEach((button) => {
+      button.setAttribute("aria-pressed", String(wanted.has(button.dataset.shift)));
+    });
+    draw();
+  }
+
+  function showPage(page) {
+    const chartSelected = page === "chart";
+    pageChart.hidden = !chartSelected;
+    pageMatrix.hidden = chartSelected;
+    tabChart.classList.toggle("btn-primary", chartSelected);
+    tabMatrix.classList.toggle("btn-primary", !chartSelected);
+    tabChart.setAttribute("aria-selected", String(chartSelected));
+    tabMatrix.setAttribute("aria-selected", String(!chartSelected));
+    if (!chartSelected && courseCard.open) courseCard.close();
+  }
+
+  function formatAverage(minutes) {
+    if (!minutes.length) return "—";
+    const value = Math.round(minutes.reduce((sum, item) => sum + item, 0) / minutes.length);
+    return value >= 60
+      ? Math.floor(value / 60) + "h" + String(value % 60).padStart(2, "0") + "m"
+      : value + "m";
+  }
+
+  function durationsBetween(origin, destination, rapid) {
+    const durations = [];
+    data.services.forEach((service) => {
+      if (rapidRaces.has(service.r) !== rapid) return;
+      const originCalls = service.p.filter((point) => point[0] === origin);
+      const destinationCalls = service.p.filter((point) => point[0] === destination);
+      originCalls.forEach((from) => destinationCalls.forEach((to) => {
+        if (to[1] > from[1]) durations.push(to[1] - from[1]);
+      }));
+    });
+    return durations;
+  }
+
+  function drawOneMatrix(table, rapid) {
+    table.querySelector("thead").innerHTML = "<tr><th>Da / a</th>" +
+      data.stops.map((stop) => '<th class="text-nowrap">' + stop + "</th>").join("") +
+      "</tr>";
+    table.querySelector("tbody").innerHTML = data.stops.map((origin, originIndex) => {
+      const cells = data.stops.map((destination, destinationIndex) => {
+        if (originIndex === destinationIndex) return "<td>—</td>";
+        const durations = durationsBetween(originIndex, destinationIndex, rapid);
+        if (!durations.length) return "<td>—</td>";
+        const value = formatAverage(durations);
+        const label = origin + " - " + destination + ": " + value;
+        return '<td aria-label="' + label + '">' + value + "</td>";
+      }).join("");
+      return '<tr><td class="text-nowrap">' + origin + "</td>" + cells + "</tr>";
+    }).join("");
+    table.querySelectorAll("tbody td:not(:first-child)").forEach((cell) => {
+      cell.addEventListener("mouseenter", () => {
+        table.querySelectorAll(".is-highlighted").forEach((item) =>
+          item.classList.remove("is-highlighted")
+        );
+        const row = cell.parentElement;
+        const column = Array.from(row.children).indexOf(cell);
+        cell.classList.add("is-highlighted");
+        row.firstElementChild.classList.add("is-highlighted");
+        table.querySelector("thead tr").children[column].classList.add("is-highlighted");
+      });
+      cell.addEventListener("mouseleave", () => {
+        table.querySelectorAll(".is-highlighted").forEach((item) =>
+          item.classList.remove("is-highlighted")
+        );
+      });
+    });
+  }
+
+  function drawTravelMatrices() {
+    drawOneMatrix(normalMatrix, false);
+    drawOneMatrix(rapidMatrix, true);
+  }
+
+  function node(name, attrs, text) {
+    const element = document.createElementNS(ns, name);
+    Object.entries(attrs || {}).forEach(([key, value]) => element.setAttribute(key, value));
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+
+  function formatTime(minutes) {
+    return String(Math.floor(minutes / 60)).padStart(2, "0") + ":" +
+      String(minutes % 60).padStart(2, "0");
+  }
+
+  function routeText(service) {
+    const calls = service.p.map(([stop, minute]) =>
+      data.stops[stop] + " " + formatTime(minute)
+    );
+    const direction = service.s === "T1" || service.s === "T2"
+      ? "servizio traghetto"
+      : service.d === "N" ? "verso Riva" : "verso Desenzano/Peschiera";
+    return service.s + " · corsa " + service.r + " · " + direction + " · " + calls.join(" → ");
+  }
+
+  function pauseAfter(service) {
+    const sequence = data.services
+      .filter((item) => item.s === service.s)
+      .slice()
+      .sort((a, b) =>
+        Math.min(...a.p.map((point) => point[1])) -
+        Math.min(...b.p.map((point) => point[1]))
+      );
+    const index = sequence.indexOf(service);
+    if (index < 0 || index === sequence.length - 1) return null;
+    const current = service.p.slice().sort((a, b) => a[1] - b[1]);
+    const next = sequence[index + 1].p.slice().sort((a, b) => a[1] - b[1]);
+    const arrival = current[current.length - 1];
+    const departure = next[0];
+    const gap = departure[1] - arrival[1];
+    if (arrival[0] !== departure[0] || gap < 30) return null;
+    return {
+      stop: arrival[0],
+      arrival: arrival[1],
+      departure: departure[1],
+      nextRace: sequence[index + 1].r
+    };
+  }
+
+  function showCourseCard(path, service) {
+    if (activePath) activePath.classList.remove("is-active");
+    activePath = path;
+    activePath.classList.add("is-active");
+    activeCourseIndex = visibleCourseEntries.findIndex((entry) => entry.path === path);
+    coursePrev.disabled = activeCourseIndex <= 0;
+    courseNext.disabled = activeCourseIndex < 0 ||
+      activeCourseIndex >= visibleCourseEntries.length - 1;
+    const ordered = service.p.slice().sort((a, b) => a[1] - b[1]);
+    const first = ordered[0];
+    const last = ordered[ordered.length - 1];
+    const duration = last[1] - first[1];
+    const pause = pauseAfter(service);
+    const kind = service.s === "T1" || service.s === "T2"
+      ? "servizio traghetto"
+      : rapidRaces.has(service.r) ? "servizio rapido" : "corsa normale";
+    const courseColor = getComputedStyle(path).stroke;
+    miniChart.style.setProperty("--course-color", courseColor);
+    courseCard.style.setProperty("--course-color", courseColor);
+    courseCode.textContent = service.s;
+    courseTitle.textContent = service.r;
+    courseSummary.textContent = data.stops[first[0]] + " " + formatTime(first[1]) +
+      " → " + data.stops[last[0]] + " " + formatTime(last[1]) +
+      " · " + formatAverage([duration]) + " · " + kind +
+      (pause ? " · sosta dopo l’arrivo a " + data.stops[pause.stop] : "");
+    const legMinutes = ordered.slice(0, -1).map((point, index) =>
+      ordered[index + 1][1] - point[1]
+    );
+    const rowHeights = ordered.map((point, index) => {
+      const previous = legMinutes[index - 1] ?? legMinutes[index] ?? 15;
+      const next = legMinutes[index] ?? legMinutes[index - 1] ?? 15;
+      const averageLeg = (previous + next) / 2;
+      return Math.max(60, Math.min(180, Math.round(averageLeg * 3)));
+    });
+    courseStopsBody.innerHTML = ordered.map(([stop, minute], index) => {
+      const stopPause = index === ordered.length - 1 ? pause : null;
+      const time = stopPause
+        ? "Arrivo " + formatTime(stopPause.arrival)
+        : formatTime(minute);
+      return '<tr style="height:' + rowHeights[index] + 'px"><td>' + data.stops[stop] +
+        '</td><td class="text-end text-nowrap">' + time + "</td></tr>";
+    }).join("");
+    while (miniChart.firstChild) miniChart.removeChild(miniChart.firstChild);
+    const width = 92;
+    const height = rowHeights.reduce((sum, value) => sum + value, 0);
+    const x = 28;
+    const pointYs = [];
+    rowHeights.reduce((offset, rowHeight) => {
+      pointYs.push(offset + rowHeight / 2);
+      return offset + rowHeight;
+    }, 0);
+    miniChart.setAttribute("viewBox", "0 0 " + width + " " + height);
+    miniChart.style.width = width + "px";
+    miniChart.style.height = height + "px";
+    miniChart.appendChild(node("line", {
+      x1: x, x2: x,
+      y1: pointYs[0], y2: pointYs[pointYs.length - 1],
+      class: "og-mini-line"
+    }));
+    legMinutes.forEach((minutes, index) => {
+      miniChart.appendChild(node("text", {
+        x: 46,
+        y: (pointYs[index] + pointYs[index + 1]) / 2 + 4,
+        class: "og-mini-leg-time"
+      }, minutes + " min"));
+    });
+    ordered.forEach((point, index) => {
+      miniChart.appendChild(node("circle", {
+        cx: x, cy: pointYs[index], r: 6, class: "og-mini-dot"
+      }));
+    });
+    if (!courseCard.open) courseCard.showModal();
+    detail.textContent = routeText(service);
+  }
+
+  function selectRoute(path, service) {
+    showCourseCard(path, service);
+  }
+
+  function routeKey(service) {
+    return service.s + ":" + service.r;
+  }
+
+  function clearStopRouteHighlight() {
+    stopAxis.querySelectorAll(".og-axis-label").forEach((label) => {
+      label.classList.remove("is-route-stop", "is-route-hidden", "is-shared-stop");
+      label.style.removeProperty("--route-color");
+      label.style.removeProperty("--selection-offset");
+      label.querySelectorAll(".og-stop-time").forEach((time) => time.remove());
+    });
+  }
+
+  function highlightRouteStops(service, color, showTimes) {
+    clearStopRouteHighlight();
+    service.p.slice().sort((a, b) => a[1] - b[1]).forEach(([stop, minute]) => {
+      const label = stopAxis.querySelector('.og-axis-label[data-stop="' + stop + '"]');
+      if (!label) return;
+      label.classList.add("is-route-stop");
+      label.style.setProperty("--route-color", color);
+      if (showTimes) {
+        const time = document.createElement("span");
+        time.className = "og-stop-time";
+        time.style.setProperty("--time-color", color);
+        time.textContent = formatTime(minute);
+        label.appendChild(time);
+      }
+    });
+  }
+
+  function clearSelectedRoutes() {
+    selectedRoutes.clear();
+    svg.querySelectorAll(".og-coincidence-layer").forEach((item) => item.remove());
+    root.querySelectorAll(".og-route,.og-stop-dot,.og-course-label").forEach((item) => {
+      item.classList.remove("is-muted", "is-active", "is-coincidence-target");
+    });
+    root.querySelectorAll(".og-shift-button").forEach((button) => {
+      button.classList.remove("is-route-muted", "is-route-active");
+    });
+    root.querySelectorAll(".og-race-button").forEach((button) => {
+      button.classList.remove("is-selected");
+      button.setAttribute("aria-pressed", "false");
+    });
+    clearStopRouteHighlight();
+  }
+
+  function syncRaceMenuSelection() {
+    root.querySelectorAll(".og-race-button").forEach((button) => {
+      const isSelected = selectedRoutes.has(button.dataset.routeKey);
+      button.classList.toggle("is-selected", isSelected);
+      button.setAttribute("aria-pressed", String(isSelected));
+    });
+  }
+
+  function renderCoincidences() {
+    svg.querySelectorAll(".og-coincidence-layer").forEach((item) => item.remove());
+    if (!selectedRoutes.size || !chartScales ||
+        coincidenceToggle.getAttribute("aria-pressed") !== "true") return;
+
+    const selectedRaces = new Set(
+      Array.from(selectedRoutes.values(), (entry) => entry.service.r)
+    );
+    const layer = node("g", {class: "og-coincidence-layer"});
+    const renderedKeys = new Set();
+    let rendered = 0;
+    officialConnections.forEach((connection) => {
+      if (!connection.from.some((race) => selectedRaces.has(race))) return;
+      const stop = data.stops.indexOf(connection.stop);
+      if (stop < 0) return;
+      connection.to.forEach(([targetRace, departure]) => {
+        const connectionKey = connection.stop + ":" + connection.at + ":" +
+          targetRace + ":" + departure;
+        if (renderedKeys.has(connectionKey)) return;
+        renderedKeys.add(connectionKey);
+        const target = data.services.find((service) => service.r === targetRace);
+        if (!target) return;
+        const targetPoint = target.p.find(([pointStop, minute]) =>
+          pointStop === stop && Math.abs(minute - departure) <= 3
+        );
+        if (!targetPoint) return;
+        const x1 = chartScales.x(connection.at);
+        const x2 = chartScales.x(departure);
+        const y1 = chartScales.y(stop);
+        const targetColor = shiftColorMap[target.s] || "#2dd4bf";
+        const group = node("g", {
+          class: "og-coincidence",
+          "data-target-route": routeKey(target),
+          "aria-label": "Coincidenza con corsa " + targetRace + " a " +
+            connection.stop + ", attesa " + (departure - connection.at) + " minuti"
+        });
+        const line = node("line", {
+          x1: x1, x2: x2, y1: y1, y2: y1,
+          class: "og-coincidence-line"
+        });
+        line.style.stroke = targetColor;
+        const hit = node("line", {
+          x1: x1, x2: x2, y1: y1, y2: y1,
+          class: "og-coincidence-hit"
+        });
+        const startRing = node("circle", {
+          cx: x1, cy: y1, r: 6, class: "og-coincidence-ring"
+        });
+        startRing.style.stroke = targetColor;
+        const endRing = node("circle", {
+          cx: x2, cy: y1, r: 6, class: "og-coincidence-ring"
+        });
+        endRing.style.stroke = targetColor;
+        const label = node("text", {
+          x: (x1 + x2) / 2,
+          y: y1 - 9,
+          class: "og-coincidence-label"
+        }, "⇄ " + target.s + " " + targetRace + " · +" +
+          (departure - connection.at) + "m");
+        label.style.fill = targetColor;
+        const selectTarget = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const hadSelection = selectedRoutes.size > 0;
+          const shiftButton = root.querySelector('.og-shift-button[data-shift="' +
+            target.s + '"]');
+          if (shiftButton && shiftButton.getAttribute("aria-pressed") !== "true") {
+            const savedLeft = chartWrap.scrollLeft;
+            const savedTop = chartWrap.scrollTop;
+            shiftButton.setAttribute("aria-pressed", "true");
+            draw(true);
+            chartWrap.scrollLeft = savedLeft;
+            chartWrap.scrollTop = savedTop;
+          }
+          toggleSelectedRoute(null, target, targetColor, !hadSelection);
+        };
+        const showConnectionTip = () => {
+          tooltip.hidden = false;
+          tooltip.textContent = "Coincidenza ufficiale · " + connection.stop +
+            " · corsa " + targetRace + " alle " + formatTime(departure) +
+            " · attesa " + (departure - connection.at) + " min";
+          tooltip.style.left = Math.max(4, (x1 + x2) / 2 - 100) + "px";
+          tooltip.style.top = Math.max(4, y1 - 52) + "px";
+        };
+        const hideConnectionTip = () => {
+          tooltip.hidden = true;
+        };
+        hit.addEventListener("click", selectTarget);
+        hit.addEventListener("mouseenter", showConnectionTip);
+        hit.addEventListener("mouseleave", hideConnectionTip);
+        group.appendChild(line);
+        group.appendChild(hit);
+        group.appendChild(startRing);
+        group.appendChild(endRing);
+        group.appendChild(label);
+        if (!selectedRoutes.has(routeKey(target))) {
+          const continuation = target.p.slice()
+            .filter(([, minute]) => minute >= departure - 3)
+            .sort((a, b) => a[1] - b[1]);
+          if (continuation.length > 1) {
+            const points = continuation.map(([pointStop, minute]) =>
+              chartScales.x(minute) + "," + chartScales.y(pointStop)
+            ).join(" ");
+            const continuationLine = node("polyline", {
+              points: points,
+              class: "og-coincidence-continuation"
+            });
+            continuationLine.style.stroke = targetColor;
+            continuationLine.style.color = targetColor;
+            const continuationHit = node("polyline", {
+              points: points,
+              class: "og-coincidence-continuation-hit"
+            });
+            continuationHit.addEventListener("click", selectTarget);
+            continuationHit.addEventListener("mouseenter", showConnectionTip);
+            continuationHit.addEventListener("mouseleave", hideConnectionTip);
+            group.appendChild(continuationLine);
+            group.appendChild(continuationHit);
+          }
+          continuation.forEach(([pointStop, minute]) => {
+            const dot = node("circle", {
+              cx: chartScales.x(minute),
+              cy: chartScales.y(pointStop),
+              r: 3.5,
+              class: "og-coincidence-dot"
+            });
+            dot.style.stroke = targetColor;
+            group.appendChild(dot);
+            const stopLabel = stopAxis.querySelector(
+              '.og-axis-label[data-stop="' + pointStop + '"]'
+            );
+            if (!stopLabel) return;
+            stopLabel.classList.remove("is-route-hidden");
+            stopLabel.classList.add("is-route-stop");
+            if (!stopLabel.style.getPropertyValue("--route-color")) {
+              stopLabel.style.setProperty("--route-color", targetColor);
+            }
+            const timeKey = routeKey(target) + ":" + pointStop + ":" + minute;
+            if (!stopLabel.querySelector('[data-coincidence-key="' + timeKey + '"]')) {
+              const time = document.createElement("span");
+              time.className = "og-stop-time og-coincidence-time";
+              time.dataset.coincidenceKey = timeKey;
+              time.style.setProperty("--time-color", targetColor);
+              time.textContent = target.s + " " + targetRace + " · " +
+                formatTime(minute);
+              stopLabel.appendChild(time);
+            }
+          });
+        }
+        layer.appendChild(group);
+        rendered += 1;
+      });
+    });
+    if (rendered) svg.appendChild(layer);
+  }
+
+  function layoutVisibleStopLabels() {
+    const labels = Array.from(stopAxis.querySelectorAll(".og-axis-label"))
+      .filter((label) => !label.classList.contains("is-route-hidden") &&
+        label.offsetHeight > 0)
+      .sort((a, b) => Number(a.dataset.stop) - Number(b.dataset.stop));
+    if (!labels.length) return;
+    labels.forEach((label) => label.style.removeProperty("--selection-offset"));
+    const items = labels.map((label) => ({
+      label: label,
+      desired: Number.parseFloat(label.style.top) || 0,
+      height: Math.max(18, label.offsetHeight),
+      center: Number.parseFloat(label.style.top) || 0
+    }));
+    const padding = 6;
+    const topLimit = 4;
+    const bottomLimit = Math.max(topLimit + 1, stopAxis.clientHeight - 4);
+
+    items[0].center = Math.max(items[0].desired, topLimit + items[0].height / 2);
+    for (let index = 1; index < items.length; index += 1) {
+      const previous = items[index - 1];
+      const item = items[index];
+      item.center = Math.max(item.desired,
+        previous.center + previous.height / 2 + item.height / 2 + padding);
+    }
+    const last = items[items.length - 1];
+    last.center = Math.min(last.center, bottomLimit - last.height / 2);
+    for (let index = items.length - 2; index >= 0; index -= 1) {
+      const item = items[index];
+      const next = items[index + 1];
+      item.center = Math.min(item.center,
+        next.center - next.height / 2 - item.height / 2 - padding);
+    }
+    const underflow = topLimit - (items[0].center - items[0].height / 2);
+    if (underflow > 0) {
+      items.forEach((item) => {
+        item.center += underflow;
+      });
+    }
+    items.forEach((item) => {
+      item.label.style.setProperty("--selection-offset",
+        Math.round(item.center - item.desired) + "px");
+    });
+  }
+
+  function renderSelectedRoutes() {
+    if (!selectedRoutes.size) {
+      clearSelectedRoutes();
+      return;
+    }
+    root.querySelectorAll(".og-route,.og-stop-dot,.og-course-label").forEach((item) => {
+      const isSelected = selectedRoutes.has(item.dataset.routeKey);
+      item.classList.toggle("is-muted", !isSelected);
+      item.classList.toggle("is-active", isSelected);
+    });
+    const selectedShifts = new Set(
+      Array.from(selectedRoutes.values(), (entry) => entry.service.s)
+    );
+    root.querySelectorAll(".og-shift-button").forEach((button) => {
+      const isSelectedShift = selectedShifts.has(button.dataset.shift);
+      button.classList.toggle("is-route-muted", !isSelectedShift);
+      button.classList.toggle("is-route-active", isSelectedShift);
+    });
+    syncRaceMenuSelection();
+
+    clearStopRouteHighlight();
+    const stops = new Map();
+    selectedRoutes.forEach(({service, color}) => {
+      service.p.slice().sort((a, b) => a[1] - b[1]).forEach(([stop, minute]) => {
+        if (!stops.has(stop)) stops.set(stop, []);
+        stops.get(stop).push({minute, color, race: service.r});
+      });
+    });
+    stopAxis.querySelectorAll(".og-axis-label").forEach((label) => {
+      const entries = stops.get(Number(label.dataset.stop));
+      label.classList.toggle("is-route-hidden", !entries);
+      if (!entries) return;
+      label.classList.add("is-route-stop");
+      label.classList.toggle("is-shared-stop", entries.length > 1);
+      label.style.setProperty("--route-color", entries[0].color);
+      const stopName = data.stops[Number(label.dataset.stop)];
+      const stopOffsets = {CISANO: -20, BARDOLINO: -10, GARDA: 18};
+      if (stopOffsets[stopName]) {
+        label.style.setProperty("--selection-offset", stopOffsets[stopName] + "px");
+      }
+      entries.forEach((entry) => {
+        const time = document.createElement("span");
+        time.className = "og-stop-time";
+        time.style.setProperty("--time-color", entry.color);
+        time.textContent = entry.race + " · " + formatTime(entry.minute);
+        label.appendChild(time);
+      });
+    });
+    detail.textContent = selectedRoutes.size + (selectedRoutes.size === 1
+      ? " corsa selezionata."
+      : " corse selezionate · confronta gli orari nelle fermate condivise.");
+    renderCoincidences();
+    layoutVisibleStopLabels();
+  }
+
+  function zoomToSelectedRoutes() {
+    if (!selectedRoutes.size) return;
+    const baseWidth = Math.max(320, Math.round(root.getBoundingClientRect().width || 736));
+    const baseHeight = baseWidth < 520 ? 760 : 720;
+    const left = baseWidth < 440 ? 170 : 195;
+    const right = 18;
+    const top = 72;
+    const bottom = 18;
+    const basePlotW = baseWidth - left - right;
+    const basePlotH = baseHeight - top - bottom;
+    const selectedServices = Array.from(selectedRoutes.values(), (entry) => entry.service);
+    const points = selectedServices.flatMap((service) => service.p);
+    const minutes = points.map((point) => point[1]);
+    const stops = points.map((point) => point[0]);
+    const minMinute = Math.min(...minutes);
+    const maxMinute = Math.max(...minutes);
+    const minStop = Math.min(...stops);
+    const maxStop = Math.max(...stops);
+    const routeW = Math.max(90, ((maxMinute - minMinute) / (1245 - 450)) * basePlotW);
+    const routeH = Math.max(90,
+      ((maxStop - minStop) / (data.stops.length - 1)) * basePlotH);
+    const availableW = Math.max(180, chartWrap.clientWidth - left - 50);
+    const availableH = Math.max(180, chartWrap.clientHeight - 60);
+    chartZoom = Math.max(1, Math.min(3,
+      Math.min(availableW / routeW, availableH / routeH) * 0.88));
+    zoomValue.textContent = Math.round(chartZoom * 100) + "%";
+    draw(true);
+
+    const plotW = basePlotW * chartZoom;
+    const plotH = basePlotH * chartZoom;
+    const x1 = left + ((minMinute - 450) / (1245 - 450)) * plotW;
+    const x2 = left + ((maxMinute - 450) / (1245 - 450)) * plotW;
+    const y1 = top + (minStop / (data.stops.length - 1)) * plotH;
+    const y2 = top + (maxStop / (data.stops.length - 1)) * plotH;
+    requestAnimationFrame(() => {
+      chartWrap.scrollLeft = Math.max(0,
+        (x1 + x2) / 2 - (left + (chartWrap.clientWidth - left) / 2));
+      chartWrap.scrollTop = Math.max(0,
+        (y1 + y2) / 2 - chartWrap.clientHeight / 2);
+    });
+  }
+
+  function toggleSelectedRoute(path, service, color, adaptView = true) {
+    const key = routeKey(service);
+    if (selectedRoutes.has(key)) selectedRoutes.delete(key);
+    else selectedRoutes.set(key, {service, color});
+    if (selectedRoutes.size && adaptView) zoomToSelectedRoutes();
+    else if (selectedRoutes.size) renderSelectedRoutes();
+    else {
+      clearSelectedRoutes();
+      detail.textContent = "Selezione rimossa: sono nuovamente visibili tutte le corse.";
+    }
+  }
+
+  function draw(preserveSelections = false) {
+    if (!preserveSelections) clearSelectedRoutes();
+    while (svg.lastChild && svg.lastChild.nodeName !== "desc") svg.removeChild(svg.lastChild);
+    const selected = selectedShifts();
+    const menuMaster = root.querySelector(".og-menu-master");
+    const anyShiftVisible = selected.size > 0;
+    menuMaster.textContent = anyShiftVisible ? "Ness." : "Tutte";
+    menuMaster.setAttribute("aria-pressed", String(anyShiftVisible));
+    menuMaster.setAttribute("aria-label", anyShiftVisible
+      ? "Nascondi tutte le corse"
+      : "Mostra tutte le corse");
+    root.querySelectorAll(".og-residence-name").forEach((button) => {
+      const residence = residenceOrder.find(([name]) => name === button.dataset.residence);
+      button.setAttribute("aria-pressed",
+        String(Boolean(residence && residence[1].some((shift) => selected.has(shift)))));
+    });
+    const baseWidth = Math.max(320, Math.round(root.getBoundingClientRect().width || 736));
+    const baseHeight = baseWidth < 520 ? 760 : 720;
+    chartBaseWidth = baseWidth;
+    chartBaseHeight = baseHeight;
+    const margin = {
+      top: 72,
+      right: 18,
+      bottom: 18,
+      left: baseWidth < 440 ? 170 : 195
+    };
+    const plotW = (baseWidth - margin.left - margin.right) * chartZoom;
+    const plotH = (baseHeight - margin.top - margin.bottom) * chartZoom;
+    const width = margin.left + plotW + margin.right;
+    const height = margin.top + plotH + margin.bottom;
+    const start = 450;
+    const end = 1245;
+    const x = (minute) => margin.left + ((minute - start) / (end - start)) * plotW;
+    const y = (stop) => margin.top + (stop / (data.stops.length - 1)) * plotH;
+    chartScales = {x: x, y: y};
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.style.width = Math.round(width) + "px";
+    svg.style.height = Math.round(height) + "px";
+    svg.style.minHeight = "0";
+    chartStage.style.width = Math.round(width) + "px";
+    chartStage.style.height = Math.round(height) + "px";
+    chartStage.style.minHeight = "0";
+    stopAxis.style.width = margin.left + "px";
+    stopAxis.innerHTML = "";
+    timeAxis.style.width = Math.round(width) + "px";
+    timeAxis.innerHTML = "";
+
+    data.stops.forEach((stop, index) => {
+      svg.appendChild(node("line", {
+        x1: margin.left, x2: width - margin.right,
+        y1: y(index), y2: y(index), class: "og-grid"
+      }));
+      const stopLabel = document.createElement("button");
+      stopLabel.type = "button";
+      stopLabel.className = "og-axis-label" +
+        (selectedStopFilter === index ? " is-stop-filter" : "");
+      stopLabel.dataset.stop = index;
+      const stopName = document.createElement("span");
+      stopName.className = "og-stop-name";
+      stopName.textContent = stop;
+      stopLabel.appendChild(stopName);
+      stopLabel.setAttribute("aria-label", "Filtra le corse che fermano a " + stop);
+      stopLabel.style.top = Math.round(y(index)) + "px";
+      stopLabel.style.fontSize = Math.max(11, Math.min(20, 11 * chartZoom)) + "px";
+      const toggleStopFilter = () => {
+        selectedStopFilter = selectedStopFilter === index ? null : index;
+        draw();
+      };
+      stopLabel.addEventListener("click", toggleStopFilter);
+      stopAxis.appendChild(stopLabel);
+    });
+
+    for (let minute = 480; minute <= 1200; minute += 30) {
+      const isHour = minute % 60 === 0;
+      svg.appendChild(node("line", {
+        x1: x(minute), x2: x(minute),
+        y1: margin.top, y2: height - margin.bottom,
+        class: "og-grid" + (isHour ? " og-hour" : "")
+      }));
+      if (isHour) {
+        const timeLabel = document.createElement("span");
+        timeLabel.style.left = Math.round(x(minute)) + "px";
+        timeLabel.textContent = formatTime(minute);
+        timeAxis.appendChild(timeLabel);
+      }
+    }
+
+    const visible = data.services.filter((service) =>
+      (selected.has(service.s) || selectedRoutes.has(routeKey(service))) &&
+      (selectedStopFilter === null ||
+        service.p.some(([stop]) => stop === selectedStopFilter) ||
+        selectedRoutes.has(routeKey(service)))
+    )
+      .sort((a, b) =>
+        Math.min(...a.p.map((point) => point[1])) -
+        Math.min(...b.p.map((point) => point[1]))
+      );
+    visibleCourseEntries = [];
+    const fragment = document.createDocumentFragment();
+    visible.forEach((service) => {
+      const sorted = service.p.slice().sort((a, b) => a[1] - b[1]);
+      const points = sorted.map(([stop, minute]) => x(minute) + "," + y(stop)).join(" ");
+      const seriesClass = " og-series-" + shiftOrder.indexOf(service.s);
+      const courseColor = shiftColorMap[service.s] || "#3b82f6";
+      const path = node("polyline", {
+        points: points,
+        class: "og-route" + seriesClass,
+        "data-direction": service.d,
+        "aria-label": routeText(service)
+      });
+      path.style.stroke = courseColor;
+      path.dataset.routeKey = routeKey(service);
+      const hitPath = node("polyline", {
+        points: points,
+        class: "og-route-hit",
+        "data-route-key": routeKey(service),
+        "aria-label": "Seleziona " + routeText(service)
+      });
+      const handleRouteEnter = () => {
+        path.classList.add("is-active");
+        if (!selectedRoutes.size) highlightRouteStops(service, courseColor, false);
+        tooltip.hidden = false;
+        tooltip.textContent = service.s + " · corsa " + service.r + " · " +
+          formatTime(sorted[0][1]) + "-" + formatTime(sorted[sorted.length - 1][1]);
+        const rect = root.querySelector(".og-chart-wrap").getBoundingClientRect();
+        const px = x(sorted[Math.floor(sorted.length / 2)][1]) / width * rect.width;
+        const py = y(sorted[Math.floor(sorted.length / 2)][0]) / height * svg.getBoundingClientRect().height;
+        requestAnimationFrame(() => {
+          const tw = tooltip.offsetWidth;
+          const th = tooltip.offsetHeight;
+          tooltip.style.left = Math.max(4, Math.min(rect.width - tw - 4, px - tw / 2)) + "px";
+          tooltip.style.top = Math.max(4, py - th - 10) + "px";
+        });
+      };
+      const handleRouteLeave = () => {
+        if (!selectedRoutes.has(routeKey(service))) path.classList.remove("is-active");
+        if (!selectedRoutes.size) clearStopRouteHighlight();
+        tooltip.hidden = true;
+      };
+      const handleRouteClick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleSelectedRoute(path, service, courseColor);
+      };
+      hitPath.addEventListener("mouseenter", handleRouteEnter);
+      hitPath.addEventListener("mouseleave", handleRouteLeave);
+      hitPath.addEventListener("click", handleRouteClick);
+      visibleCourseEntries.push({path: path, service: service});
+      fragment.appendChild(path);
+      fragment.appendChild(hitPath);
+      const coursePause = pauseAfter(service);
+      sorted.forEach(([stop, minute], pointIndex) => {
+        const stopPause = pointIndex === sorted.length - 1 ? coursePause : null;
+        const dot = node("circle", {
+          cx: x(minute), cy: y(stop), r: 3,
+          class: "og-stop-dot" + seriesClass,
+          "data-direction": service.d
+        });
+        dot.style.stroke = courseColor;
+        dot.dataset.routeKey = routeKey(service);
+        dot.addEventListener("mouseenter", () => {
+          if (!selectedRoutes.size) highlightRouteStops(service, courseColor, false);
+          const stopLabel = root.querySelector('.og-axis-label[data-stop="' + stop + '"]');
+          if (stopLabel) stopLabel.classList.add("is-stop-active");
+          tooltip.hidden = false;
+          tooltip.textContent = service.s + " · corsa " + service.r + " · " +
+            data.stops[stop] + " · " + (stopPause
+              ? "arrivo " + formatTime(stopPause.arrival)
+              : "partenza " + formatTime(minute));
+          const rect = root.querySelector(".og-chart-wrap").getBoundingClientRect();
+          const px = x(minute) / width * rect.width;
+          const py = y(stop) / height * svg.getBoundingClientRect().height;
+          requestAnimationFrame(() => {
+            const tw = tooltip.offsetWidth;
+            const th = tooltip.offsetHeight;
+            tooltip.style.left = Math.max(4, Math.min(rect.width - tw - 4, px - tw / 2)) + "px";
+            tooltip.style.top = Math.max(4, py - th - 10) + "px";
+          });
+        });
+        dot.addEventListener("mouseleave", () => {
+          if (!selectedRoutes.size) clearStopRouteHighlight();
+          root.querySelectorAll(".og-axis-label.is-stop-active").forEach((item) =>
+            item.classList.remove("is-stop-active")
+          );
+          tooltip.hidden = true;
+        });
+        dot.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleSelectedRoute(path, service, courseColor);
+        });
+        fragment.appendChild(dot);
+      });
+      const first = sorted[0];
+      fragment.appendChild(node("text", {
+        x: x(first[1]) + 4, y: y(first[0]) - 5,
+        class: "og-course-label",
+        "data-route-key": routeKey(service)
+      }, selected.size > 1 ? service.s + "/" + service.r : service.r));
+    });
+    svg.appendChild(fragment);
+    visibleCourseEntries.sort((a, b) => {
+      const numberA = Number.parseInt(a.service.r, 10);
+      const numberB = Number.parseInt(b.service.r, 10);
+      return numberA - numberB || a.service.r.localeCompare(b.service.r, "it", {numeric: true});
+    });
+
+    const shiftNames = Array.from(selected);
+    const stopFilterText = selectedStopFilter === null
+      ? ""
+      : " · scalo: " + data.stops[selectedStopFilter];
+    summary.textContent = shiftNames.length
+      ? shiftNames.join(", ") + " · " + visible.length + " corse visualizzate" + stopFilterText
+      : "Nessun turno selezionato";
+    detail.textContent = visible.length
+      ? "Passa su una linea o selezionala per vedere tutti gli scali e gli orari."
+      : "Nessuna corsa con i filtri selezionati.";
+    if (preserveSelections && selectedRoutes.size) renderSelectedRoutes();
+    activePath = null;
+  }
+
+  root.querySelectorAll(".og-shift-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      button.setAttribute("aria-pressed",
+        String(button.getAttribute("aria-pressed") !== "true"));
+      draw();
+    });
+  });
+  root.querySelectorAll(".og-shift-expand").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const list = root.querySelector('.og-race-list[data-shift="' +
+        button.dataset.shift + '"]');
+      if (!list) return;
+      const open = button.getAttribute("aria-expanded") !== "true";
+      button.setAttribute("aria-expanded", String(open));
+      list.hidden = !open;
+    });
+  });
+  root.querySelectorAll(".og-race-button").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const service = data.services.find((item) =>
+        item.s === button.dataset.shift && item.r === button.dataset.race
+      );
+      if (!service) return;
+      const hadSelection = selectedRoutes.size > 0;
+      const shiftButton = root.querySelector('.og-shift-button[data-shift="' +
+        service.s + '"]');
+      if (shiftButton && shiftButton.getAttribute("aria-pressed") !== "true") {
+        const savedLeft = chartWrap.scrollLeft;
+        const savedTop = chartWrap.scrollTop;
+        shiftButton.setAttribute("aria-pressed", "true");
+        draw(true);
+        chartWrap.scrollLeft = savedLeft;
+        chartWrap.scrollTop = savedTop;
+      }
+      toggleSelectedRoute(null, service, shiftColorMap[service.s] || "#3b82f6",
+        !hadSelection);
+    });
+  });
+  root.querySelectorAll(".og-residence-name").forEach((button) => {
+    button.addEventListener("click", () => {
+      const residence = residenceOrder.find(([name]) => name === button.dataset.residence);
+      if (!residence) return;
+      const selected = selectedShifts();
+      const anySelected = residence[1].some((shift) => selected.has(shift));
+      residence[1].forEach((shift) => {
+        if (anySelected) selected.delete(shift);
+        else selected.add(shift);
+      });
+      selectOnly(selected);
+    });
+  });
+  root.querySelector(".og-menu-master").addEventListener("click", () => {
+    selectedStopFilter = null;
+    selectOnly(selectedShifts().size ? [] : shiftOrder);
+  });
+  allRacesButton.addEventListener("click", () => {
+    selectedStopFilter = null;
+    selectOnly(shiftOrder);
+  });
+  noRacesButton.addEventListener("click", () => {
+    selectedStopFilter = null;
+    selectOnly([]);
+  });
+  courseClose.addEventListener("click", () => {
+    courseCard.close();
+  });
+  coursePrev.addEventListener("click", () => {
+    if (activeCourseIndex <= 0) return;
+    const index = activeCourseIndex - 1;
+    const entry = visibleCourseEntries[index];
+    showCourseCard(entry.path, entry.service);
+  });
+  courseNext.addEventListener("click", () => {
+    if (activeCourseIndex < 0 || activeCourseIndex >= visibleCourseEntries.length - 1) return;
+    const index = activeCourseIndex + 1;
+    const entry = visibleCourseEntries[index];
+    showCourseCard(entry.path, entry.service);
+  });
+  const chartWrap = root.querySelector(".og-chart-wrap");
+  const zoomValue = root.querySelector(".og-zoom-value");
+  const zoomOut = root.querySelector(".og-zoom-out");
+  const zoomIn = root.querySelector(".og-zoom-in");
+  coincidenceToggle.addEventListener("click", () => {
+    const enabled = coincidenceToggle.getAttribute("aria-pressed") !== "true";
+    coincidenceToggle.setAttribute("aria-pressed", String(enabled));
+    coincidenceToggle.textContent = enabled ? "⇄ ON" : "⇄ OFF";
+    if (selectedRoutes.size) renderSelectedRoutes();
+  });
+  function lockStopAxisToLeft() {
+    stopAxis.style.transform = "translateX(" + chartWrap.scrollLeft + "px)";
+    timeAxis.style.transform = "translateY(" + chartWrap.scrollTop + "px)";
+    residences.style.transform = "translate(" + chartWrap.scrollLeft + "px," +
+      chartWrap.scrollTop + "px)";
+  }
+  chartWrap.addEventListener("scroll", lockStopAxisToLeft, {passive: true});
+  function setChartZoom(nextZoom, clientX, clientY) {
+    const previousZoom = chartZoom;
+    chartZoom = Math.max(1, Math.min(3, nextZoom));
+    if (chartZoom === previousZoom) return;
+    const rect = chartWrap.getBoundingClientRect();
+    const pointerX = clientX == null ? rect.width / 2 : clientX - rect.left;
+    const pointerY = clientY == null ? rect.height / 2 : clientY - rect.top;
+    const contentX = chartWrap.scrollLeft + pointerX;
+    const contentY = chartWrap.scrollTop + pointerY;
+    const fixedAxisWidth = stopAxis.offsetWidth;
+    const zoomRatio = chartZoom / previousZoom;
+    zoomValue.textContent = Math.round(chartZoom * 100) + "%";
+    draw(Boolean(selectedRoutes.size));
+    requestAnimationFrame(() => {
+      chartWrap.scrollLeft = fixedAxisWidth +
+        (contentX - fixedAxisWidth) * zoomRatio - pointerX;
+      chartWrap.scrollTop = 72 + (contentY - 72) * zoomRatio - pointerY;
+    });
+  }
+  chartStage.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setChartZoom(
+      chartZoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15),
+      event.clientX,
+      event.clientY
+    );
+  }, {passive: false});
+  zoomOut.addEventListener("click", () => setChartZoom(chartZoom / 1.2));
+  zoomIn.addEventListener("click", () => setChartZoom(chartZoom * 1.2));
+  zoomValue.addEventListener("click", () => {
+    setChartZoom(1);
+    chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
+  });
+  let panState = null;
+  let suppressCourseClick = false;
+  chartStage.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || event.target.closest("button")) return;
+    panState = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: chartWrap.scrollLeft,
+      scrollTop: chartWrap.scrollTop,
+      dragged: false
+    };
+  });
+  chartStage.addEventListener("pointermove", (event) => {
+    if (!panState || panState.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - panState.startX;
+    const deltaY = event.clientY - panState.startY;
+    if (!panState.dragged && Math.hypot(deltaX, deltaY) < 9) return;
+    if (!panState.dragged) {
+      panState.dragged = true;
+      chartStage.setPointerCapture(event.pointerId);
+    }
+    chartStage.classList.add("is-panning");
+    chartWrap.scrollLeft = panState.scrollLeft - deltaX;
+    chartWrap.scrollTop = panState.scrollTop - deltaY;
+    event.preventDefault();
+  });
+  function finishPan(event) {
+    if (!panState || panState.pointerId !== event.pointerId) return;
+    suppressCourseClick = panState.dragged;
+    chartStage.classList.remove("is-panning");
+    if (chartStage.hasPointerCapture(event.pointerId)) {
+      chartStage.releasePointerCapture(event.pointerId);
+    }
+    panState = null;
+    if (suppressCourseClick) {
+      setTimeout(() => { suppressCourseClick = false; }, 120);
+    }
+  }
+  chartStage.addEventListener("pointerup", finishPan);
+  chartStage.addEventListener("pointercancel", finishPan);
+  chartStage.addEventListener("click", (event) => {
+    if (!suppressCourseClick) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    suppressCourseClick = false;
+  }, true);
+  chartStage.addEventListener("click", (event) => {
+    if (!selectedRoutes.size) return;
+    if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot")) return;
+    clearSelectedRoutes();
+    detail.textContent = "Selezioni annullate: sono nuovamente visibili tutte le corse.";
+  });
+  chartStage.addEventListener("dblclick", (event) => {
+    if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot")) return;
+    clearSelectedRoutes();
+    setChartZoom(1);
+    chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
+    detail.textContent = "Selezioni annullate e zoom ripristinato.";
+  });
+  courseCard.addEventListener("close", () => {
+    if (activePath) activePath.classList.remove("is-active");
+    activePath = null;
+    activeCourseIndex = -1;
+  });
+  let pointerStartedOnBackdrop = false;
+  courseCard.addEventListener("pointerdown", (event) => {
+    const rect = courseCard.getBoundingClientRect();
+    pointerStartedOnBackdrop = event.target === courseCard &&
+      (event.clientX < rect.left || event.clientX > rect.right ||
+      event.clientY < rect.top || event.clientY > rect.bottom);
+  });
+  courseCard.addEventListener("click", () => {
+    if (pointerStartedOnBackdrop) courseCard.close();
+    pointerStartedOnBackdrop = false;
+  });
+  tabChart.addEventListener("click", () => showPage("chart"));
+  tabMatrix.addEventListener("click", () => showPage("matrix"));
+  let resizeTimer;
+  new ResizeObserver(() => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(draw, 80);
+  }).observe(root);
+  drawTravelMatrices();
+  draw();
+})();
+</script>
+
+<script id="codex-visualization-floating-ui-core" src="https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js"></script>
+<script id="codex-visualization-floating-ui-dom" src="https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js"></script>
+<script id="codex-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"></script>
+<script id="codex-visualization-tooltip">/* oxlint-disable typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return */
+// Runs inside the visualization sandbox, not the host webview.
+(() => {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =>
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =>
+    target?.nodeType != null && trigger.contains(target);
+  const getContent = (trigger) =>
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) => {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () => {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) => {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () => {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) => {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) => {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) => {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() => {
+        if (activeTrigger === trigger && request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) => {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () => {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) => {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() < skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() => {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) => {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () => {
+    closeTooltip(false);
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+</script>
+<script id="codex-visualization-lucide-initialization">(() => {
+  const initialize = () => {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById("codex-visualization-lucide")
+    ?.addEventListener("load", initialize, { once: true });
+})();
+</script>
+</body>
+</html>
