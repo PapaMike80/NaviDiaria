@@ -1562,13 +1562,21 @@
       border-left: 3px solid #f59e0b !important;
     }
     .date-head-draft {
-      display:block;
-      width:7px;
-      height:7px;
-      border-radius:50%;
-      background:#f59e0b;
-      box-shadow:0 0 0 2px rgba(245,158,11,.16);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:14px;
+      padding:1px 4px;
+      border:1px solid rgba(245,158,11,.62);
+      border-radius:4px;
+      background:rgba(245,158,11,.14);
+      color:#fbbf24;
+      font-size:7px;
+      font-weight:900;
+      line-height:1;
+      letter-spacing:.06em;
     }
+    .date-head-draft::after { content:"BOZZA"; }
     .date-head-markers {
       display:flex;
       justify-content:center;
@@ -3507,6 +3515,7 @@
 
     const dateCalendario = [];
     const settimaneInfo = [];
+    let weekStatusMap = {};
 
     const nomiGiorni = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
     const nomiGiorniCompleti = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
@@ -3584,6 +3593,9 @@
       const odsCoverage = getLatestOdsCoverage();
       let colCounter = 3;
       settimaneInfo.forEach((sett, sIdx) => {
+        const weekStartIso = Array.isArray(sett.dateIso) && sett.dateIso.length ? sett.dateIso[0] : "";
+        const configuredStatus = String(weekStatusMap[weekStartIso] || "").toLowerCase();
+        if (configuredStatus === "nascosta") return;
         const baseDate = new Date(sett.year || 2026, sett.month, sett.startDay);
         const count = sett.count || 7;
         for (let g = 0; g < count; g++) {
@@ -3600,7 +3612,8 @@
             labelEstesa: `${nomiGiorniCompleti[(d.getDay() + 6) % 7]} ${d.getDate()} ${mesiNomi[d.getMonth()]}`,
             realObj: d,
             iso,
-            isBozza: Boolean(globalData && globalData.bozza_dal && iso >= globalData.bozza_dal),
+            weekStatus: configuredStatus || (globalData && globalData.bozza_dal && iso >= globalData.bozza_dal ? "bozza" : "ufficiale"),
+            isBozza: configuredStatus ? configuredStatus === "bozza" : Boolean(globalData && globalData.bozza_dal && iso >= globalData.bozza_dal),
             odsCoverageNumber: odsCoverage && iso >= odsCoverage.from && iso <= odsCoverage.until
               ? odsCoverage.number
               : null,
@@ -5781,6 +5794,26 @@
     // Se il Google Sheet non risponde, usa l'ultima copia salvata nel browser.
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec";
 
+    async function caricaStatoSettimane() {
+      try {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "week_status_public" })
+        });
+        const result = await response.json();
+        if (!result || result.ok === false) throw new Error(result?.error || "Stato settimane non disponibile");
+        weekStatusMap = {};
+        (Array.isArray(result.weeks) ? result.weeks : []).forEach(week => {
+          if (week && week.start) weekStatusMap[String(week.start)] = String(week.state || "ufficiale").toLowerCase();
+        });
+        return true;
+      } catch (error) {
+        console.warn("Impossibile caricare lo stato delle settimane.", error);
+        return false;
+      }
+    }
+
     async function caricaDatiDaGoogleSheet(force = false) {
       let localDataShown = false;
       const saved = !force ? localStorage.getItem("turno_finali_data") : null;
@@ -5871,7 +5904,7 @@
         }
       });
       setupSynchronizedTableScrolls();
-      caricaDatiDaGoogleSheet();
+      caricaStatoSettimane().finally(() => caricaDatiDaGoogleSheet());
     });
   </script>
 

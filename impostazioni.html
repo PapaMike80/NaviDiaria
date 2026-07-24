@@ -19,7 +19,8 @@
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:grid;gap:7px}.field label{font-size:12px;font-weight:800;color:#b7cbd0}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);outline:none;color-scheme:dark}.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #2dd4bf22}
     .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.btn{padding:11px 16px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);font-weight:800;cursor:pointer}.btn.primary{border-color:var(--accent);background:var(--accent);color:#06221f}.btn:disabled{opacity:.45;cursor:not-allowed}.status{min-height:22px;margin-top:13px;color:#63dfca;font-size:13px;font-weight:700}.future{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.future div{padding:16px;border:1px dashed #36545d;border-radius:10px;background:#0d232c;color:var(--muted);font-size:13px}.future strong{display:block;margin-bottom:4px;color:#c5d7da}
     .admin-section[hidden]{display:none}.table-wrap{margin-top:20px;overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:12px 14px;border-bottom:1px solid #203e48;text-align:left;font-size:13px}th{background:#0b2029;color:#9db7be;font-size:11px;letter-spacing:.06em;text-transform:uppercase}tbody tr:hover{background:#14323d}tr:last-child td{border-bottom:0}.user-name{font-weight:800}.user-meta{display:block;margin-top:3px;color:var(--muted);font-size:11px}.pin-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#123f3d;color:#6ce9d5;font-size:11px;font-weight:800}.reset-btn,.delete-user-btn{padding:7px 10px;border:1px solid #80424a;border-radius:8px;background:#351e24;color:#ff9ba4;font-size:11px;font-weight:800;cursor:pointer}.reset-btn:hover{background:#b83b45;color:#fff}.delete-user-btn{margin-left:6px;border-color:#b83b45;background:#6b2029;color:#fff}.delete-user-btn:hover{background:#dc3545}.empty-row{padding:25px!important;text-align:center;color:var(--muted)}
-    @media(max-width:800px){body{padding-left:0}.sidebar{z-index:15}header{padding-left:66px}main{width:min(100% - 24px,920px);margin-top:18px}.section{padding:19px}.grid,.future{grid-template-columns:1fr}}
+    .weeks-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}.weeks-legend{display:flex;gap:8px;flex-wrap:wrap}.weeks-legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:800}.weeks-legend i{width:9px;height:9px;border-radius:3px}.weeks-legend .official{background:#22c55e}.weeks-legend .draft{background:#f59e0b}.weeks-legend .hidden{background:#64748b}.weeks-list{display:grid;gap:10px;margin-top:16px}.week-row{display:grid;grid-template-columns:minmax(190px,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid #294b56;border-radius:11px;background:#0b2029}.week-label strong{display:block;font-size:14px}.week-label span{display:block;margin-top:4px;color:var(--muted);font-size:11px}.week-state{display:flex;gap:6px}.week-state button{padding:7px 9px;border:1px solid #31535e;border-radius:8px;background:#102833;color:#9fb8c2;font-size:10px;font-weight:900;cursor:pointer}.week-state button.active[data-state="ufficiale"]{border-color:#22c55e;background:#143622;color:#86efac}.week-state button.active[data-state="bozza"]{border-color:#f59e0b;background:#3a2910;color:#fcd34d}.week-state button.active[data-state="nascosta"]{border-color:#64748b;background:#202a36;color:#cbd5e1}.month-title{margin:20px 0 2px;color:#6ce9d5;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.weeks-loading{padding:20px;text-align:center;color:var(--muted)}
+    @media(max-width:800px){body{padding-left:0}.sidebar{z-index:15}header{padding-left:66px}main{width:min(100% - 24px,920px);margin-top:18px}.section{padding:19px}.grid,.future{grid-template-columns:1fr}.week-row{grid-template-columns:1fr}.week-state{display:grid;grid-template-columns:repeat(3,1fr)}.week-state button{padding:8px 4px}}
   </style>
 </head>
 <body class="impostazioni-page">
@@ -45,6 +46,15 @@
       </div>
       <div class="actions"><button class="btn" id="disconnect" type="button" hidden>Disconnetti</button><button class="btn" id="connect" type="button" disabled>Collega Telegram</button><button class="btn primary" type="button" id="save">Salva impostazioni</button></div>
       <div class="status" id="status" aria-live="polite"></div>
+    </section>
+    <section class="section admin-section" id="gestione-settimane" hidden>
+      <div class="section-head"><div><h2>Calendario turni</h2><p>Scegli quali settimane sono ufficiali, in bozza oppure ancora nascoste. Le settimane vengono lette automaticamente da Foglio1.</p></div><span class="badge">Solo amministratori</span></div>
+      <div class="weeks-toolbar">
+        <div class="weeks-legend"><span><i class="official"></i>Ufficiale</span><span><i class="draft"></i>Bozza</span><span><i class="hidden"></i>Nascosta</span></div>
+        <button class="btn primary" type="button" id="save-weeks">Salva calendario</button>
+      </div>
+      <div class="weeks-list" id="weeks-list"><div class="weeks-loading">Caricamento settimane…</div></div>
+      <div class="status" id="weeks-status" aria-live="polite"></div>
     </section>
     <section class="section" id="altre-preferenze">
       <div class="section-head"><div><h2>Altre preferenze</h2><p>Questa pagina potrà raccogliere altre impostazioni senza aggiungere nuove pagine al portale.</p></div><span class="badge">In futuro</span></div>
@@ -86,6 +96,11 @@
       }catch(error){status.textContent=error.message||"Salvataggio Telegram non riuscito.";}
     });
     const isAdmin=['91','92','MOVIMENTO'].includes(String(profile?.id||''))||String(profile?.role||'').toLowerCase()==='admin';
+    const weeksSection=document.getElementById('gestione-settimane');
+    const weeksList=document.getElementById('weeks-list');
+    const weeksStatus=document.getElementById('weeks-status');
+    const saveWeeksButton=document.getElementById('save-weeks');
+    let loadedWeeks=[];
     const adminSection=document.getElementById('gestione-utenti');
     const usersList=document.getElementById('users-list');
     const usersStatus=document.getElementById('users-status');
@@ -140,6 +155,51 @@
       const ordered=[...users].sort((a,b)=>accessTimestamp(b.lastAccess)-accessTimestamp(a.lastAccess)||String(a.name||'').localeCompare(String(b.name||''),'it'));
       usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}</span></td><td>${safeText(user.registeredAt||'—')}</td><td>${safeText(user.lastAccess||'—')}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button><button class="delete-user-btn" type="button" data-delete-user="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Elimina</button></td></tr>`).join('');
     }
+    function formatWeekDate(iso){
+      const [year,month,day]=String(iso||'').split('-').map(Number);
+      if(!year||!month||!day)return iso||'';
+      return new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'long'}).format(new Date(year,month-1,day));
+    }
+    function renderWeeks(weeks){
+      loadedWeeks=Array.isArray(weeks)?weeks:[];
+      if(!loadedWeeks.length){weeksList.innerHTML='<div class="weeks-loading">Nessuna settimana trovata in Foglio1.</div>';return;}
+      let currentMonth='';
+      weeksList.innerHTML=loadedWeeks.map((week,index)=>{
+        const month=String(week.start||'').slice(0,7);
+        const monthHeading=month!==currentMonth?`<div class="month-title">${new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric'}).format(new Date(`${week.start}T12:00:00`))}</div>`:'';
+        currentMonth=month;
+        const state=String(week.state||'ufficiale').toLowerCase();
+        return `${monthHeading}<div class="week-row" data-week-index="${index}"><div class="week-label"><strong>${formatWeekDate(week.start)} – ${formatWeekDate(week.end)}</strong><span>${week.days||7} giorni presenti in Foglio1</span></div><div class="week-state"><button type="button" data-state="ufficiale" class="${state==='ufficiale'?'active':''}">UFFICIALE</button><button type="button" data-state="bozza" class="${state==='bozza'?'active':''}">BOZZA</button><button type="button" data-state="nascosta" class="${state==='nascosta'?'active':''}">NASCOSTA</button></div></div>`;
+      }).join('');
+    }
+    weeksList.addEventListener('click',event=>{
+      const button=event.target.closest('[data-state]');if(!button)return;
+      const row=button.closest('[data-week-index]');if(!row)return;
+      const index=Number(row.dataset.weekIndex);if(!loadedWeeks[index])return;
+      loadedWeeks[index].state=button.dataset.state;
+      row.querySelectorAll('[data-state]').forEach(item=>item.classList.toggle('active',item===button));
+      weeksStatus.textContent='Modifiche non ancora salvate.';
+    });
+    async function loadWeeks(){
+      if(!isAdmin)return;
+      weeksSection.hidden=false;
+      if(!window.NaviCloud||!pinHash){weeksList.innerHTML='<div class="weeks-loading">Sessione amministratore non disponibile.</div>';return;}
+      try{
+        const result=await NaviCloud.request('list_week_status',{agentId:String(profile.id),pinHash});
+        renderWeeks(result.weeks||[]);
+      }catch(error){weeksList.innerHTML=`<div class="weeks-loading">${safeText(error.message||'Impossibile caricare le settimane.')}</div>`;}
+    }
+    saveWeeksButton.addEventListener('click',async()=>{
+      if(!loadedWeeks.length)return;
+      saveWeeksButton.disabled=true;weeksStatus.textContent='Salvataggio calendario…';
+      try{
+        const statuses=loadedWeeks.map(week=>({start:week.start,end:week.end,state:week.state}));
+        await NaviCloud.request('save_week_status',{agentId:String(profile.id),pinHash,statuses});
+        weeksStatus.textContent='Calendario salvato. NaviTurni userà subito questi stati al prossimo aggiornamento.';
+      }catch(error){weeksStatus.textContent=error.message||'Salvataggio non riuscito.';}
+      finally{saveWeeksButton.disabled=false;}
+    });
+
     async function loadRegisteredUsers(){
       if(!isAdmin)return;
       adminSection.hidden=false;
@@ -164,6 +224,7 @@
         await loadRegisteredUsers();
       }catch(error){usersStatus.textContent=error.message||'Reset PIN non riuscito.';button.disabled=false;}
     });
+    loadWeeks();
     loadRegisteredUsers();
     loadTelegramStatus();
   </script>
