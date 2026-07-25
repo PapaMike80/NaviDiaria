@@ -965,11 +965,16 @@
     }
 
     function renderCoincidences() {
+      // 1. PULIZIA: Prima di fare qualsiasi controllo, cancelliamo le coincidenze vecchie!
+      if (svg) {
+        svg.querySelectorAll(".og-coincidence-layer").forEach((item) => {
+          if (item.remove) item.remove();
+          else if (item.parentNode) item.parentNode.removeChild(item);
+        });
+      }
+
+      // 2. CONTROLLO: Se il bottone è off, ci fermiamo qui (ma intanto abbiamo pulito)
       if (!svg || !chartScales || !coincidenceToggle || coincidenceToggle.getAttribute("aria-pressed") !== "true") return;
-      svg.querySelectorAll(".og-coincidence-layer").forEach((item) => {
-        if (item.remove) item.remove();
-        else if (item.parentNode) item.parentNode.removeChild(item);
-      });
 
       const activeShifts = Array.from(selectedShifts());
       const sourceServices = selectedRoutes.size
@@ -1351,10 +1356,6 @@
       
       const containerWidth = Math.round(root.getBoundingClientRect().width || 736);
       
-      // --- MODIFICA CRITICA PER IL PANNING SU MOBILE ---
-      // Forziamo una larghezza minima del grafico (1100px su mobile).
-      // Se il grafico è più largo dello schermo del telefono (es. 390px),
-      // il contenitore diventerà "scrollabile" e il panning funzionerà perfettamente!
       const baseWidth = Math.max(isMobileLayout() ? 1100 : 736, containerWidth);
       const baseHeight = isMobileLayout() ? 780 : (baseWidth < 520 ? 760 : 720);
       
