@@ -965,7 +965,7 @@
     }
 
     function renderCoincidences() {
-      // 1. PULIZIA: Prima di fare qualsiasi controllo, cancelliamo le coincidenze vecchie!
+      // PULIZIA: Prima controlliamo e rimuoviamo sempre le coincidenze vecchie disegnate!
       if (svg) {
         svg.querySelectorAll(".og-coincidence-layer").forEach((item) => {
           if (item.remove) item.remove();
@@ -973,7 +973,7 @@
         });
       }
 
-      // 2. CONTROLLO: Se il bottone è off, ci fermiamo qui (ma intanto abbiamo pulito)
+      // CONTROLLO: Se il bottone è "spento", ci fermiamo qui senza disegnare le nuove
       if (!svg || !chartScales || !coincidenceToggle || coincidenceToggle.getAttribute("aria-pressed") !== "true") return;
 
       const activeShifts = Array.from(selectedShifts());
@@ -1355,7 +1355,6 @@
       });
       
       const containerWidth = Math.round(root.getBoundingClientRect().width || 736);
-      
       const baseWidth = Math.max(isMobileLayout() ? 1100 : 736, containerWidth);
       const baseHeight = isMobileLayout() ? 780 : (baseWidth < 520 ? 760 : 720);
       
@@ -1680,6 +1679,30 @@
         selectOnly(selected);
       });
     });
+
+    // --- RIPRISTINATI I PULSANTI MANGIATI PER ERRORE! ---
+    const btnMenuMaster = root.querySelector(".og-menu-master");
+    if (btnMenuMaster) {
+      btnMenuMaster.addEventListener("click", () => {
+        selectedStopFilter = null;
+        selectOnly(selectedShifts().size ? [] : shiftOrder);
+      });
+    }
+
+    if (allRacesButton) {
+      allRacesButton.addEventListener("click", () => {
+        selectedStopFilter = null;
+        selectOnly(shiftOrder);
+      });
+    }
+
+    if (noRacesButton) {
+      noRacesButton.addEventListener("click", () => {
+        selectedStopFilter = null;
+        selectOnly([]);
+      });
+    }
+    // ----------------------------------------------------
 
     if (normalMatrix && rapidMatrix) drawTravelMatrices();
     renderSelectedCoursePills();
