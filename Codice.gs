@@ -146,9 +146,7 @@ function generaNaviturni() {
       numero: dataColonna.getDate(),
       mese: dataColonna.getMonth() + 1,
       anno: dataColonna.getFullYear(),
-      stato: formatDateISO(dataColonna) >= bozzaDal
-        ? "bozza"
-        : "ufficiale"
+      stato: "ufficiale"
     });
   }
 
