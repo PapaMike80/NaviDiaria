@@ -68,7 +68,7 @@
     let overrides = {};
     try {
       overrides = JSON.parse(localStorage.getItem(ORARI_OVERRIDE_KEY) || "{}");
-    } catch {
+    } catch (e) {
       overrides = {};
     }
     Object.entries(overrides).forEach(([key, value]) => {
@@ -303,16 +303,19 @@
   }
 
   function setTurniMenuOpen(open) {
-    if (!mobileMenuToggle) return;
     if (isMobileLayout()) {
       root.classList.toggle("og-mobile-menu-open", open);
       root.classList.remove("og-turns-hidden");
-      mobileMenuToggle.setAttribute("aria-expanded", String(open));
+      if (mobileMenuToggle) {
+        mobileMenuToggle.setAttribute("aria-expanded", String(open));
+      }
       return;
     }
     root.classList.remove("og-mobile-menu-open");
     root.classList.toggle("og-turns-hidden", !open);
-    mobileMenuToggle.setAttribute("aria-expanded", String(open));
+    if (mobileMenuToggle) {
+      mobileMenuToggle.setAttribute("aria-expanded", String(open));
+    }
   }
 
   function closeMobileMenu() {
@@ -434,7 +437,8 @@
   }
 
   function escapeHtml(value) {
-    return String(value ?? "")
+    const valStr = value !== null && value !== undefined ? value : "";
+    return String(valStr)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -444,14 +448,15 @@
 
   function prettyStopName(stop) {
     const raw = typeof stop === "number" ? data.stops[stop] : stop;
-    return String(raw || "")
+    const valStr = raw !== null && raw !== undefined ? raw : "";
+    return String(valStr)
       .toLocaleLowerCase("it")
       .replace(/(^|[\s\-/'’(]+)([a-zàèéìòù])/giu,
         (match, prefix, letter) => prefix + letter.toLocaleUpperCase("it"));
   }
 
   function orderedCoursePoints(service) {
-    return service?.p?.slice().sort((a, b) => a[1] - b[1]) || [];
+    return (service && service.p) ? service.p.slice().sort((a, b) => a[1] - b[1]) : [];
   }
 
   function positionTooltipNearPointer(event) {
@@ -500,7 +505,14 @@
     });
     path.classList.add("is-active");
     if (!selectedRoutes.size) highlightRouteStops(service, color, true);
-    const anchorStop = sortedPoints?.[0]?.[0] ?? service.p[0]?.[0] ?? 0;
+    
+    let anchorStop = 0;
+    if (sortedPoints && sortedPoints[0] && sortedPoints[0][0] !== undefined) {
+      anchorStop = sortedPoints[0][0];
+    } else if (service.p && service.p[0] && service.p[0][0] !== undefined) {
+      anchorStop = service.p[0][0];
+    }
+
     const rect = chartWrap.getBoundingClientRect();
     const baseWidth = Math.max(320, Math.round(root.getBoundingClientRect().width || 736));
     const labelX = getChartLeftMargin(baseWidth) + 8;
@@ -509,7 +521,7 @@
           clientX: rect.left + Math.max(12, labelX - chartWrap.scrollLeft),
           clientY: rect.top + Math.max(92, (chartScales ? chartScales.y(anchorStop) : 110) - chartWrap.scrollTop - 10)
         }
-      : (event?.clientX != null ? event : {
+      : (event && event.clientX != null ? event : {
           clientX: rect.left + 12,
           clientY: rect.top + Math.max(90, chartScales ? chartScales.y(anchorStop) - chartWrap.scrollTop : 110)
         });
@@ -751,8 +763,10 @@
       ordered[index + 1][1] - point[1]
     );
     const rowHeights = ordered.map((point, index) => {
-      const previous = legMinutes[index - 1] ?? legMinutes[index] ?? 15;
-      const next = legMinutes[index] ?? legMinutes[index - 1] ?? 15;
+      const prevMin = legMinutes[index - 1];
+      const currMin = legMinutes[index];
+      const previous = prevMin !== undefined ? prevMin : (currMin !== undefined ? currMin : 15);
+      const next = currMin !== undefined ? currMin : (prevMin !== undefined ? prevMin : 15);
       const averageLeg = (previous + next) / 2;
       return Math.max(60, Math.min(180, Math.round(averageLeg * 3)));
     });
@@ -1213,12 +1227,14 @@
     while (svg.lastChild && svg.lastChild.nodeName !== "desc") svg.removeChild(svg.lastChild);
     const selected = selectedShifts();
     const menuMaster = root.querySelector(".og-menu-master");
-    const anyShiftVisible = selected.size > 0;
-    menuMaster.textContent = anyShiftVisible ? "Ness." : "Tutte";
-    menuMaster.setAttribute("aria-pressed", String(anyShiftVisible));
-    menuMaster.setAttribute("aria-label", anyShiftVisible
-      ? "Nascondi tutte le corse"
-      : "Mostra tutte le corse");
+    if (menuMaster) {
+      const anyShiftVisible = selected.size > 0;
+      menuMaster.textContent = anyShiftVisible ? "Ness." : "Tutte";
+      menuMaster.setAttribute("aria-pressed", String(anyShiftVisible));
+      menuMaster.setAttribute("aria-label", anyShiftVisible
+        ? "Nascondi tutte le corse"
+        : "Mostra tutte le corse");
+    }
     root.querySelectorAll(".og-residence-name").forEach((button) => {
       const residence = residenceOrder.find(([name]) => name === button.dataset.residence);
       button.setAttribute("aria-pressed",
@@ -1521,18 +1537,28 @@
       selectOnly(selected);
     });
   });
-  root.querySelector(".og-menu-master").addEventListener("click", () => {
-    selectedStopFilter = null;
-    selectOnly(selectedShifts().size ? [] : shiftOrder);
-  });
-  allRacesButton.addEventListener("click", () => {
-    selectedStopFilter = null;
-    selectOnly(shiftOrder);
-  });
-  noRacesButton.addEventListener("click", () => {
-    selectedStopFilter = null;
-    selectOnly([]);
-  });
+  
+  const menuMaster = root.querySelector(".og-menu-master");
+  if (menuMaster) {
+    menuMaster.addEventListener("click", () => {
+      selectedStopFilter = null;
+      selectOnly(selectedShifts().size ? [] : shiftOrder);
+    });
+  }
+  
+  if (allRacesButton) {
+    allRacesButton.addEventListener("click", () => {
+      selectedStopFilter = null;
+      selectOnly(shiftOrder);
+    });
+  }
+  if (noRacesButton) {
+    noRacesButton.addEventListener("click", () => {
+      selectedStopFilter = null;
+      selectOnly([]);
+    });
+  }
+  
   if (mobileMenuToggle) {
     mobileMenuToggle.addEventListener("click", () => {
       const currentlyOpen = isMobileLayout()
@@ -1547,31 +1573,41 @@
   window.addEventListener("resize", () => {
     if (isMobileLayout()) {
       root.classList.remove("og-turns-hidden");
-      mobileMenuToggle?.setAttribute("aria-expanded",
-        String(root.classList.contains("og-mobile-menu-open")));
+      if (mobileMenuToggle) {
+        mobileMenuToggle.setAttribute("aria-expanded",
+          String(root.classList.contains("og-mobile-menu-open")));
+      }
     } else {
       root.classList.remove("og-mobile-menu-open");
-      mobileMenuToggle?.setAttribute("aria-expanded",
-        String(!root.classList.contains("og-turns-hidden")));
+      if (mobileMenuToggle) {
+        mobileMenuToggle.setAttribute("aria-expanded",
+          String(!root.classList.contains("og-turns-hidden")));
+      }
     }
     syncResidencesHost();
     lockStopAxisToLeft();
   });
-  courseClose.addEventListener("click", () => {
-    courseCard.close();
-  });
-  coursePrev.addEventListener("click", () => {
-    if (activeCourseIndex <= 0) return;
-    const index = activeCourseIndex - 1;
-    const entry = visibleCourseEntries[index];
-    showCourseCard(entry.path, entry.service);
-  });
-  courseNext.addEventListener("click", () => {
-    if (activeCourseIndex < 0 || activeCourseIndex >= visibleCourseEntries.length - 1) return;
-    const index = activeCourseIndex + 1;
-    const entry = visibleCourseEntries[index];
-    showCourseCard(entry.path, entry.service);
-  });
+  if (courseClose) {
+    courseClose.addEventListener("click", () => {
+      if (courseCard && typeof courseCard.close === "function") courseCard.close();
+    });
+  }
+  if (coursePrev) {
+    coursePrev.addEventListener("click", () => {
+      if (activeCourseIndex <= 0) return;
+      const index = activeCourseIndex - 1;
+      const entry = visibleCourseEntries[index];
+      showCourseCard(entry.path, entry.service);
+    });
+  }
+  if (courseNext) {
+    courseNext.addEventListener("click", () => {
+      if (activeCourseIndex < 0 || activeCourseIndex >= visibleCourseEntries.length - 1) return;
+      const index = activeCourseIndex + 1;
+      const entry = visibleCourseEntries[index];
+      showCourseCard(entry.path, entry.service);
+    });
+  }
   const chartWrap = root.querySelector(".og-chart-wrap");
   const zoomValue = root.querySelector(".og-zoom-value");
   const zoomOut = root.querySelector(".og-zoom-out");
@@ -1588,16 +1624,18 @@
       chartWrap.insertBefore(residences, chartWrap.firstChild);
     }
   }
-  coincidenceToggle.addEventListener("click", () => {
-    const enabled = coincidenceToggle.getAttribute("aria-pressed") !== "true";
-    coincidenceToggle.setAttribute("aria-pressed", String(enabled));
-    coincidenceToggle.textContent = enabled ? "⇄ ON" : "⇄ OFF";
-    if (selectedRoutes.size) renderSelectedRoutes();
-    else renderCoincidences();
-  });
+  if (coincidenceToggle) {
+    coincidenceToggle.addEventListener("click", () => {
+      const enabled = coincidenceToggle.getAttribute("aria-pressed") !== "true";
+      coincidenceToggle.setAttribute("aria-pressed", String(enabled));
+      coincidenceToggle.textContent = enabled ? "⇄ ON" : "⇄ OFF";
+      if (selectedRoutes.size) renderSelectedRoutes();
+      else renderCoincidences();
+    });
+  }
   function lockStopAxisToLeft() {
-    stopAxis.style.transform = "translateX(" + chartWrap.scrollLeft + "px)";
-    timeAxis.style.transform = "translateY(" + chartWrap.scrollTop + "px)";
+    if (stopAxis) stopAxis.style.transform = "translateX(" + chartWrap.scrollLeft + "px)";
+    if (timeAxis) timeAxis.style.transform = "translateY(" + chartWrap.scrollTop + "px)";
     if (!isMobileLayout() && residences.parentElement === chartWrap) {
       residences.style.transform = "translate(" + chartWrap.scrollLeft + "px," +
         chartWrap.scrollTop + "px)";
@@ -1606,7 +1644,9 @@
     }
   }
   syncResidencesHost();
-  chartWrap.addEventListener("scroll", lockStopAxisToLeft, {passive: true});
+  if (chartWrap) {
+    chartWrap.addEventListener("scroll", lockStopAxisToLeft, {passive: true});
+  }
   function setChartZoom(nextZoom, clientX, clientY) {
     const previousZoom = chartZoom;
     chartZoom = Math.max(1, Math.min(3, nextZoom));
@@ -1618,7 +1658,7 @@
     const contentY = chartWrap.scrollTop + pointerY;
     const fixedAxisWidth = stopAxis.offsetWidth;
     const zoomRatio = chartZoom / previousZoom;
-    zoomValue.textContent = Math.round(chartZoom * 100) + "%";
+    if (zoomValue) zoomValue.textContent = Math.round(chartZoom * 100) + "%";
     draw(Boolean(selectedRoutes.size));
     requestAnimationFrame(() => {
       chartWrap.scrollLeft = fixedAxisWidth +
@@ -1626,112 +1666,142 @@
       chartWrap.scrollTop = 72 + (contentY - 72) * zoomRatio - pointerY;
     });
   }
-  chartStage.addEventListener("wheel", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setChartZoom(
-      chartZoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15),
-      event.clientX,
-      event.clientY
-    );
-  }, {passive: false});
-  zoomOut.addEventListener("click", () => setChartZoom(chartZoom / 1.2));
-  zoomIn.addEventListener("click", () => setChartZoom(chartZoom * 1.2));
-  zoomValue.addEventListener("click", () => {
-    setChartZoom(1);
-    chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
-  });
+  if (chartStage) {
+    chartStage.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setChartZoom(
+        chartZoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15),
+        event.clientX,
+        event.clientY
+      );
+    }, {passive: false});
+  }
+  if (zoomOut) zoomOut.addEventListener("click", () => setChartZoom(chartZoom / 1.2));
+  if (zoomIn) zoomIn.addEventListener("click", () => setChartZoom(chartZoom * 1.2));
+  if (zoomValue) {
+    zoomValue.addEventListener("click", () => {
+      setChartZoom(1);
+      if (chartWrap.scrollTo) {
+        chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
+      } else {
+        chartWrap.scrollLeft = 0;
+        chartWrap.scrollTop = 0;
+      }
+    });
+  }
   let panState = null;
   let suppressCourseClick = false;
-  chartStage.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest("button")) return;
-    panState = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      scrollLeft: chartWrap.scrollLeft,
-      scrollTop: chartWrap.scrollTop,
-      dragged: false
-    };
-  });
-  chartStage.addEventListener("pointermove", (event) => {
-    if (!panState || panState.pointerId !== event.pointerId) return;
-    const deltaX = event.clientX - panState.startX;
-    const deltaY = event.clientY - panState.startY;
-    if (!panState.dragged && Math.hypot(deltaX, deltaY) < 9) return;
-    if (!panState.dragged) {
-      panState.dragged = true;
-      chartStage.setPointerCapture(event.pointerId);
-    }
-    chartStage.classList.add("is-panning");
-    chartWrap.scrollLeft = panState.scrollLeft - deltaX;
-    chartWrap.scrollTop = panState.scrollTop - deltaY;
-    event.preventDefault();
-  });
+  if (chartStage) {
+    chartStage.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || event.target.closest("button")) return;
+      panState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        scrollLeft: chartWrap.scrollLeft,
+        scrollTop: chartWrap.scrollTop,
+        dragged: false
+      };
+    });
+    chartStage.addEventListener("pointermove", (event) => {
+      if (!panState || panState.pointerId !== event.pointerId) return;
+      const deltaX = event.clientX - panState.startX;
+      const deltaY = event.clientY - panState.startY;
+      if (!panState.dragged && Math.hypot(deltaX, deltaY) < 9) return;
+      if (!panState.dragged) {
+        panState.dragged = true;
+        if (typeof chartStage.setPointerCapture === "function") {
+            try { chartStage.setPointerCapture(event.pointerId); } catch(e) {}
+        }
+      }
+      chartStage.classList.add("is-panning");
+      chartWrap.scrollLeft = panState.scrollLeft - deltaX;
+      chartWrap.scrollTop = panState.scrollTop - deltaY;
+      event.preventDefault();
+    });
+  }
   function finishPan(event) {
     if (!panState || panState.pointerId !== event.pointerId) return;
     suppressCourseClick = panState.dragged;
     chartStage.classList.remove("is-panning");
-    if (chartStage.hasPointerCapture(event.pointerId)) {
-      chartStage.releasePointerCapture(event.pointerId);
+    if (typeof chartStage.hasPointerCapture === "function" && chartStage.hasPointerCapture(event.pointerId)) {
+      try { chartStage.releasePointerCapture(event.pointerId); } catch(e) {}
     }
     panState = null;
     if (suppressCourseClick) {
       setTimeout(() => { suppressCourseClick = false; }, 120);
     }
   }
-  chartStage.addEventListener("pointerup", finishPan);
-  chartStage.addEventListener("pointercancel", finishPan);
-  chartStage.addEventListener("click", (event) => {
-    if (!suppressCourseClick) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    suppressCourseClick = false;
-  }, true);
-  chartStage.addEventListener("click", (event) => {
-    if (isMobileLayout() && !event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) {
-      clearRoutePreview();
-      lastTapRouteKey = "";
-      lastTapAt = 0;
-    }
-    if (!selectedRoutes.size) return;
-    if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) return;
-    clearSelectedRoutes();
-    detail.textContent = "Selezioni annullate: sono nuovamente visibili tutte le corse.";
-  });
-  chartStage.addEventListener("dblclick", (event) => {
-    if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) return;
-    clearSelectedRoutes();
-    setChartZoom(1);
-    chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
-    detail.textContent = "Selezioni annullate e zoom ripristinato.";
-  });
-  courseCard.addEventListener("close", () => {
-    if (activePath) activePath.classList.remove("is-active");
-    activePath = null;
-    activeCourseIndex = -1;
-    renderSelectedCoursePills();
-  });
-  let pointerStartedOnBackdrop = false;
-  courseCard.addEventListener("pointerdown", (event) => {
-    const rect = courseCard.getBoundingClientRect();
-    pointerStartedOnBackdrop = event.target === courseCard &&
-      (event.clientX < rect.left || event.clientX > rect.right ||
-      event.clientY < rect.top || event.clientY > rect.bottom);
-  });
-  courseCard.addEventListener("click", () => {
-    if (pointerStartedOnBackdrop) courseCard.close();
-    pointerStartedOnBackdrop = false;
-  });
+  if (chartStage) {
+    chartStage.addEventListener("pointerup", finishPan);
+    chartStage.addEventListener("pointercancel", finishPan);
+    chartStage.addEventListener("click", (event) => {
+      if (!suppressCourseClick) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      suppressCourseClick = false;
+    }, true);
+    chartStage.addEventListener("click", (event) => {
+      if (isMobileLayout() && !event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) {
+        clearRoutePreview();
+        lastTapRouteKey = "";
+        lastTapAt = 0;
+      }
+      if (!selectedRoutes.size) return;
+      if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) return;
+      clearSelectedRoutes();
+      if (detail) detail.textContent = "Selezioni annullate: sono nuovamente visibili tutte le corse.";
+    });
+    chartStage.addEventListener("dblclick", (event) => {
+      if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) return;
+      clearSelectedRoutes();
+      setChartZoom(1);
+      if (chartWrap.scrollTo) {
+        chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
+      } else {
+        chartWrap.scrollLeft = 0;
+        chartWrap.scrollTop = 0;
+      }
+      if (detail) detail.textContent = "Selezioni annullate e zoom ripristinato.";
+    });
+  }
+  if (courseCard) {
+    courseCard.addEventListener("close", () => {
+      if (activePath) activePath.classList.remove("is-active");
+      activePath = null;
+      activeCourseIndex = -1;
+      renderSelectedCoursePills();
+    });
+    let pointerStartedOnBackdrop = false;
+    courseCard.addEventListener("pointerdown", (event) => {
+      const rect = courseCard.getBoundingClientRect();
+      pointerStartedOnBackdrop = event.target === courseCard &&
+        (event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom);
+    });
+    courseCard.addEventListener("click", () => {
+      if (pointerStartedOnBackdrop && typeof courseCard.close === "function") courseCard.close();
+      pointerStartedOnBackdrop = false;
+    });
+  }
   if (tabChart && tabMatrix) {
     tabChart.addEventListener("click", () => showPage("chart"));
     tabMatrix.addEventListener("click", () => showPage("matrix"));
   }
+  
   let resizeTimer;
-  new ResizeObserver(() => {
+  const triggerResize = () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(draw, 80);
-  }).observe(root);
+  };
+  
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(triggerResize).observe(root);
+  } else {
+    window.addEventListener("resize", triggerResize);
+  }
+  
   if (normalMatrix && rapidMatrix) drawTravelMatrices();
   renderSelectedCoursePills();
   draw();
