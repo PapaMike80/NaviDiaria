@@ -48,10 +48,14 @@ function showChoice(agent) {
   const diaria = document.querySelector('.app-card.diaria');
   const docs = document.querySelector('.app-card.docs');
   const trova = document.querySelector('.app-card.trova');
+  const orario = document.querySelector('.app-card.orario');
+  const orariTabella = document.querySelector('.app-card.orari-tabella');
   const settings = document.querySelector('.app-card.settings');
   if (diaria) diaria.hidden = !isAdminAgent(agent);
   if (docs) docs.hidden = isBaristaAgent(agent);
   if (trova) trova.hidden = isBaristaAgent(agent);
+  if (orario) orario.hidden = !isAdminAgent(agent);
+  if (orariTabella) orariTabella.hidden = !isAdminAgent(agent);
   if (settings) settings.hidden = isBaristaAgent(agent);
 }
 
@@ -101,7 +105,7 @@ $('loginForm').addEventListener('submit', async event => {
   try {
     const digest = await hashPin(pin);
     const auth = await NaviCloud.request('auth', { agentId:agent.id, pinHash:digest });
-    if (auth.mustChangePin || auth.registered) {
+    if (auth.mustChangePin) {
       pendingFirstLogin = { agent, pinHash:digest };
       $('loginForm').hidden = true;
       $('firstPinForm').hidden = false;
