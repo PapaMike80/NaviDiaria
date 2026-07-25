@@ -54,8 +54,9 @@ function showChoice(agent) {
   if (diaria) diaria.hidden = !isAdminAgent(agent);
   if (docs) docs.hidden = isBaristaAgent(agent);
   if (trova) trova.hidden = isBaristaAgent(agent);
-  if (orario) orario.hidden = !isAdminAgent(agent);
-  if (orariTabella) orariTabella.hidden = !isAdminAgent(agent);
+  // Orario visibile solo agli admin (nascosto alle bariste)
+  if (orario) orario.hidden = isBaristaAgent(agent);
+  if (orariTabella) orariTabella.hidden = isBaristaAgent(agent);
   if (settings) settings.hidden = isBaristaAgent(agent);
 }
 

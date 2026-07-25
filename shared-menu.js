@@ -24,11 +24,11 @@
       role:sessionAgent.role||''
     }));
   }catch{}
-  if((page==='orario'||page==='orario-data')&&!isAdminAgent(sessionAgent)){location.replace('naviturni.html');return}
+  // Orario è ora accessibile a TUTTI gli utenti (rimosso controllo admin)
   if(isBaristaSession&&page!=='turni'&&!isPinChangePage){location.replace('naviturni.html');return}
   const item=(href,icon,label,active=false,id='')=>`<a ${id?`id="${id}" `:''}class="nav-link${active?' active':''}" href="${href}"${['competencyNav','adminNav','archiveAdminNav'].includes(id)?' hidden':''}><span>${icon}</span>${label}</a>`;
   let common='',specific='',user='',status='<div id="odsVariationStatus" class="ods-variation-status" hidden></div>';
-  const adminOrarioLink=isAdminAgent(sessionAgent)?item('Orario.html','◴','Orario',false,'orarioNavLink'):'';
+  const adminOrarioLink=item('Orario.html','◴','Orario',false,'orarioNavLink');
 
   if(page==='diaria'){
     common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Trova turno',false,'trovaTurnoNavLink')+item('#oggi','≈','NaviDiaria',true,'diariaNavLink')+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');

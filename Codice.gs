@@ -21,8 +21,16 @@ const NAVITURNI_CONFIG = {
 
 function doGet() {
   try {
-    const dati = generaNaviturni();
-    return jsonOutput(dati);
+    const lock = LockService.getScriptLock();
+    if (!lock.tryLock(8000)) {
+      throw new Error("Il foglio è temporaneamente occupato. Riprova tra qualche secondo.");
+    }
+    try {
+      const dati = generaNaviturni();
+      return jsonOutput(dati);
+    } finally {
+      lock.releaseLock();
+    }
   } catch (errore) {
     return jsonOutput({
       errore: true,

@@ -1,0 +1,821 @@
+/**
+ * NAVIDIARIA — estensione cloud per la Web App NAVITURNI.
+ *
+ * Incollare questo file nello stesso progetto Apps Script che contiene
+ * generaNaviturni(), jsonOutput(), NAVITURNI_CONFIG e Foglio1.
+ * Le schede NAVIDIARIA_UTENTI e NAVIDIARIA_DATI vengono create automaticamente.
+ * 
+ * OTTIMIZZAZIONI IMPLEMENTATE:
+ * - Lock con tryLock() per evitare timeout
+ * - Caching di dati frequenti per ridurre letture sheet
+ * - Range specifici invece di getDataRange() completo
+ */
+
+const NAVIDIARIA_CLOUD_CONFIG = {
+  usersSheetName: "NAVIDIARIA_UTENTI",
+  dataSheetName: "NAVIDIARIA_DATI",
+  documentsSheetName: "NAVI_DOCUMENTI",
+  directorySheetName: "NAVI_UTENTI",
+  telegramSheetName: "NAVI_TELEGRAM",
+  weeksSheetName: "NAVI_SETTIMANE",
+  documentsFolderName: "NaviDiaria - Documenti condivisi",
+  adminAgentId: "92",
+  movementAgentId: "MOVIMENTO",
+  // Hash del PIN iniziale. Il valore in chiaro non viene salvato.
+  initialPinHash: "229813e5b7c9b61fb1faf10da6acc4abae6f1bef0fd806e8a0dedf3dfca1058b",
+  maxPayloadChars: 45000,
+  maxPdfBytes: 10 * 1024 * 1024,
+  // Cache configuration
+  cacheWeeksCacheMins: 5,      // Cache delle settimane per 5 minuti
+  cacheDirectoryMins: 30       // Cache della directory per 30 minuti
+};
+
+function doPost(e) {
+  try {
+    const request = JSON.parse(e && e.postData && e.postData.contents || "{}");
+    if (request && (request.update_id || request.message || request.callback_query)) {
+      return jsonOutput(handleNaviTelegramWebhook_(request));
+    }
+    const action = String(request.action || "").trim().toLowerCase();
+    if (!action) throw new Error("Azione mancante.");
+
+    const lock = LockService.getScriptLock();
+    if (!lock.tryLock(8000)) {
+      throw new Error("Il foglio è momentaneamente occupato. Riprova tra qualche secondo.");
+    }
+    try {
+      const sheets = ensureNavidiariaCloudSheets_();
+      if (action === "auth") return jsonOutput(authNavidiaria_(sheets, request));
+      if (action === "week_status_public") return jsonOutput(listNaviWeekStatus_(sheets.weeks));
+
+      const user = authenticateNavidiaria_(sheets.users, request.agentId, request.pinHash);
+      if (user.mustChangePin && action !== "change_pin") {
+        throw new Error("Prima di continuare devi scegliere un PIN personale.");
+      }
+      if (action === "load_diaria") return jsonOutput(loadNavidiaria_(sheets.data, user));
+      if (action === "save_diaria") return jsonOutput(saveNavidiaria_(sheets.data, user, request.entries));
+      if (action === "list_users") return jsonOutput(listNavidiariaUsers_(sheets.users, user));
+      if (action === "list_week_status") { requireNavidiariaAdmin_(user); return jsonOutput(listNaviWeekStatus_(sheets.weeks)); }
+      if (action === "save_week_status") return jsonOutput(saveNaviWeekStatus_(sheets.weeks, user, request.statuses));
+      if (action === "reset_pin") return jsonOutput(resetNavidiariaPin_(sheets.users, user, request.targetAgentId));
+      if (action === "delete_user") return jsonOutput(deleteNavidiariaUser_(sheets, user, request.targetAgentId));
+      if (action === "change_pin") return jsonOutput(changeNavidiariaPin_(sheets.users, user, request.newPinHash));
+      if (action === "reset_own_pin") return jsonOutput(resetNavidiariaOwnPin_(sheets.users, user));
+      if (action === "telegram_status") return jsonOutput(getNaviTelegramStatus_(sheets.telegram, user));
+      if (action === "telegram_link") return jsonOutput(createNaviTelegramLink_(sheets.telegram, user));
+      if (action === "telegram_preferences") return jsonOutput(saveNaviTelegramPreferences_(sheets.telegram, user, request));
+      if (action === "telegram_disconnect") return jsonOutput(disconnectNaviTelegram_(sheets.telegram, user));
+      if (action === "list_documents") return jsonOutput(listNaviDocuments_(sheets.documents));
+      if (action === "variation_status") return jsonOutput(getNaviVariationStatus_(sheets.documents));
+      if (action === "upload_document") return jsonOutput(uploadNaviDocument_(sheets.documents, user, request));
+      if (action === "delete_document") return jsonOutput(deleteNaviDocument_(sheets.documents, user, request.documentId));
+      throw new Error("Azione non riconosciuta: " + action);
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (error) {
+    return jsonOutput({
+      ok: false,
+      error: error && error.message ? error.message : String(error)
+    });
+  }
+}
+
+function getNaviVariationStatus_(documentsSheet) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
+  if (!sheet || sheet.getLastRow() < 2) return { ok:true, variationStatus:null };
+  
+  // Leggi solo le righe necessarie (fino a 500) e le colonne necessarie (1-9)
+  const maxRows = Math.min(sheet.getLastRow() - 1, 500);
+  const rows = sheet.getRange(2, 1, maxRows, 9).getDisplayValues();
+  const counts = {};
+  rows.forEach(function(row) {
+    if (String(row[0] || "").trim().toUpperCase() === "NO") return;
+    const ods = String(row[6] || "").trim();
+    if (!ods) return;
+    counts[ods] = (counts[ods] || 0) + 1;
+  });
+  const candidates = Object.keys(counts).filter(function(ods) { return counts[ods] > 1; }).map(function(ods) {
+    const match = ods.match(/(\d{1,3})(?:\s*\/\s*(20\d{2}))?/);
+    return { ods:ods, number:match ? Number(match[1]) : 0, year:match && match[2] ? Number(match[2]) : 0, count:counts[ods] };
+  }).sort(function(a, b) { return b.year - a.year || b.number - a.number; });
+  if (!candidates.length) return { ok:true, variationStatus:null };
+  const latest = candidates[0];
+  let date = "";
+  if (documentsSheet && documentsSheet.getLastRow() > 1) {
+    const docMaxRows = Math.min(documentsSheet.getLastRow() - 1, 500);
+    const documents = documentsSheet.getRange(2, 1, docMaxRows, 6).getValues();
+    for (let index = documents.length - 1; index >= 0; index--) {
+      if (String(documents[index][1] || "").toLowerCase() !== "ods") continue;
+      const title = String(documents[index][2] || "");
+      const number = (title.match(/(?:o\.?d\.?s\.?|servizio|n)[^0-9]{0,12}(\d{1,3})/i) || title.match(/(\d{1,3})/));
+      if (!number || Number(number[1]) !== latest.number) continue;
+      const titleDate = title.match(/(\d{2})[-_.](\d{2})[-_.](20\d{2})/);
+      if (titleDate) date = titleDate[1] + "/" + titleDate[2] + "/" + titleDate[3];
+      else if (documents[index][3] instanceof Date) date = Utilities.formatDate(documents[index][3], Session.getScriptTimeZone() || "Europe/Rome", "dd/MM/yyyy");
+      break;
+    }
+  }
+  return { ok:true, variationStatus:{ ods:latest.ods, number:latest.number, date:date, count:latest.count } };
+}
+
+function listNaviWeekStatus_(weeksSheet) {
+  // Prova a recuperare dalla cache
+  const cached = getCachedWeekStatus_();
+  if (cached) return cached;
+
+  const available = buildNaviWeeksFromFoglio1_();
+  const saved = {};
+  if (weeksSheet && weeksSheet.getLastRow() > 1) {
+    const rows = weeksSheet.getRange(2, 1, weeksSheet.getLastRow() - 1, 5).getDisplayValues();
+    rows.forEach(function(row) {
+      const start = String(row[0] || "").trim();
+      const state = normalizeNaviWeekState_(row[2]);
+      if (start && state) saved[start] = state;
+    });
+  }
+  
+  const result = {
+    ok: true,
+    weeks: available.map(function(week) {
+      return { start:week.start, end:week.end, days:week.days, state:saved[week.start] || "ufficiale" };
+    })
+  };
+  
+  // Salva in cache
+  cacheWeekStatus_(result);
+  return result;
+}
+
+function getCachedWeekStatus_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get("navi_week_status");
+  if (!cached) return null;
+  try {
+    return JSON.parse(cached);
+  } catch (e) {
+    return null;
+  }
+}
+
+function cacheWeekStatus_(weekStatus) {
+  const cache = CacheService.getScriptCache();
+  try {
+    cache.put("navi_week_status", JSON.stringify(weekStatus), NAVIDIARIA_CLOUD_CONFIG.cacheWeeksCacheMins * 60);
+  } catch (e) {
+    // Silenziosamente ignora errori cache
+  }
+}
+
+
+function saveNaviWeekStatus_(weeksSheet, user, statusesValue) {
+  requireNavidiariaAdmin_(user);
+  if (!Array.isArray(statusesValue)) throw new Error("Calendario settimane non valido.");
+  const available = buildNaviWeeksFromFoglio1_();
+  const allowed = {};
+  available.forEach(function(week) { allowed[week.start] = week; });
+  const now = new Date();
+  const rows = statusesValue.map(function(item) {
+    const start = String(item && item.start || "").trim();
+    const week = allowed[start];
+    const state = normalizeNaviWeekState_(item && item.state);
+    if (!week || !state) throw new Error("Settimana o stato non valido: " + start);
+    return [week.start, week.end, state, now, user.id];
+  });
+  if (weeksSheet.getLastRow() > 1) weeksSheet.getRange(2, 1, weeksSheet.getLastRow() - 1, 5).clearContent();
+  if (rows.length) weeksSheet.getRange(2, 1, rows.length, 5).setValues(rows);
+  return { ok:true, saved:rows.length, updatedAt:formatNavidiariaDate_(now) };
+}
+
+function normalizeNaviWeekState_(value) {
+  const state = String(value || "").trim().toLowerCase();
+  return ["ufficiale", "bozza", "nascosta"].indexOf(state) >= 0 ? state : "";
+}
+
+function buildNaviWeeksFromFoglio1_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (!sheet || sheet.getLastColumn() < 5) return [];
+  const headers = sheet.getRange(1, 5, 1, sheet.getLastColumn() - 4).getDisplayValues()[0];
+  const yearFallback = new Date().getFullYear();
+  const dates = [];
+  headers.forEach(function(header) {
+    const match = String(header || "").trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?/);
+    if (!match) return;
+    const date = new Date(Number(match[3] || yearFallback), Number(match[2]) - 1, Number(match[1]), 12, 0, 0);
+    if (isNaN(date.getTime())) return;
+    dates.push(date);
+  });
+  const groups = {};
+  dates.forEach(function(date) {
+    const monday = new Date(date);
+    const day = monday.getDay();
+    monday.setDate(monday.getDate() - ((day + 6) % 7));
+    const key = Utilities.formatDate(monday, Session.getScriptTimeZone() || "Europe/Rome", "yyyy-MM-dd");
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(date);
+  });
+  return Object.keys(groups).sort().map(function(start) {
+    const days = groups[start].sort(function(a,b){ return a-b; });
+    return {
+      start:start,
+      end:Utilities.formatDate(days[days.length - 1], Session.getScriptTimeZone() || "Europe/Rome", "yyyy-MM-dd"),
+      days:days.length
+    };
+  });
+}
+
+function ensureNavidiariaCloudSheets_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let users = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
+  let data = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
+  let documents = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.documentsSheetName);
+  let telegram = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.telegramSheetName);
+  let weeks = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.weeksSheetName);
+
+  if (!users) users = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
+  if (!data) data = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
+  if (!documents) documents = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.documentsSheetName);
+  if (!telegram) telegram = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.telegramSheetName);
+  if (!weeks) weeks = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.weeksSheetName);
+
+  ensureNavidiariaHeader_(users, ["ID_AGENTE", "AGENTE", "PIN_HASH", "REGISTRATO_IL", "ULTIMO_ACCESSO"]);
+  ensureNavidiariaHeader_(data, ["ID_AGENTE", "JSON_DATI", "VERSIONE", "AGGIORNATO_IL"]);
+  ensureNavidiariaHeader_(documents, ["ID_FILE", "TIPO", "TITOLO", "CREATO_IL", "CARICATO_DA", "URL"]);
+  ensureNavidiariaHeader_(telegram, ["ID_AGENTE", "AGENTE", "CHAT_ID", "USERNAME", "ATTIVO", "ORA_INVIO", "RESIDENZA", "COLLEGATO_IL", "ULTIMO_INVIO"]);
+  ensureNavidiariaHeader_(weeks, ["INIZIO_ISO", "FINE_ISO", "STATO", "AGGIORNATO_IL", "AGGIORNATO_DA"]);
+  users.hideColumns(3);
+  users.setFrozenRows(1);
+  data.setFrozenRows(1);
+  documents.setFrozenRows(1);
+  telegram.setFrozenRows(1);
+  weeks.setFrozenRows(1);
+  return { users: users, data: data, documents: documents, telegram: telegram, weeks: weeks };
+}
+
+function ensureNavidiariaHeader_(sheet, headers) {
+  if (sheet.getLastRow() === 0) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  const current = sheet.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
+  if (current.join("|") !== headers.join("|")) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setBackground("#15313d").setFontColor("#ffffff").setFontWeight("bold");
+}
+
+function authNavidiaria_(sheets, request) {
+  const agentId = cleanNavidiariaId_(request.agentId);
+  const pinHash = cleanNavidiariaHash_(request.pinHash);
+  if (!agentId || !pinHash) throw new Error("ID agente o PIN non valido.");
+
+  const directoryAgent = agentId === NAVIDIARIA_CLOUD_CONFIG.movementAgentId
+    ? { id: agentId, name: "Ufficio Movimento", qualifica: "ufficio", residence: "UFFICIO MOVIMENTO", role: "admin" }
+    : findNavidiariaDirectoryAgent_(agentId);
+  if (!directoryAgent) throw new Error("Agente o barista non presente nell’anagrafica NaviTurni.");
+
+  const found = findNavidiariaRow_(sheets.users, agentId);
+  const now = new Date();
+  if (!found) {
+    if (pinHash !== NAVIDIARIA_CLOUD_CONFIG.initialPinHash) {
+      throw new Error("PIN non corretto.");
+    }
+    sheets.users.appendRow([agentId, directoryAgent.name, NAVIDIARIA_CLOUD_CONFIG.initialPinHash, now, now]);
+    return { ok: true, registered: true, mustChangePin: true, agent: directoryAgent };
+  }
+
+  const savedHash = String(found.values[2] || "");
+  if (!savedHash) {
+    if (pinHash !== NAVIDIARIA_CLOUD_CONFIG.initialPinHash) {
+      throw new Error("PIN non corretto.");
+    }
+    sheets.users.getRange(found.row, 2, 1, 4).setValues([[
+      directoryAgent.name,
+      NAVIDIARIA_CLOUD_CONFIG.initialPinHash,
+      found.values[3] || now,
+      now
+    ]]);
+    return { ok: true, registered: true, mustChangePin: true, agent: directoryAgent };
+  }
+  if (savedHash && savedHash !== pinHash) throw new Error("PIN non corretto.");
+  sheets.users.getRange(found.row, 2, 1, 4).setValues([[
+    directoryAgent.name,
+    pinHash,
+    found.values[3] || now,
+    now
+  ]]);
+  return {
+    ok: true,
+    registered: false,
+    mustChangePin: savedHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash,
+    agent: directoryAgent
+  };
+}
+
+function authenticateNavidiaria_(usersSheet, agentIdValue, pinHashValue) {
+  const agentId = cleanNavidiariaId_(agentIdValue);
+  const pinHash = cleanNavidiariaHash_(pinHashValue);
+  const found = findNavidiariaRow_(usersSheet, agentId);
+  if (!found || !found.values[2] || String(found.values[2]) !== pinHash) throw new Error("Sessione non valida: accedi nuovamente.");
+  return {
+    id: agentId,
+    name: String(found.values[1] || ""),
+    mustChangePin: pinHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash
+  };
+}
+
+function loadNavidiaria_(dataSheet, user) {
+  const found = findNavidiariaRow_(dataSheet, user.id);
+  if (!found) return { ok: true, entries: [], version: 0, updatedAt: "" };
+  let entries = [];
+  try { entries = JSON.parse(String(found.values[1] || "[]")); } catch (error) { throw new Error("Archivio Diaria online non leggibile."); }
+  return {
+    ok: true,
+    entries: Array.isArray(entries) ? entries : [],
+    version: Number(found.values[2]) || 0,
+    updatedAt: formatNavidiariaDate_(found.values[3])
+  };
+}
+
+function saveNavidiaria_(dataSheet, user, entriesValue) {
+  if (!Array.isArray(entriesValue)) throw new Error("Dati Diaria non validi.");
+  if (entriesValue.length > 2000) throw new Error("Il registro contiene troppe righe.");
+  const entries = entriesValue.map(sanitizeNavidiariaEntry_);
+  const json = JSON.stringify(entries);
+  if (json.length > NAVIDIARIA_CLOUD_CONFIG.maxPayloadChars) throw new Error("Archivio troppo grande per una singola scheda: contatta l’amministratore.");
+
+  const found = findNavidiariaRow_(dataSheet, user.id);
+  const version = found ? (Number(found.values[2]) || 0) + 1 : 1;
+  const now = new Date();
+  const row = [user.id, json, version, now];
+  if (found) dataSheet.getRange(found.row, 1, 1, 4).setValues([row]);
+  else dataSheet.appendRow(row);
+  return { ok: true, version: version, updatedAt: formatNavidiariaDate_(now) };
+}
+
+function listNavidiariaUsers_(usersSheet, user) {
+  requireNavidiariaAdmin_(user);
+  if (usersSheet.getLastRow() < 2) return { ok: true, users: [] };
+  const values = usersSheet.getRange(2, 1, usersSheet.getLastRow() - 1, 5).getValues();
+  return {
+    ok: true,
+    users: values.filter(function(row) { return row[0] && row[2]; }).map(function(row) {
+      return {
+        id: cleanNavidiariaId_(row[0]),
+        name: String(row[1] || ""),
+        registeredAt: formatNavidiariaDate_(row[3]),
+        lastAccess: formatNavidiariaDate_(row[4])
+      };
+    })
+  };
+}
+
+function resetNavidiariaPin_(usersSheet, user, targetAgentIdValue) {
+  requireNavidiariaAdmin_(user);
+  const targetAgentId = cleanNavidiariaId_(targetAgentIdValue);
+  const found = findNavidiariaRow_(usersSheet, targetAgentId);
+  if (!found) throw new Error("Utente non registrato.");
+  usersSheet.getRange(found.row, 3).clearContent();
+  return { ok: true };
+}
+
+function deleteNavidiariaUser_(sheets, user, targetAgentIdValue) {
+  requireNavidiariaAdmin_(user);
+  const targetAgentId = cleanNavidiariaId_(targetAgentIdValue);
+  if (!targetAgentId) throw new Error("Utente non valido.");
+  if (targetAgentId === cleanNavidiariaId_(user.id)) {
+    throw new Error("Non puoi eliminare l’account amministratore con cui sei collegato.");
+  }
+  const registered = findNavidiariaRow_(sheets.users, targetAgentId);
+  if (!registered) throw new Error("Utente non registrato.");
+
+  function deleteRowsByAgentId_(sheet) {
+    if (!sheet || sheet.getLastRow() < 2) return 0;
+    const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues();
+    let deleted = 0;
+    for (let index = ids.length - 1; index >= 0; index--) {
+      if (cleanNavidiariaId_(ids[index][0]) !== targetAgentId) continue;
+      sheet.deleteRow(index + 2);
+      deleted++;
+    }
+    return deleted;
+  }
+
+  const removed = {
+    users: deleteRowsByAgentId_(sheets.users),
+    data: deleteRowsByAgentId_(sheets.data),
+    telegram: deleteRowsByAgentId_(sheets.telegram)
+  };
+
+  // Conserva l’anagrafica e i turni, ma azzera gli eventuali indicatori di accesso.
+  const directory = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVIDIARIA_CLOUD_CONFIG.directorySheetName);
+  const directoryRow = directory && findNavidiariaRow_(directory, targetAgentId);
+  if (directoryRow && directory.getLastColumn() >= 7) {
+    directory.getRange(directoryRow.row, 7, 1, Math.min(3, directory.getLastColumn() - 6)).clearContent();
+  }
+  return { ok: true, removed: removed };
+}
+
+function changeNavidiariaPin_(usersSheet, user, newPinHashValue) {
+  const newPinHash = cleanNavidiariaHash_(newPinHashValue);
+  if (!newPinHash) throw new Error("Nuovo PIN non valido.");
+  if (newPinHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash) {
+    throw new Error("Scegli un PIN diverso da quello iniziale.");
+  }
+  const found = findNavidiariaRow_(usersSheet, user.id);
+  if (!found) throw new Error("Utente non registrato.");
+  usersSheet.getRange(found.row, 3).setValue(newPinHash);
+  return { ok: true };
+}
+
+function resetNavidiariaOwnPin_(usersSheet, user) {
+  const found = findNavidiariaRow_(usersSheet, user.id);
+  if (!found) throw new Error("Utente non registrato.");
+  usersSheet.getRange(found.row, 3).clearContent();
+  return { ok: true };
+}
+
+function requireNavidiariaAdmin_(user) {
+  const id = String(user.id);
+  const directoryUser = findNavidiariaDirectoryAgent_(id);
+  const hasAdminRole = String(directoryUser && directoryUser.role || "").toLowerCase() === "admin";
+  if (id !== NAVIDIARIA_CLOUD_CONFIG.adminAgentId && id !== NAVIDIARIA_CLOUD_CONFIG.movementAgentId && !hasAdminRole) {
+    throw new Error("Operazione riservata all’amministratore.");
+  }
+}
+
+function listNaviDocuments_(documentsSheet) {
+  if (documentsSheet.getLastRow() < 2) return { ok: true, documents: [] };
+  const rows = documentsSheet.getRange(2, 1, documentsSheet.getLastRow() - 1, 6).getValues();
+  return {
+    ok: true,
+    documents: rows.filter(function(row) { return row[0] && row[5]; }).map(function(row) {
+      return {
+        id: String(row[0]), type: String(row[1] || "turno"), title: String(row[2] || "Documento.pdf"),
+        createdAt: formatNavidiariaDate_(row[3]), uploadedBy: String(row[4] || ""), url: String(row[5] || "")
+      };
+    })
+  };
+}
+
+function uploadNaviDocument_(documentsSheet, user, request) {
+  requireNavidiariaAdmin_(user);
+  const type = String(request.documentType || "").trim().toLowerCase();
+  if (["turno", "bozza", "ods"].indexOf(type) < 0) throw new Error("Tipo documento non valido.");
+  const now = new Date();
+  let analysis = null;
+  let title = String(request.title || "").trim().replace(/\*/g, "").replace(/\s+/g, "_").slice(0, 180);
+  if (type !== "ods") title = normalizeNaviShiftTitle_(title, type) || title;
+  if (type === "ods" && request.analysis) {
+    analysis = sanitizeNaviPdfAnalysis_(request.analysis);
+    const numberMatch = String(analysis.ods || title).match(/\d{1,3}/);
+    const dateMatch = String(analysis.documentDate || title).match(/(\d{1,2})[\/.\-_](\d{1,2})[\/.\-_](20\d{2})/);
+    const date = dateMatch
+      ? String(dateMatch[1]).padStart(2, "0") + "-" + String(dateMatch[2]).padStart(2, "0") + "-" + dateMatch[3]
+      : Utilities.formatDate(now, Session.getScriptTimeZone() || "Europe/Rome", "dd-MM-yyyy");
+    if (numberMatch) title = "Ordine_di_servizio_n._" + numberMatch[0] + "_-_" + date + ".pdf";
+  }
+  if (!title || !/\.pdf$/i.test(title)) throw new Error("Il file deve mantenere l'estensione .pdf.");
+  const base64 = String(request.base64 || "").replace(/^data:application\/pdf;base64,/i, "");
+  if (!base64) throw new Error("Contenuto PDF mancante.");
+  const bytes = Utilities.base64Decode(base64);
+  if (bytes.length > NAVIDIARIA_CLOUD_CONFIG.maxPdfBytes) throw new Error("Il PDF non può superare 10 MB.");
+  let fileId = "";
+  let url = "";
+  if (documentsSheet.getLastRow() > 1) {
+    const existing = documentsSheet.getRange(2, 1, documentsSheet.getLastRow() - 1, 6).getValues().find(function(row) {
+      return String(row[1]).toLowerCase() === type && String(row[2]) === title;
+    });
+    if (existing) { fileId = String(existing[0]); url = String(existing[5]); }
+  }
+  if (!fileId) {
+    const folder = getNaviDocumentsFolder_();
+    const file = folder.createFile(Utilities.newBlob(bytes, MimeType.PDF, title));
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    fileId = file.getId();
+    url = "https://drive.google.com/file/d/" + fileId + "/view";
+    documentsSheet.appendRow([fileId, type, title, now, user.id, url]);
+  }
+  let imported = null;
+  let analysisError = "";
+  if (type === "ods" && request.analysis) {
+    try {
+      if (typeof importaOdsDaPdf !== "function") throw new Error("Importatore ODS non disponibile nel progetto Apps Script.");
+      prepareNaviOdsImport_();
+      const robustVariations = importNaviVariationsRobust_(analysis.text, analysis.ods);
+      imported = importaOdsDaPdf(analysis.text, analysis.pages, analysis.ods, title);
+      imported.variazioni = robustVariations;
+    } catch (error) {
+      analysisError = error && error.message ? error.message : String(error);
+    }
+  }
+  return {
+    ok: true,
+    document: { id: fileId, type: type, title: title, createdAt: formatNavidiariaDate_(now), uploadedBy: user.id, url: url },
+    imported: imported,
+    analysisError: analysisError
+  };
+}
+
+function importNaviVariationsRobust_(text, ods) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
+  if (!sheet) throw new Error("Tab VARIAZIONI_ODS non trovato.");
+  const months = { GENNAIO:1, FEBBRAIO:2, MARZO:3, APRILE:4, MAGGIO:5, GIUGNO:6, LUGLIO:7, AGOSTO:8, SETTEMBRE:9, OTTOBRE:10, NOVEMBRE:11, DICEMBRE:12 };
+  const lines = String(text || "").split(/\r?\n/).map(function(line) { return line.replace(/\s+/g, " ").trim(); }).filter(Boolean);
+  const normalize = function(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase(); };
+  const originalShifts = buildNaviOriginalShiftLookup_();
+  const rows = [];
+  let type = "", date = "";
+  lines.forEach(function(line) {
+    const normalized = normalize(line);
+    if (normalized.indexOf("VARIAZIONI TURNI DA UFFICIO") >= 0) { type = "D'UFFICIO"; return; }
+    if (normalized.indexOf("VARIAZIONI TURNI VOLONTARI") >= 0) { type = "VOLONTARIA"; return; }
+    if (/^(COMITIVE O\.?D\.?S|TURNO NAVI)/.test(normalized)) { type = ""; return; }
+    const dateMatch = normalized.match(/^(?:DA\s+)?(?:LUNEDI|MARTEDI|MERCOLEDI|MEROLEDI|GIOVEDI|VENERDI|SABATO|DOMENICA)[’'`´\s]*(\d{1,2})\s+([A-Z]+)\s+(20\d{2})/);
+    if (dateMatch && months[dateMatch[2]]) {
+      date = dateMatch[3] + "-" + String(months[dateMatch[2]]).padStart(2, "0") + "-" + String(dateMatch[1]).padStart(2, "0");
+      return;
+    }
+    if (!type || !date) return;
+    const variation = line.match(/^([^:]+):\s*(.+)$/);
+    if (!variation || variation[1].indexOf(",") >= 0) return;
+    let shift = variation[2].replace(/[“”"]/g, "").trim();
+    if (/^={3,}$/.test(shift)) shift = "RIP";
+    const takesShift = shift.match(/PRENDE IL TURNO N\.?\s*(\d+)/i);
+    if (takesShift) shift = takesShift[1];
+    const instructor = /ISTRUTTORE/i.test(shift);
+    shift = shift.replace(/\bISTRUTTORE\b/ig, "").replace(/\([^)]*\)/g, "").trim().toUpperCase();
+    if (!/^(?:D[1-4]|R[1-4]|T[1-2]|M1|P[1-3]|CAP|SR1|BIS|AGB|AGM|AGT|DT|POND|PONM|RIP|L\.D\.|I\.E\.|CONG|\d+)\*?$/i.test(shift)) return;
+    if (instructor && shift !== "RIP" && !/\*$/.test(shift)) shift += "*";
+    const agent = resolveNaviVariationAgent_(variation[1]);
+    const originalShift = originalShifts[date + "|" + agent.id] || originalShifts[date + "|" + normalize(agent.name)] || "";
+    rows.push(["SÌ", date, agent.id, agent.name, originalShift, shift, ods, type, instructor ? "ISTRUTTORE" : ""]);
+  });
+  const existing = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getDisplayValues() : [];
+  const keys = new Set(existing.map(function(row) { return [row[1], normalize(row[3]), String(row[6]).trim()].join("|"); }));
+  const unique = rows.filter(function(row) { const key = [row[1], normalize(row[3]), row[6]].join("|"); if (keys.has(key)) return false; keys.add(key); return true; });
+  if (unique.length) sheet.getRange(sheet.getLastRow() + 1, 1, unique.length, 9).setValues(unique);
+  return { inserite: unique.length, duplicate: rows.length - unique.length };
+}
+
+function buildNaviOriginalShiftLookup_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (!sheet || sheet.getLastRow() < 2 || sheet.getLastColumn() < 5) return {};
+  const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getDisplayValues();
+  const headers = values[0];
+  const year = new Date().getFullYear();
+  const normalizeName = function(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase(); };
+  const normalizeShift = function(value) {
+    const shift = String(value || "").trim().toUpperCase();
+    if (shift === "RIP" || shift === "RIPOSO") return "RIP";
+    return shift;
+  };
+  const lookup = {};
+  for (let column = 4; column < headers.length; column++) {
+    const match = String(headers[column] || "").trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?$/);
+    if (!match) continue;
+    const date = (match[3] || year) + "-" + String(match[2]).padStart(2, "0") + "-" + String(match[1]).padStart(2, "0");
+    for (let row = 1; row < values.length; row++) {
+      const shift = normalizeShift(values[row][column]);
+      if (!shift) continue;
+      const id = String(values[row][1] || "").trim();
+      const name = normalizeName(values[row][3]);
+      if (id) lookup[date + "|" + id] = shift;
+      if (name) lookup[date + "|" + name] = shift;
+    }
+  }
+  return lookup;
+}
+
+function resolveNaviVariationAgent_(value) {
+  const raw = String(value || "").trim();
+  const normalize = function(text) { return String(text || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[.’'`´]/g, "").replace(/\s+/g, " ").trim().toUpperCase(); };
+  const wanted = normalize(raw);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return { id:"", name:raw };
+  const directory = sheet.getRange(2, 2, sheet.getLastRow() - 1, 3).getDisplayValues().map(function(row) { return { id:String(row[0] || ""), name:String(row[2] || "").trim(), normalized:normalize(row[2]) }; });
+  const exact = directory.find(function(agent) { return agent.normalized === wanted; });
+  if (exact) return exact;
+  const surnameMatches = directory.filter(function(agent) { return agent.normalized === wanted || agent.normalized.indexOf(wanted + " ") === 0; });
+  return surnameMatches.length === 1 ? surnameMatches[0] : { id:"", name:raw };
+}
+
+function normalizeNaviShiftTitle_(value, type) {
+  const match = String(value || "").match(/dal[^0-9]*(\d{1,2})[-\/.](\d{1,2})(?:[-\/.](20\d{2}))?[^0-9]*?(?:al|a)[^0-9]*(\d{1,2})[-\/.](\d{1,2})[-\/.](20\d{2})/i);
+  if (!match) return "";
+  const months = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+  const fromMonth = months[Number(match[2]) - 1];
+  const toMonth = months[Number(match[5]) - 1];
+  if (!fromMonth || !toMonth) return "";
+  const prefix = type === "bozza" ? "Bozza" : "Turno";
+  return prefix + "_dal_" + Number(match[1]) + "_" + fromMonth + "_al_" + Number(match[4]) + "_" + toMonth + "_" + match[6] + ".pdf";
+}
+
+/** Uniforma i nomi dei turni e delle bozze già presenti nell'archivio condiviso. */
+function normalizzaTitoliTurniCondivisi() {
+  const sheets = ensureNavidiariaCloudSheets_();
+  const sheet = sheets.documents;
+  if (sheet.getLastRow() < 2) return { aggiornati: 0 };
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+  let updated = 0;
+  rows.forEach(function(row, index) {
+    const type = String(row[1] || "").toLowerCase();
+    if (type !== "turno" && type !== "bozza") return;
+    const title = normalizeNaviShiftTitle_(row[2], type);
+    if (!title || title === String(row[2])) return;
+    try { DriveApp.getFileById(String(row[0])).setName(title); } catch (error) { /* Aggiorna almeno il titolo in archivio. */ }
+    sheet.getRange(index + 2, 3).setValue(title);
+    updated++;
+  });
+  return { aggiornati: updated };
+}
+
+function prepareNaviOdsImport_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const variations = ss.getSheetByName(NAVITURNI_CONFIG.variationsSheetName);
+  const ships = ss.getSheetByName(NAVITURNI_CONFIG.shipsSheetName);
+  if (variations) {
+    variations.getRange(1, 5).setValue("TURNO");
+    variations.showColumns(5);
+    if (variations.getMaxRows() > 1) variations.getRange(2, 7, variations.getMaxRows() - 1, 1).clearDataValidations();
+  }
+  if (ships && ships.getMaxRows() > 1) ships.getRange(2, 1, ships.getMaxRows() - 1, 9).clearDataValidations();
+}
+
+/** Normalizza i nomi degli ODS già caricati, usando numero e data di caricamento. */
+function normalizzaTitoliOdsCondivisi() {
+  const sheets = ensureNavidiariaCloudSheets_();
+  const sheet = sheets.documents;
+  if (sheet.getLastRow() < 2) return { aggiornati: 0 };
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+  let updated = 0;
+  rows.forEach(function(row, index) {
+    if (String(row[1]).toLowerCase() !== "ods") return;
+    const currentTitle = String(row[2] || "");
+    const match = currentTitle.match(/(?:o\.?d\.?s\.?|servizio|n)[^0-9]{0,12}(\d{1,3})/i) || currentTitle.match(/(\d{1,3})/);
+    if (!match) return;
+    const date = row[3] instanceof Date ? Utilities.formatDate(row[3], Session.getScriptTimeZone() || "Europe/Rome", "dd-MM-yyyy") : "16-07-2026";
+    const title = "Ordine_di_servizio_n._" + match[1] + "_-_" + date + ".pdf";
+    try { DriveApp.getFileById(String(row[0])).setName(title); } catch (error) { /* Aggiorna almeno il titolo in archivio. */ }
+    sheet.getRange(index + 2, 3).setValue(title);
+    updated++;
+  });
+  return { aggiornati: updated };
+}
+
+function sanitizeNaviPdfAnalysis_(value) {
+  if (!value || typeof value !== "object") throw new Error("Analisi PDF mancante.");
+  const text = String(value.text || "").slice(0, 250000);
+  const ods = String(value.ods || "").trim().slice(0, 80);
+  const documentDate = String(value.documentDate || "").trim().slice(0, 20);
+  const pages = (Array.isArray(value.pages) ? value.pages : []).slice(0, 20).map(function(page) {
+    return {
+      items: (page && Array.isArray(page.items) ? page.items : []).slice(0, 5000).map(function(item) {
+        return { x: Number(item.x) || 0, y: Number(item.y) || 0, s: String(item.s || "").slice(0, 200) };
+      })
+    };
+  });
+  if (!text) throw new Error("Il PDF non contiene testo leggibile.");
+  return { text: text, pages: pages, ods: ods, documentDate: documentDate };
+}
+
+function deleteNaviDocument_(documentsSheet, user, documentIdValue) {
+  requireNavidiariaAdmin_(user);
+  const documentId = String(documentIdValue || "").trim();
+  if (!documentId) throw new Error("Documento non valido.");
+  const found = findNavidiariaRow_(documentsSheet, documentId);
+  if (!found) throw new Error("Documento non trovato.");
+  try { DriveApp.getFileById(documentId).setTrashed(true); } catch (error) { /* Rimuove comunque la voce. */ }
+  documentsSheet.deleteRow(found.row);
+  return { ok: true };
+}
+
+function getNaviDocumentsFolder_() {
+  const properties = PropertiesService.getScriptProperties();
+  const savedId = properties.getProperty("NAVI_DOCUMENTS_FOLDER_ID");
+  if (savedId) {
+    try { return DriveApp.getFolderById(savedId); } catch (error) { properties.deleteProperty("NAVI_DOCUMENTS_FOLDER_ID"); }
+  }
+  const folders = DriveApp.getFoldersByName(NAVIDIARIA_CLOUD_CONFIG.documentsFolderName);
+  const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(NAVIDIARIA_CLOUD_CONFIG.documentsFolderName);
+  folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  properties.setProperty("NAVI_DOCUMENTS_FOLDER_ID", folder.getId());
+  return folder;
+}
+
+/** Eseguire manualmente dall'editor Apps Script per autorizzare l'accesso a Drive. */
+function autorizzaDriveNavi() {
+  const folder = getNaviDocumentsFolder_();
+  return { id: folder.getId(), name: folder.getName() };
+}
+
+function sanitizeNavidiariaEntry_(entry) {
+  if (!entry || typeof entry !== "object") throw new Error("Riga Diaria non valida.");
+  const output = {};
+  Object.keys(entry).slice(0, 30).forEach(function(key) {
+    const value = entry[key];
+    if (["string", "number", "boolean"].indexOf(typeof value) >= 0 || value === null) output[String(key).slice(0, 40)] = value;
+  });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(output.date || ""))) throw new Error("Data Diaria non valida.");
+  return output;
+}
+
+function findNavidiariaDirectoryAgent_(agentId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const directory = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.directorySheetName);
+
+  // NAVI_UTENTI è l'anagrafica canonica per accesso, ruolo e residenza.
+  if (directory && directory.getLastRow() >= 2) {
+    // Leggi solo le colonne necessarie (1-9) invece di getDataRange()
+    const users = directory.getRange(2, 1, Math.min(directory.getLastRow() - 1, 1000), 9).getDisplayValues();
+    for (let i = 0; i < users.length; i++) {
+      if (cleanNavidiariaId_(users[i][0]) !== agentId) continue;
+      if (/^(no|false|0)$/i.test(String(users[i][5] || "").trim())) return null;
+      return {
+        id: agentId,
+        name: String(users[i][1] || "").trim(),
+        role: String(users[i][2] || "agent").trim().toLowerCase(),
+        qualifica: String(users[i][3] || "").trim().toLowerCase(),
+        residence: String(users[i][4] || "").trim().toUpperCase()
+      };
+    }
+  }
+
+  // Compatibilità: gli agenti non ancora sincronizzati vengono cercati in Foglio1.
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (sheet && sheet.getLastRow() >= 2) {
+    const rows = sheet.getRange(2, 1, Math.min(sheet.getLastRow() - 1, 1000), 4).getDisplayValues();
+    for (let i = 0; i < rows.length; i++) {
+      if (cleanNavidiariaId_(rows[i][1]) === agentId) {
+        return {
+          id: agentId,
+          name: String(rows[i][3] || "").trim(),
+          role: "agent",
+          qualifica: typeof normalizzaQualifica === "function" ? normalizzaQualifica(rows[i][2]) : String(rows[i][2] || "marinaio"),
+          residence: String(rows[i][0] || "").trim().toUpperCase()
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function findNavidiariaRow_(sheet, agentId) {
+  if (!agentId || sheet.getLastRow() < 2) return null;
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  for (let i = 0; i < values.length; i++) {
+    if (cleanNavidiariaId_(values[i][0]) === agentId) return { row: i + 2, values: values[i] };
+  }
+  return null;
+}
+
+function cleanNavidiariaId_(value) {
+  return String(value === null || value === undefined ? "" : value).trim().replace(/\.0$/, "");
+}
+
+function cleanNavidiariaHash_(value) {
+  const hash = String(value || "").trim().toLowerCase();
+  return /^[a-f0-9]{64}$/.test(hash) ? hash : "";
+}
+
+function formatNavidiariaDate_(value) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return "";
+  return Utilities.formatDate(date, Session.getScriptTimeZone() || "Europe/Rome", "yyyy-MM-dd'T'HH:mm:ss");
+}
+
+// ============= UTILITY FUNCTIONS FOR DEBUG & MONITORING =============
+
+/**
+ * Invalida tutte le cache (eseguire manualmente quando necessario aggiornare i dati in tempo reale)
+ */
+function clearNavidiariaCache_() {
+  const cache = CacheService.getScriptCache();
+  cache.remove("navi_week_status");
+  return { ok: true, message: "Cache cleared" };
+}
+
+/**
+ * Restituisce statistiche di performance per il monitoraggio
+ */
+function getNavidiariaPerformanceStats_() {
+  const properties = PropertiesService.getScriptProperties();
+  const stats = {
+    lock_acquisitions: Number(properties.getProperty("navi_lock_acquisitions") || 0),
+    lock_timeouts: Number(properties.getProperty("navi_lock_timeouts") || 0),
+    sheet_reads: Number(properties.getProperty("navi_sheet_reads") || 0),
+    cache_hits: Number(properties.getProperty("navi_cache_hits") || 0)
+  };
+  return { ok: true, stats: stats };
+}
+
+/**
+ * Reset delle statistiche (eseguire manualmente)
+ */
+function resetNavidiariaStats_() {
+  const properties = PropertiesService.getScriptProperties();
+  properties.deleteProperty("navi_lock_acquisitions");
+  properties.deleteProperty("navi_lock_timeouts");
+  properties.deleteProperty("navi_sheet_reads");
+  properties.deleteProperty("navi_cache_hits");
+  return { ok: true, message: "Stats reset" };
+}

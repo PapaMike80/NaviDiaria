@@ -1,0 +1,40 @@
+MODIFICHE DA APPLICARE A navidiaria-cloud.gs IN GOOGLE APPS SCRIPT
+
+=== MODIFICA 1: Sostituisci questo codice nella funzione doPost() ===
+
+TROVARE (linee ~23-24):
+    const lock = LockService.getScriptLock();
+    lock.waitLock(15000);
+
+SOSTITUIRE CON:
+    const lock = LockService.getScriptLock();
+    if (!lock.tryLock(8000)) {
+      throw new Error("Il foglio è momentaneamente occupato. Riprova tra qualche secondo.");
+    }
+
+=== NOTA SULLA DIFFERENZA ===
+
+PRIMA:
+- lock.waitLock(15000) = ASPETTA fino a 15 secondi (blocca il thread)
+- Se il lock è occupato, l'utente vede il caricamento bloccato
+
+DOPO:
+- lock.tryLock(8000) = PROVA per max 8 secondi, ma se il lock è occupato ritorna false
+- Se ritorna false, lanciamo un errore chiaro: "Il foglio è momentaneamente occupato..."
+- L'utente vede il messaggio subito (massimo 8 secondi) invece di 15 secondi
+
+=== PERCHÉ FUNZIONA ===
+
+1. Codice.gs ora ha un lock su doGet() (appena aggiunto)
+2. navidiaria-cloud.gs ha un lock su doPost() (migliorato)
+3. Entrambi i lock usano lo STESSO LockService.getScriptLock()
+4. Quando uno script legge Foglio1, l'altro aspetta (max 8 secondi)
+5. Se c'è troppa contesa, utente vede messaggio chiaro dopo 8s invece di attendere 15s in silenzio
+
+=== VERIFICA ===
+
+Dopo aver applicato questa modifica:
+1. Ricarica impostazioni.html
+2. Clicca su carica settimane
+3. Dovrebbe caricare ora senza timeout
+4. Se ancora lento, controlla se altri tab/processi stanno leggendo i dati

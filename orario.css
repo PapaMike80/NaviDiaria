@@ -1237,7 +1237,7 @@ svg {
     min-height: 720px;
     cursor: grab;
     user-select: none;
-    touch-action: none;
+    touch-action: manipulation;
   }
   #orario-garda-viz .og-chart-stage.is-panning {
     cursor: grabbing;
