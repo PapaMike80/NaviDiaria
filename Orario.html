@@ -520,10 +520,11 @@
   #orario-garda-viz .og-chart-wrap {
     position: relative;
     width: 100%;
-    height: calc(100dvh - 4.75rem);
-    height: calc(100vh - 4.75rem);
-    min-height: calc(100dvh - 4.75rem);
-    min-height: calc(100vh - 4.75rem);
+    /* Correzione robusta per Safari/iOS evitando il collasso delle altezze vh */
+    height: 75vh;
+    height: 75dvh;
+    min-height: 500px;
+    max-height: calc(100vh - 120px);
     overflow: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border);
@@ -538,10 +539,9 @@
   }
   @media (max-height: 820px) {
     #orario-garda-viz .og-chart-wrap {
-      height: calc(100dvh - 4.25rem);
-      height: calc(100vh - 4.25rem);
-      min-height: calc(100dvh - 4.25rem);
-      min-height: calc(100vh - 4.25rem);
+      height: 70vh;
+      height: 70dvh;
+      min-height: 420px;
     }
   }
   #orario-garda-viz .og-zoom-controls {
@@ -752,7 +752,8 @@
   }
   #orario-garda-viz .og-chart-stage {
     position: relative;
-    min-width: 100%;
+    width: 100%;
+    min-width: 1200px; /* Assicura lo spazio orizzontale necessario per il diagramma spazio-tempo su mobile */
     height: 100%;
     min-height: 720px;
     cursor: grab;
