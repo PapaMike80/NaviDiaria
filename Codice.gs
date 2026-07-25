@@ -21,17 +21,7 @@ const NAVITURNI_CONFIG = {
 
 function doGet() {
   try {
-    // Controlla la cache (1 ora = 3600 secondi)
-    const cache = CacheService.getScriptCache();
-    const cached = cache.get("naviturni_data");
-    
-    if (cached) {
-      return jsonOutput(JSON.parse(cached));
-    }
-    
-    // Se non in cache, genera e memorizza
     const dati = generaNaviturni();
-    cache.put("naviturni_data", JSON.stringify(dati), 3600);
     return jsonOutput(dati);
   } catch (errore) {
     return jsonOutput({
@@ -39,27 +29,6 @@ function doGet() {
       messaggio: errore && errore.message
         ? errore.message
         : String(errore)
-    });
-  }
-}
-
-/**
- * Pulisce la cache di naviturni.
- * Utile quando l'utente modifica bozzaDal o altri dati importanti.
- * Richiesta: https://script.google.com/.../exec?action=clearCache
- */
-function doClearCache() {
-  try {
-    const cache = CacheService.getScriptCache();
-    cache.remove("naviturni_data");
-    return jsonOutput({
-      ok: true,
-      messaggio: "Cache pulita con successo"
-    });
-  } catch (errore) {
-    return jsonOutput({
-      errore: true,
-      messaggio: errore.message || "Errore nella pulizia cache"
     });
   }
 }
