@@ -2155,6 +2155,11 @@
         const weekStartIso = Array.isArray(sett.dateIso) && sett.dateIso.length ? sett.dateIso[0] : "";
         const configuredStatus = String(weekStatusMap[weekStartIso] || "").toLowerCase();
         if (configuredStatus === "nascosta") return;
+        
+        // Calcola lo stato della settimana UNA VOLTA (basato sul primo giorno della settimana)
+        // Non confrontare ogni data singola contro bozza_dal
+        const weekStatus = configuredStatus || (globalData && globalData.bozza_dal && weekStartIso >= globalData.bozza_dal ? "bozza" : "ufficiale");
+        
         const baseDate = new Date(sett.year || 2026, sett.month, sett.startDay);
         const count = sett.count || 7;
         for (let g = 0; g < count; g++) {
@@ -2171,8 +2176,8 @@
             labelEstesa: `${nomiGiorniCompleti[(d.getDay() + 6) % 7]} ${d.getDate()} ${mesiNomi[d.getMonth()]}`,
             realObj: d,
             iso,
-            weekStatus: configuredStatus || (globalData && globalData.bozza_dal && iso >= globalData.bozza_dal ? "bozza" : "ufficiale"),
-            isBozza: configuredStatus ? configuredStatus === "bozza" : Boolean(globalData && globalData.bozza_dal && iso >= globalData.bozza_dal),
+            weekStatus: weekStatus,
+            isBozza: weekStatus === "bozza",
             odsCoverageNumber: odsCoverage && iso >= odsCoverage.from && iso <= odsCoverage.until
               ? odsCoverage.number
               : null,
