@@ -16,7 +16,45 @@
     const root = document.getElementById("orario-garda-viz");
     if (!root) return;
 
+    // SPOSTATI TUTTI QUI IN ALTO: Nessuna variabile sarà "not defined"
+    const svg = root.querySelector(".og-chart");
+    const chartStage = root.querySelector(".og-chart-stage");
+    const stopAxis = root.querySelector(".og-stop-axis");
+    const timeAxis = root.querySelector(".og-time-axis");
+    const allRacesButton = root.querySelector("#og-tutte");
+    const noRacesButton = root.querySelector("#og-nessuna");
+    const summary = root.querySelector(".og-summary");
+    const detail = root.querySelector(".og-detail");
+    const selectedCoursePills = root.querySelector(".og-selected-course-pills");
+    const selectedCoursePillList = root.querySelector(".og-selected-course-pill-list-main");
+    const selectedCoincidencePillList = root.querySelector(".og-selected-course-pill-list-coincidences");
+    const mobileMenuToggle = root.querySelector(".og-mobile-menu-toggle");
+    const mobileMenuBackdrop = root.querySelector(".og-mobile-menu-backdrop");
+    const tooltip = root.querySelector(".og-tooltip");
+    const coincidenceToggle = root.querySelector(".og-coincidence-toggle");
+    const residences = root.querySelector(".og-residences");
+    const normalMatrix = root.querySelector(".og-normal-matrix");
+    const rapidMatrix = root.querySelector(".og-rapid-matrix");
+    const tabChart = root.querySelector(".og-tab-chart");
+    const tabMatrix = root.querySelector(".og-tab-matrix");
+    const pageChart = root.querySelector(".og-page-chart");
+    const pageMatrix = root.querySelector(".og-page-matrix");
+    const courseCard = root.querySelector(".og-course-card");
+    const courseTitle = root.querySelector(".og-course-title");
+    const courseCode = root.querySelector(".og-course-code");
+    const courseSummary = root.querySelector(".og-course-summary");
+    const miniChart = root.querySelector(".og-mini-chart");
+    const courseStopsBody = root.querySelector(".og-course-stops tbody");
+    const courseClose = root.querySelector(".og-course-close");
+    const coursePrev = root.querySelector(".og-course-prev");
+    const courseNext = root.querySelector(".og-course-next");
+    const chartWrap = root.querySelector(".og-chart-wrap"); 
+    const zoomValue = root.querySelector(".og-zoom-value"); 
+    const zoomOut = root.querySelector(".og-zoom-out");     
+    const zoomIn = root.querySelector(".og-zoom-in");       
+
     const data = {"stops":["DESENZANO","PESCHIERA","SIRMIONE","PADENGHE","MONIGA","LAZISE","MANERBA (Dusano)","CISANO","BARDOLINO","GARDA","TORRI","PORTESE","SALÒ","GARDONE","MADERNO","BOGLIACO","GARGNANO","TIGNALE","CASTELLETTO","BRENZONE","ASSENZA di Brenzone","CAMPIONE (Tremosine)","MALCESINE centro","LIMONE multipiano","LIMONE centro","TORBOLE","RIVA"],"services":[{"r":"14","s":"P2","d":"N","p":[[1,480],[5,508],[8,525],[9,540]]},{"r":"28","s":"D3","d":"N","p":[[0,480],[2,500],[4,522],[6,536],[11,566],[12,577],[13,591]]},{"r":"40","s":"D4","d":"N","p":[[0,495],[6,525]]},{"r":"8","s":"D2","d":"N","p":[[0,500],[2,520],[8,560],[9,575]]},{"r":"62","s":"R2","d":"N","p":[[22,535],[24,555],[25,585],[26,600]]},{"r":"72","s":"R3","d":"N","p":[[22,585],[24,610],[25,643],[26,660]]},{"r":"92","s":"M1","d":"N","p":[[11,518],[12,530],[13,544],[14,559],[16,590],[19,620],[24,660]]},{"r":"110","s":"SR1","d":"N","p":[[1,530],[2,550],[9,571],[10,585],[12,609],[13,619],[16,636],[22,655],[24,665]]},{"r":"82","s":"R4","d":"N","p":[[21,642],[22,660],[24,680],[26,715]]},{"r":"64","s":"R2","d":"N","p":[[22,675],[23,703],[25,740],[26,755]]},{"r":"74","s":"R3","d":"N","p":[[22,745],[24,770],[26,810]]},{"r":"22","s":"D1","d":"N","p":[[0,535],[2,555],[5,637],[7,625],[8,615],[9,600]]},{"r":"2","s":"P1","d":"N","p":[[1,550],[5,578],[7,590],[8,600],[9,615],[11,657],[12,668],[13,682],[14,696],[15,721],[16,729],[17,747],[21,763],[22,782],[24,804],[26,840]]},{"r":"160","s":"CAP1","d":"N","p":[[0,560],[9,591],[12,621],[13,633],[16,654],[18,667],[19,675],[22,693],[24,710],[26,735]]},{"r":"42","s":"D4","d":"N","p":[[2,580],[5,620],[7,633],[8,643],[9,660]]},{"r":"34","s":"P3","d":"N","p":[[1,585],[2,625],[9,670]]},{"r":"16","s":"P2","d":"N","p":[[0,615],[2,637],[5,678],[8,695],[9,711],[11,753],[13,764],[14,780]]},{"r":"24","s":"D1","d":"N","p":[[1,680],[5,708],[7,721],[8,731],[9,746],[10,773],[18,806],[19,816],[20,827],[22,845]]},{"r":"84","s":"R4","d":"N","p":[[22,850],[24,870]]},{"r":"10","s":"D2","d":"N","p":[[0,690],[2,715],[5,755],[8,773],[9,790]]},{"r":"66","s":"R2","d":"N","p":[[22,870],[23,890],[24,898],[25,928],[26,945]]},{"r":"152","s":"CAR1","d":"N","p":[[0,760],[2,780],[9,808]]},{"r":"36","s":"P3","d":"N","p":[[1,790],[2,836],[5,885],[7,898],[8,909],[9,925]]},{"r":"86","s":"R4","d":"N","p":[[22,895],[24,918],[26,955]]},{"r":"76","s":"R3","d":"N","p":[[22,945],[26,1000]]},{"r":"96","s":"M1","d":"N","p":[[11,855],[12,865],[13,879],[16,919],[19,948],[24,990]]},{"r":"30","s":"D3","d":"N","p":[[0,825],[2,850],[7,890],[8,900],[9,915],[11,960],[12,975],[13,990]]},{"r":"44","s":"D4","d":"N","p":[[1,860],[2,900],[4,923],[6,937]]},{"r":"112","s":"SR1","d":"N","p":[[0,870],[2,881],[9,903],[12,924],[13,933],[16,950],[22,969],[24,980],[26,1005]]},{"r":"68","s":"R2","d":"N","p":[[22,995],[24,1018],[25,1050],[26,1065]]},{"r":"162","s":"CAP1","d":"N","p":[[2,937],[8,960],[9,971],[14,995],[24,1035]]},{"r":"88","s":"R4","d":"N","p":[[20,1040],[22,1060],[24,1080],[26,1115]]},{"r":"78","s":"R3","d":"N","p":[[22,1085],[24,1110],[25,1143],[26,1160]]},{"r":"70","s":"R2","d":"N","p":[[22,1125],[26,1170]]},{"r":"6","s":"R1","d":"N","p":[[0,900],[2,922],[9,967],[11,1009],[12,1020],[13,1033],[14,1046],[15,1071],[16,1078],[17,1095],[20,1123],[21,1110],[22,1140],[24,1160],[25,1190],[26,1205]]},{"r":"12","s":"D2","d":"N","p":[[1,930],[5,958],[7,970],[8,980],[9,995]]},{"r":"46","s":"D4","d":"N","p":[[0,995],[2,1018],[6,1041]]},{"r":"156","s":"CAR1","d":"N","p":[[0,1000],[1,970],[2,1012],[9,1034],[12,1060],[13,1070],[16,1095],[18,1109],[19,1117],[22,1133],[24,1148],[25,1166],[26,1180]]},{"r":"38","s":"P3","d":"N","p":[[1,995],[5,1023],[8,1040],[9,1055]]},{"r":"18","s":"P2","d":"N","p":[[0,1030],[2,1055],[9,1100]]},{"r":"98","s":"M1","d":"N","p":[[9,1105],[11,1145],[12,1158],[13,1173],[14,1190]]},{"r":"26","s":"D1","d":"N","p":[[1,1080],[5,1109],[7,1122],[8,1132],[9,1150]]},{"r":"48","s":"D4","d":"N","p":[[0,1095],[2,1115],[6,1138]]},{"r":"114","s":"SR1","d":"N","p":[[0,1140],[1,1170],[2,1153]]},{"r":"90","s":"R4","d":"N","p":[[22,1185],[26,1230]]},{"r":"61","s":"R2","d":"S","p":[[26,480],[23,515],[22,535]]},{"r":"91","s":"M1","d":"S","p":[[14,500],[11,518]]},{"r":"41","s":"D4","d":"S","p":[[6,525],[4,540],[3,554],[2,580]]},{"r":"159","s":"CAP1","d":"S","p":[[2,538],[1,510],[0,555]]},{"r":"33","s":"P3","d":"S","p":[[9,515],[8,530],[5,547],[1,575]]},{"r":"15","s":"P2","d":"S","p":[[9,540],[8,525],[5,508],[2,585],[0,605]]},{"r":"9","s":"D2","d":"S","p":[[9,575],[8,590],[7,598],[5,610],[2,657],[0,680]]},{"r":"23","s":"D1","d":"S","p":[[9,600],[8,615],[7,625],[5,637],[1,665]]},{"r":"151","s":"CAR1","d":"S","p":[[26,500],[25,507],[24,525],[22,537],[19,553],[16,568],[14,589],[13,601],[12,615],[11,625],[9,655],[2,685],[0,700]]},{"r":"29","s":"D3","d":"S","p":[[13,591],[12,605],[11,617],[9,663],[8,678],[5,697],[2,743],[0,765]]},{"r":"35","s":"P3","d":"S","p":[[9,670],[8,685],[5,702],[1,730]]},{"r":"43","s":"D4","d":"S","p":[[9,660],[6,700],[4,714],[3,728],[2,758],[1,800]]},{"r":"71","s":"R3","d":"S","p":[[26,520],[24,560],[22,585]]},{"r":"5","s":"R1","d":"S","p":[[26,530],[25,545],[24,575],[22,595],[20,611],[21,625],[17,640],[16,657],[15,664],[14,690],[13,703],[12,718],[11,728],[9,770],[2,816],[0,840]]},{"r":"81","s":"R4","d":"S","p":[[26,560],[25,575],[24,605],[22,625],[21,642]]},{"r":"63","s":"R2","d":"S","p":[[26,605],[25,620],[23,653],[22,675]]},{"r":"93","s":"M1","d":"S","p":[[24,660],[22,680],[18,715],[13,770],[12,785]]},{"r":"111","s":"SR1","d":"S","p":[[24,670],[22,681],[13,719],[12,729],[10,705],[9,749],[8,758],[2,776],[0,785]]},{"r":"73","s":"R3","d":"S","p":[[26,670],[25,687],[24,720],[22,745]]},{"r":"83","s":"R4","d":"S","p":[[26,720],[25,735],[24,765],[22,785]]},{"r":"161","s":"CAP1","d":"S","p":[[26,805],[24,825],[22,839],[14,875],[13,887],[12,900],[2,932]]},{"r":"65","s":"R2","d":"S","p":[[26,815],[23,850],[22,870]]},{"r":"153","s":"CAR1","d":"S","p":[[9,808],[8,820],[5,835],[2,865],[1,900]]},{"r":"11","s":"D2","d":"S","p":[[9,855],[8,871],[7,881],[5,894],[1,925]]},{"r":"45","s":"D4","d":"S","p":[[6,937],[2,962],[0,985]]},{"r":"155","s":"CAR1","d":"S","p":[[1,970],[0,995]]},{"r":"95","s":"M1","d":"S","p":[[12,845],[11,855]]},{"r":"17","s":"P2","d":"S","p":[[14,840],[13,855],[12,868],[11,879],[9,922],[8,937],[5,954],[2,996],[0,1025]]},{"r":"37","s":"P3","d":"S","p":[[9,930],[8,945],[5,962],[1,990]]},{"r":"85","s":"R4","d":"S","p":[[24,875],[22,895]]},{"r":"25","s":"D1","d":"S","p":[[22,905],[20,922],[19,933],[18,943],[10,975],[9,1005],[8,1020],[7,1030],[5,1045],[1,1075]]},{"r":"75","s":"R3","d":"S","p":[[26,870],[25,887],[24,920],[22,945]]},{"r":"47","s":"D4","d":"S","p":[[6,1041],[4,1055],[3,1068],[0,1090]]},{"r":"13","s":"D2","d":"S","p":[[9,1015],[8,1030],[2,1075],[0,1105]]},{"r":"39","s":"P3","d":"S","p":[[9,1055],[2,1100],[1,1140]]},{"r":"31","s":"D3","d":"S","p":[[13,990],[12,1004],[11,1016],[9,1061],[8,1076],[5,1094],[2,1135],[0,1160]]},{"r":"49","s":"D4","d":"S","p":[[6,1138],[4,1152],[3,1165],[0,1185]]},{"r":"19","s":"P2","d":"S","p":[[9,1100],[8,1115],[5,1132],[1,1160]]},{"r":"97","s":"M1","d":"S","p":[[24,990],[22,1012],[19,1038],[10,1080],[9,1105]]},{"r":"3","s":"P1","d":"S","p":[[26,915],[24,950],[22,975],[21,993],[17,1009],[16,1027],[15,1034],[14,1060],[13,1074],[12,1088],[11,1099],[9,1142],[8,1156],[7,1165],[5,1178],[1,1210]]},{"r":"67","s":"R2","d":"S","p":[[26,950],[22,995]]},{"r":"87","s":"R4","d":"S","p":[[26,965],[24,1000],[22,1020],[20,1040]]},{"r":"113","s":"SR1","d":"S","p":[[26,1005],[24,1030],[22,1041],[13,1087],[12,1077],[10,1102],[8,1117],[2,1153],[1,1170],[0,1135]]},{"r":"163","s":"CAP1","d":"S","p":[[24,1040],[22,1055],[16,1081],[14,1100],[13,1112],[9,1135],[8,1146],[5,1156],[1,1175]]},{"r":"77","s":"R3","d":"S","p":[[26,1010],[25,1027],[24,1060],[22,1085]]},{"r":"69","s":"R2","d":"S","p":[[26,1070],[24,1105],[22,1125]]},{"r":"89","s":"R4","d":"S","p":[[26,1120],[25,1135],[24,1165],[22,1185]]},{"r":"27","s":"D1","d":"S","p":[[9,1150],[8,1132],[7,1122],[5,1109],[2,1195],[0,1215]]}],"shifts":{"D1":{"r":["22","23","24","25","26","27"],"h":"13:00","diaria":"24%","meal":"1"},"D2":{"r":["8","9","10","11","12","13"],"h":"11:25","diaria":"24%","meal":"1"},"D3":{"r":["28","29","30","31"],"h":"13:20","diaria":"24%","meal":"1"},"D4":{"r":["40","41","42","43","44","45","46","47","48","49"],"h":"13:15","diaria":"24%","meal":"1"},"T1":{"r":["201T","202T","203T","204T","205T","206T","207T","208T","209T","210T","211T","212T","213T","214T","215T","216T","217T","218T"],"h":"13:35","diaria":"24%","meal":"1"},"T2":{"r":["231T","232T","233T","234T","235T","236T","237T","238T","239T","240T","241T","242T","243T","244T","245T","246T"],"h":"12:29","diaria":"24%","meal":"1"},"M1":{"r":["91","92","93","95","96","97","98"],"h":"13:30","diaria":"24%","meal":"1"},"R1":{"r":["5","6"],"h":"13:15","diaria":"24%","meal":"1"},"R2":{"r":["61","62","63","64","65","66","67","68","69","70"],"h":"13:15","diaria":"24%","meal":"1"},"R3":{"r":["71","72","73","74","75","76","77","78"],"h":"12:20","diaria":"24%","meal":"1"},"R4":{"r":["81","82","83","84","85","86","87","88","89","90"],"h":"12:40","diaria":"24%","meal":"1"},"CAR1":{"r":["151","152","153","155","156"],"h":"12:10","diaria":"24%","meal":"1"},"P1":{"r":["2","3"],"h":"12:45","diaria":"24%","meal":"1"},"P2":{"r":["14","15","16","17","18","19"],"h":"13:05","diaria":"24%","meal":"1"},"P3":{"r":["33","34","35","36","37","38","39"],"h":"12:55","diaria":"24%","meal":"1"},"CAP1":{"r":["159","160","161","162","163"],"h":"12:55","diaria":"24%","meal":"1"},"SR1":{"r":["110","111","112","113","114"],"h":"12:15","diaria":"24%","meal":"1"}}};
+    
     data.services.push(
       {r:"201",s:"T1",d:"S",p:[[14,480],[10,510]]},
       {r:"202",s:"T1",d:"N",p:[[10,515],[14,545]]},
@@ -87,14 +125,11 @@
     function applySharedOrariOverrides() {
       let overrides = {};
       try {
-        // Controllo protetto per iOS Brave: se blocca il localstorage evitiamo il crash
         if (typeof window !== "undefined" && window.localStorage) {
           const raw = window.localStorage.getItem(ORARI_OVERRIDE_KEY);
           if (raw && raw !== "null") {
             const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === "object") {
-              overrides = parsed;
-            }
+            if (parsed && typeof parsed === "object") overrides = parsed;
           }
         }
       } catch (e) {
@@ -194,37 +229,7 @@
     ];
 
     window.NaviOrarioDataset = { data, officialConnections };
-    const svg = root.querySelector(".og-chart");
-    const chartStage = root.querySelector(".og-chart-stage");
-    const stopAxis = root.querySelector(".og-stop-axis");
-    const timeAxis = root.querySelector(".og-time-axis");
-    const allRacesButton = root.querySelector("#og-tutte");
-    const noRacesButton = root.querySelector("#og-nessuna");
-    const summary = root.querySelector(".og-summary");
-    const detail = root.querySelector(".og-detail");
-    const selectedCoursePills = root.querySelector(".og-selected-course-pills");
-    const selectedCoursePillList = root.querySelector(".og-selected-course-pill-list-main");
-    const selectedCoincidencePillList = root.querySelector(".og-selected-course-pill-list-coincidences");
-    const mobileMenuToggle = root.querySelector(".og-mobile-menu-toggle");
-    const mobileMenuBackdrop = root.querySelector(".og-mobile-menu-backdrop");
-    const tooltip = root.querySelector(".og-tooltip");
-    const coincidenceToggle = root.querySelector(".og-coincidence-toggle");
-    const residences = root.querySelector(".og-residences");
-    const normalMatrix = root.querySelector(".og-normal-matrix");
-    const rapidMatrix = root.querySelector(".og-rapid-matrix");
-    const tabChart = root.querySelector(".og-tab-chart");
-    const tabMatrix = root.querySelector(".og-tab-matrix");
-    const pageChart = root.querySelector(".og-page-chart");
-    const pageMatrix = root.querySelector(".og-page-matrix");
-    const courseCard = root.querySelector(".og-course-card");
-    const courseTitle = root.querySelector(".og-course-title");
-    const courseCode = root.querySelector(".og-course-code");
-    const courseSummary = root.querySelector(".og-course-summary");
-    const miniChart = root.querySelector(".og-mini-chart");
-    const courseStopsBody = root.querySelector(".og-course-stops tbody");
-    const courseClose = root.querySelector(".og-course-close");
-    const coursePrev = root.querySelector(".og-course-prev");
-    const courseNext = root.querySelector(".og-course-next");
+
     const ns = "http://www.w3.org/2000/svg";
     let activePath = null;
     let activeCourseIndex = -1;
@@ -1668,6 +1673,185 @@
     if (normalMatrix && rapidMatrix) drawTravelMatrices();
     renderSelectedCoursePills();
     draw();
+
+    function syncResidencesHost() {
+      if (isMobileLayout()) {
+        if (residences && residences.parentElement !== root && chartWrap) {
+          root.insertBefore(residences, chartWrap);
+        }
+        if (residences) residences.style.transform = "";
+        return;
+      }
+      if (residences && chartWrap && residences.parentElement !== chartWrap) {
+        chartWrap.insertBefore(residences, chartWrap.firstChild);
+      }
+    }
+
+    if (coincidenceToggle) {
+      coincidenceToggle.addEventListener("click", () => {
+        const enabled = coincidenceToggle.getAttribute("aria-pressed") !== "true";
+        coincidenceToggle.setAttribute("aria-pressed", String(enabled));
+        coincidenceToggle.textContent = enabled ? "⇄ ON" : "⇄ OFF";
+        if (selectedRoutes.size) renderSelectedRoutes();
+        else renderCoincidences();
+      });
+    }
+
+    function lockStopAxisToLeft() {
+      if (stopAxis && chartWrap) stopAxis.style.transform = "translateX(" + chartWrap.scrollLeft + "px)";
+      if (timeAxis && chartWrap) timeAxis.style.transform = "translateY(" + chartWrap.scrollTop + "px)";
+      if (!isMobileLayout() && residences && chartWrap && residences.parentElement === chartWrap) {
+        residences.style.transform = "translate(" + chartWrap.scrollLeft + "px," +
+          chartWrap.scrollTop + "px)";
+      } else if (residences) {
+        residences.style.transform = "";
+      }
+    }
+
+    syncResidencesHost();
+    if (chartWrap) {
+      chartWrap.addEventListener("scroll", lockStopAxisToLeft, {passive: true});
+    }
+
+    function setChartZoom(nextZoom, clientX, clientY) {
+      const previousZoom = chartZoom;
+      chartZoom = Math.max(1, Math.min(3, nextZoom));
+      if (chartZoom === previousZoom) return;
+      if (!chartWrap) return;
+      const rect = chartWrap.getBoundingClientRect();
+      const pointerX = clientX == null ? rect.width / 2 : clientX - rect.left;
+      const pointerY = clientY == null ? rect.height / 2 : clientY - rect.top;
+      const contentX = chartWrap.scrollLeft + pointerX;
+      const contentY = chartWrap.scrollTop + pointerY;
+      const fixedAxisWidth = stopAxis ? stopAxis.offsetWidth : 0;
+      const zoomRatio = chartZoom / previousZoom;
+      if (zoomValue) zoomValue.textContent = Math.round(chartZoom * 100) + "%";
+      draw(Boolean(selectedRoutes.size));
+      requestAnimationFrame(() => {
+        chartWrap.scrollLeft = fixedAxisWidth +
+          (contentX - fixedAxisWidth) * zoomRatio - pointerX;
+        chartWrap.scrollTop = 72 + (contentY - 72) * zoomRatio - pointerY;
+      });
+    }
+
+    if (chartStage) {
+      chartStage.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setChartZoom(
+          chartZoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15),
+          event.clientX,
+          event.clientY
+        );
+      }, {passive: false});
+    }
+
+    if (zoomOut) zoomOut.addEventListener("click", () => setChartZoom(chartZoom / 1.2));
+    if (zoomIn) zoomIn.addEventListener("click", () => setChartZoom(chartZoom * 1.2));
+    if (zoomValue) {
+      zoomValue.addEventListener("click", () => {
+        setChartZoom(1);
+        if (chartWrap && chartWrap.scrollTo) {
+          chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
+        } else if (chartWrap) {
+          chartWrap.scrollLeft = 0;
+          chartWrap.scrollTop = 0;
+        }
+      });
+    }
+
+    let panState = null;
+    let suppressCourseClick = false;
+    if (chartStage) {
+      chartStage.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || event.target.closest("button")) return;
+        panState = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          scrollLeft: chartWrap ? chartWrap.scrollLeft : 0,
+          scrollTop: chartWrap ? chartWrap.scrollTop : 0,
+          dragged: false
+        };
+      });
+      chartStage.addEventListener("pointermove", (event) => {
+        if (!panState || panState.pointerId !== event.pointerId || !chartWrap) return;
+        const deltaX = event.clientX - panState.startX;
+        const deltaY = event.clientY - panState.startY;
+        if (!panState.dragged && Math.hypot(deltaX, deltaY) < 9) return;
+        if (!panState.dragged) {
+          panState.dragged = true;
+          if (typeof chartStage.setPointerCapture === "function") {
+              try { chartStage.setPointerCapture(event.pointerId); } catch(e) {}
+          }
+        }
+        chartStage.classList.add("is-panning");
+        chartWrap.scrollLeft = panState.scrollLeft - deltaX;
+        chartWrap.scrollTop = panState.scrollTop - deltaY;
+        event.preventDefault();
+      });
+    }
+
+    function finishPan(event) {
+      if (!panState || panState.pointerId !== event.pointerId) return;
+      suppressCourseClick = panState.dragged;
+      if (chartStage) {
+        chartStage.classList.remove("is-panning");
+        if (typeof chartStage.hasPointerCapture === "function" && chartStage.hasPointerCapture(event.pointerId)) {
+          try { chartStage.releasePointerCapture(event.pointerId); } catch(e) {}
+        }
+      }
+      panState = null;
+      if (suppressCourseClick) {
+        setTimeout(() => { suppressCourseClick = false; }, 120);
+      }
+    }
+
+    if (chartStage) {
+      chartStage.addEventListener("pointerup", finishPan);
+      chartStage.addEventListener("pointercancel", finishPan);
+      chartStage.addEventListener("click", (event) => {
+        if (!suppressCourseClick) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        suppressCourseClick = false;
+      }, true);
+      chartStage.addEventListener("click", (event) => {
+        if (isMobileLayout() && !event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) {
+          clearRoutePreview();
+          lastTapRouteKey = "";
+          lastTapAt = 0;
+        }
+        if (!selectedRoutes.size) return;
+        if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) return;
+        clearSelectedRoutes();
+        if (detail) detail.textContent = "Selezioni annullate: sono nuovamente visibili tutte le corse.";
+      });
+      chartStage.addEventListener("dblclick", (event) => {
+        if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) return;
+        clearSelectedRoutes();
+        setChartZoom(1);
+        if (chartWrap && chartWrap.scrollTo) {
+          chartWrap.scrollTo({left: 0, top: 0, behavior: "smooth"});
+        } else if (chartWrap) {
+          chartWrap.scrollLeft = 0;
+          chartWrap.scrollTop = 0;
+        }
+        if (detail) detail.textContent = "Selezioni annullate e zoom ripristinato.";
+      });
+    }
+
+    let resizeTimer;
+    const triggerResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(draw, 80);
+    };
+    
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(triggerResize).observe(root);
+    } else {
+      window.addEventListener("resize", triggerResize);
+    }
 
   } catch (error) {
     logErrorToScreen(error.message, error.stack);
