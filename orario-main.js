@@ -16,7 +16,6 @@
     const root = document.getElementById("orario-garda-viz");
     if (!root) return;
 
-    // SPOSTATI TUTTI QUI IN ALTO: Nessuna variabile sarà "not defined"
     const svg = root.querySelector(".og-chart");
     const chartStage = root.querySelector(".og-chart-stage");
     const stopAxis = root.querySelector(".og-stop-axis");
@@ -1349,16 +1348,26 @@
         button.setAttribute("aria-pressed",
           String(Boolean(residence && residence[1].some((shift) => selected.has(shift)))));
       });
-      const baseWidth = Math.max(320, Math.round(root.getBoundingClientRect().width || 736));
-      const baseHeight = baseWidth < 520 ? 760 : 720;
+      
+      const containerWidth = Math.round(root.getBoundingClientRect().width || 736);
+      
+      // --- MODIFICA CRITICA PER IL PANNING SU MOBILE ---
+      // Forziamo una larghezza minima del grafico (1100px su mobile).
+      // Se il grafico è più largo dello schermo del telefono (es. 390px),
+      // il contenitore diventerà "scrollabile" e il panning funzionerà perfettamente!
+      const baseWidth = Math.max(isMobileLayout() ? 1100 : 736, containerWidth);
+      const baseHeight = isMobileLayout() ? 780 : (baseWidth < 520 ? 760 : 720);
+      
       chartBaseWidth = baseWidth;
       chartBaseHeight = baseHeight;
+      
       const margin = {
         top: 72,
         right: 18,
         bottom: 18,
         left: getChartLeftMargin(baseWidth)
       };
+      
       const plotW = (baseWidth - margin.left - margin.right) * chartZoom;
       const plotH = (baseHeight - margin.top - margin.bottom) * chartZoom;
       const width = margin.left + plotW + margin.right;
@@ -1368,6 +1377,7 @@
       const x = (minute) => margin.left + ((minute - start) / (end - start)) * plotW;
       const y = (stop) => margin.top + (stop / (data.stops.length - 1)) * plotH;
       chartScales = {x: x, y: y};
+      
       svg.setAttribute("viewBox", "0 0 " + width + " " + height);
       svg.style.width = Math.round(width) + "px";
       svg.style.height = Math.round(height) + "px";
