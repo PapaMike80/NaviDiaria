@@ -20,7 +20,17 @@ const NAVITURNI_CONFIG = {
 
 function doGet() {
   try {
+    // Controlla la cache (1 ora = 3600 secondi)
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get("naviturni_data");
+    
+    if (cached) {
+      return jsonOutput(JSON.parse(cached));
+    }
+    
+    // Se non in cache, genera e memorizza
     const dati = generaNaviturni();
+    cache.put("naviturni_data", JSON.stringify(dati), 3600);
     return jsonOutput(dati);
   } catch (errore) {
     return jsonOutput({
@@ -368,7 +378,8 @@ function leggiVariazioniOds(ss) {
       note: colNote >= 0 ? pulisciTesto(row[colNote]) : ""
     };
   }).filter(function(item) {
-    return item !== null;
+    // Esclude variazioni disattivate e nulle
+    return item !== null && item.attiva === true;
   });
 }
 

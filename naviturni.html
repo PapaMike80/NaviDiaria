@@ -4463,7 +4463,13 @@
         }
       });
       setupSynchronizedTableScrolls();
-      caricaStatoSettimane().finally(() => caricaDatiDaGoogleSheet());
+      // Carica i dati in parallelo per velocità (invece di sequenziale)
+      Promise.all([
+        caricaStatoSettimane(),
+        caricaDatiDaGoogleSheet()
+      ]).catch(() => {
+        // Gli errori sono gestiti dentro le singole funzioni
+      });
     });
   </script>
 
