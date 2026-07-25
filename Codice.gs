@@ -2,11 +2,12 @@
  * NAVITURNI — Web App Google Apps Script
  *
  * Struttura attesa di Foglio1:
- * A Residenza | B ID | C QUALIFICA | D Agente | colonne successive con date
+ * Riga 0 (configurazione):
+ *   A0: "BOZZA_DAL" | B0: data inizio bozze (es: 2026-07-27)
+ *   C0: "RESIDENZA" | D0: "ID" | E0: "QUALIFICA" | F0: "Agente" | colonne successive con date
  *
  * Le colonne senza una data valida nell'intestazione vengono ignorate.
- * Le date fino al 26/07/2026 sono ufficiali.
- * Dal 27/07/2026 in poi sono bozza.
+ * La data di inizio bozze è leggibile dalla cella B1.
  */
 
 const NAVITURNI_CONFIG = {
@@ -42,6 +43,58 @@ function doGet() {
   }
 }
 
+/**
+ * Pulisce la cache di naviturni.
+ * Utile quando l'utente modifica bozzaDal o altri dati importanti.
+ * Richiesta: https://script.google.com/.../exec?action=clearCache
+ */
+function doClearCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove("naviturni_data");
+    return jsonOutput({
+      ok: true,
+      messaggio: "Cache pulita con successo"
+    });
+  } catch (errore) {
+    return jsonOutput({
+      errore: true,
+      messaggio: errore.message || "Errore nella pulizia cache"
+    });
+  }
+}
+
+/**
+ * Legge la data di inizio bozze dal Google Sheet.
+ * Cerca la cella con "BOZZA_DAL" nella prima riga e legge il valore dalla colonna B.
+ * Se non trovato, usa il default da NAVITURNI_CONFIG.
+ */
+function leggiBozzaDal(ss) {
+  try {
+    const sheet = ss.getSheetByName(NAVITURNI_CONFIG.sheetName);
+    if (!sheet) return NAVITURNI_CONFIG.bozzaDal;
+    
+    const firstRow = sheet.getRange(1, 1, 1, 10).getDisplayValues()[0];
+    if (!firstRow) return NAVITURNI_CONFIG.bozzaDal;
+    
+    // Cerca "BOZZA_DAL" nella prima riga
+    for (let col = 0; col < firstRow.length; col++) {
+      const cellValue = pulisciTesto(firstRow[col]).toUpperCase();
+      if (cellValue === "BOZZA_DAL") {
+        // Legge il valore dalla colonna successiva
+        const bozzaValue = pulisciTesto(firstRow[col + 1]);
+        if (bozzaValue && /^\d{4}-\d{2}-\d{2}$/.test(bozzaValue)) {
+          return bozzaValue;
+        }
+      }
+    }
+    
+    return NAVITURNI_CONFIG.bozzaDal;
+  } catch (e) {
+    return NAVITURNI_CONFIG.bozzaDal;
+  }
+}
+
 function generaNaviturni() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(NAVITURNI_CONFIG.sheetName);
@@ -60,6 +113,9 @@ function generaNaviturni() {
     throw new Error("Foglio1 è vuoto o non contiene righe dati.");
   }
 
+  // Legge la data di inizio bozze dal Google Sheet
+  const bozzaDal = leggiBozzaDal(ss);
+
   const header = data[0];
   const rows = data.slice(1);
 
@@ -71,7 +127,10 @@ function generaNaviturni() {
 
   const colonneDate = [];
 
-  for (let col = PRIMA_COLONNA_DATE; col < header.length; col++) {
+  // Processa solo le colonne fino all'ultima con dati (evita colonne vuote)
+  const lastColWithData = header.length;
+  
+  for (let col = PRIMA_COLONNA_DATE; col < lastColWithData; col++) {
     const dataColonna = parseHeaderDate(
       header[col],
       NAVITURNI_CONFIG.defaultYear
@@ -87,7 +146,7 @@ function generaNaviturni() {
       numero: dataColonna.getDate(),
       mese: dataColonna.getMonth() + 1,
       anno: dataColonna.getFullYear(),
-      stato: formatDateISO(dataColonna) >= NAVITURNI_CONFIG.bozzaDal
+      stato: formatDateISO(dataColonna) >= bozzaDal
         ? "bozza"
         : "ufficiale"
     });
@@ -190,7 +249,7 @@ function generaNaviturni() {
     periodo: creaPeriodo(primaData, ultimaData),
     data_inizio: primaData,
     data_fine: ultimaData,
-    bozza_dal: NAVITURNI_CONFIG.bozzaDal,
+    bozza_dal: bozzaDal,
     variazioni_ods: leggiVariazioniOds(ss),
     turni_navi: leggiTurniNavi(ss),
     bariste: presenzeBariste,
