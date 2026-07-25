@@ -2157,8 +2157,8 @@
         if (configuredStatus === "nascosta") return;
         
         // Calcola lo stato della settimana UNA VOLTA (basato sul primo giorno della settimana)
-        // Non confrontare ogni data singola contro bozza_dal
-        const weekStatus = configuredStatus || (globalData && globalData.bozza_dal && weekStartIso >= globalData.bozza_dal ? "bozza" : "ufficiale");
+        // Lo stato è SEMPRE da impostazioni, mai da bozza_dal (bozza_dal è solo informativo)
+        const weekStatus = configuredStatus || "ufficiale";
         
         const baseDate = new Date(sett.year || 2026, sett.month, sett.startDay);
         const count = sett.count || 7;
