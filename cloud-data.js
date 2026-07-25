@@ -9,4 +9,16 @@
     return result;
   }
   window.NaviCloud={request,url:API_URL};
+
+  function registerServiceWorker(){
+    if(!('serviceWorker' in navigator))return;
+    if(window.__naviSwRegistrationPromise)return window.__naviSwRegistrationPromise;
+    window.__naviSwRegistrationPromise=navigator.serviceWorker.register('sw.js').then(registration=>{
+      if(registration&&typeof registration.update==='function')registration.update().catch(()=>{});
+      return registration;
+    }).catch(()=>null);
+    return window.__naviSwRegistrationPromise;
+  }
+
+  registerServiceWorker();
 })();

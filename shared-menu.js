@@ -1,6 +1,14 @@
 (function(){
   const APP_VERSION='v1.27';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
+  if('serviceWorker' in navigator){
+    if(!window.__naviSwRegistrationPromise){
+      window.__naviSwRegistrationPromise=navigator.serviceWorker.register('sw.js').then(registration=>{
+        if(registration&&typeof registration.update==='function')registration.update().catch(()=>{});
+        return registration;
+      }).catch(()=>null);
+    }
+  }
   const page=document.body.classList.contains('orario-data-page')?'orario-data':document.body.classList.contains('orario-page')?'orario':document.body.classList.contains('impostazioni-page')?'settings':document.body.classList.contains('trova-turno-page')?'trova':document.body.classList.contains('diaria-page')?'diaria':sidebar.id==='archive-sidebar'?'archive':'turni';
   const tabNames={turni:'NaviTurniTab',trova:'NaviTrovaTurnoTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab',settings:'NaviImpostazioniTab',orario:'NaviOrarioTab','orario-data':'NaviOrarioTab'};
   let sessionAgent=null;try{sessionAgent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null')}catch{}
