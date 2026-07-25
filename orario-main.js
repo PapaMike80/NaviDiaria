@@ -51,7 +51,16 @@
     const chartWrap = root.querySelector(".og-chart-wrap"); 
     const zoomValue = root.querySelector(".og-zoom-value"); 
     const zoomOut = root.querySelector(".og-zoom-out");     
-    const zoomIn = root.querySelector(".og-zoom-in");       
+    const zoomIn = root.querySelector(".og-zoom-in");
+
+    // Variabili per la linea rossa dell'ora
+    let displayedTimeMinutes = null;
+
+    function getDisplayedTimeMinutes() {
+      if (displayedTimeMinutes !== null) return displayedTimeMinutes;
+      const now = new Date();
+      return now.getHours() * 60 + now.getMinutes();
+    }       
 
     const data = {"stops":["DESENZANO","PESCHIERA","SIRMIONE","PADENGHE","MONIGA","LAZISE","MANERBA (Dusano)","CISANO","BARDOLINO","GARDA","TORRI","PORTESE","SALÒ","GARDONE","MADERNO","BOGLIACO","GARGNANO","TIGNALE","CASTELLETTO","BRENZONE","ASSENZA di Brenzone","CAMPIONE (Tremosine)","MALCESINE centro","LIMONE multipiano","LIMONE centro","TORBOLE","RIVA"],"services":[{"r":"14","s":"P2","d":"N","p":[[1,480],[5,508],[8,525],[9,540]]},{"r":"28","s":"D3","d":"N","p":[[0,480],[2,500],[4,522],[6,536],[11,566],[12,577],[13,591]]},{"r":"40","s":"D4","d":"N","p":[[0,495],[6,525]]},{"r":"8","s":"D2","d":"N","p":[[0,500],[2,520],[8,560],[9,575]]},{"r":"62","s":"R2","d":"N","p":[[22,535],[24,555],[25,585],[26,600]]},{"r":"72","s":"R3","d":"N","p":[[22,585],[24,610],[25,643],[26,660]]},{"r":"92","s":"M1","d":"N","p":[[11,518],[12,530],[13,544],[14,559],[16,590],[19,620],[24,660]]},{"r":"110","s":"SR1","d":"N","p":[[1,530],[2,550],[9,571],[10,585],[12,609],[13,619],[16,636],[22,655],[24,665]]},{"r":"82","s":"R4","d":"N","p":[[21,642],[22,660],[24,680],[26,715]]},{"r":"64","s":"R2","d":"N","p":[[22,675],[23,703],[25,740],[26,755]]},{"r":"74","s":"R3","d":"N","p":[[22,745],[24,770],[26,810]]},{"r":"22","s":"D1","d":"N","p":[[0,535],[2,555],[5,637],[7,625],[8,615],[9,600]]},{"r":"2","s":"P1","d":"N","p":[[1,550],[5,578],[7,590],[8,600],[9,615],[11,657],[12,668],[13,682],[14,696],[15,721],[16,729],[17,747],[21,763],[22,782],[24,804],[26,840]]},{"r":"160","s":"CAP1","d":"N","p":[[0,560],[9,591],[12,621],[13,633],[16,654],[18,667],[19,675],[22,693],[24,710],[26,735]]},{"r":"42","s":"D4","d":"N","p":[[2,580],[5,620],[7,633],[8,643],[9,660]]},{"r":"34","s":"P3","d":"N","p":[[1,585],[2,625],[9,670]]},{"r":"16","s":"P2","d":"N","p":[[0,615],[2,637],[5,678],[8,695],[9,711],[11,753],[13,764],[14,780]]},{"r":"24","s":"D1","d":"N","p":[[1,680],[5,708],[7,721],[8,731],[9,746],[10,773],[18,806],[19,816],[20,827],[22,845]]},{"r":"84","s":"R4","d":"N","p":[[22,850],[24,870]]},{"r":"10","s":"D2","d":"N","p":[[0,690],[2,715],[5,755],[8,773],[9,790]]},{"r":"66","s":"R2","d":"N","p":[[22,870],[23,890],[24,898],[25,928],[26,945]]},{"r":"152","s":"CAR1","d":"N","p":[[0,760],[2,780],[9,808]]},{"r":"36","s":"P3","d":"N","p":[[1,790],[2,836],[5,885],[7,898],[8,909],[9,925]]},{"r":"86","s":"R4","d":"N","p":[[22,895],[24,918],[26,955]]},{"r":"76","s":"R3","d":"N","p":[[22,945],[26,1000]]},{"r":"96","s":"M1","d":"N","p":[[11,855],[12,865],[13,879],[16,919],[19,948],[24,990]]},{"r":"30","s":"D3","d":"N","p":[[0,825],[2,850],[7,890],[8,900],[9,915],[11,960],[12,975],[13,990]]},{"r":"44","s":"D4","d":"N","p":[[1,860],[2,900],[4,923],[6,937]]},{"r":"112","s":"SR1","d":"N","p":[[0,870],[2,881],[9,903],[12,924],[13,933],[16,950],[22,969],[24,980],[26,1005]]},{"r":"68","s":"R2","d":"N","p":[[22,995],[24,1018],[25,1050],[26,1065]]},{"r":"162","s":"CAP1","d":"N","p":[[2,937],[8,960],[9,971],[14,995],[24,1035]]},{"r":"88","s":"R4","d":"N","p":[[20,1040],[22,1060],[24,1080],[26,1115]]},{"r":"78","s":"R3","d":"N","p":[[22,1085],[24,1110],[25,1143],[26,1160]]},{"r":"70","s":"R2","d":"N","p":[[22,1125],[26,1170]]},{"r":"6","s":"R1","d":"N","p":[[0,900],[2,922],[9,967],[11,1009],[12,1020],[13,1033],[14,1046],[15,1071],[16,1078],[17,1095],[20,1123],[21,1110],[22,1140],[24,1160],[25,1190],[26,1205]]},{"r":"12","s":"D2","d":"N","p":[[1,930],[5,958],[7,970],[8,980],[9,995]]},{"r":"46","s":"D4","d":"N","p":[[0,995],[2,1018],[6,1041]]},{"r":"156","s":"CAR1","d":"N","p":[[0,1000],[1,970],[2,1012],[9,1034],[12,1060],[13,1070],[16,1095],[18,1109],[19,1117],[22,1133],[24,1148],[25,1166],[26,1180]]},{"r":"38","s":"P3","d":"N","p":[[1,995],[5,1023],[8,1040],[9,1055]]},{"r":"18","s":"P2","d":"N","p":[[0,1030],[2,1055],[9,1100]]},{"r":"98","s":"M1","d":"N","p":[[9,1105],[11,1145],[12,1158],[13,1173],[14,1190]]},{"r":"26","s":"D1","d":"N","p":[[1,1080],[5,1109],[7,1122],[8,1132],[9,1150]]},{"r":"48","s":"D4","d":"N","p":[[0,1095],[2,1115],[6,1138]]},{"r":"114","s":"SR1","d":"N","p":[[0,1140],[1,1170],[2,1153]]},{"r":"90","s":"R4","d":"N","p":[[22,1185],[26,1230]]},{"r":"61","s":"R2","d":"S","p":[[26,480],[23,515],[22,535]]},{"r":"91","s":"M1","d":"S","p":[[14,500],[11,518]]},{"r":"41","s":"D4","d":"S","p":[[6,525],[4,540],[3,554],[2,580]]},{"r":"159","s":"CAP1","d":"S","p":[[2,538],[1,510],[0,555]]},{"r":"33","s":"P3","d":"S","p":[[9,515],[8,530],[5,547],[1,575]]},{"r":"15","s":"P2","d":"S","p":[[9,540],[8,525],[5,508],[2,585],[0,605]]},{"r":"9","s":"D2","d":"S","p":[[9,575],[8,590],[7,598],[5,610],[2,657],[0,680]]},{"r":"23","s":"D1","d":"S","p":[[9,600],[8,615],[7,625],[5,637],[1,665]]},{"r":"151","s":"CAR1","d":"S","p":[[26,500],[25,507],[24,525],[22,537],[19,553],[16,568],[14,589],[13,601],[12,615],[11,625],[9,655],[2,685],[0,700]]},{"r":"29","s":"D3","d":"S","p":[[13,591],[12,605],[11,617],[9,663],[8,678],[5,697],[2,743],[0,765]]},{"r":"35","s":"P3","d":"S","p":[[9,670],[8,685],[5,702],[1,730]]},{"r":"43","s":"D4","d":"S","p":[[9,660],[6,700],[4,714],[3,728],[2,758],[1,800]]},{"r":"71","s":"R3","d":"S","p":[[26,520],[24,560],[22,585]]},{"r":"5","s":"R1","d":"S","p":[[26,530],[25,545],[24,575],[22,595],[20,611],[21,625],[17,640],[16,657],[15,664],[14,690],[13,703],[12,718],[11,728],[9,770],[2,816],[0,840]]},{"r":"81","s":"R4","d":"S","p":[[26,560],[25,575],[24,605],[22,625],[21,642]]},{"r":"63","s":"R2","d":"S","p":[[26,605],[25,620],[23,653],[22,675]]},{"r":"93","s":"M1","d":"S","p":[[24,660],[22,680],[18,715],[13,770],[12,785]]},{"r":"111","s":"SR1","d":"S","p":[[24,670],[22,681],[13,719],[12,729],[10,705],[9,749],[8,758],[2,776],[0,785]]},{"r":"73","s":"R3","d":"S","p":[[26,670],[25,687],[24,720],[22,745]]},{"r":"83","s":"R4","d":"S","p":[[26,720],[25,735],[24,765],[22,785]]},{"r":"161","s":"CAP1","d":"S","p":[[26,805],[24,825],[22,839],[14,875],[13,887],[12,900],[2,932]]},{"r":"65","s":"R2","d":"S","p":[[26,815],[23,850],[22,870]]},{"r":"153","s":"CAR1","d":"S","p":[[9,808],[8,820],[5,835],[2,865],[1,900]]},{"r":"11","s":"D2","d":"S","p":[[9,855],[8,871],[7,881],[5,894],[1,925]]},{"r":"45","s":"D4","d":"S","p":[[6,937],[2,962],[0,985]]},{"r":"155","s":"CAR1","d":"S","p":[[1,970],[0,995]]},{"r":"95","s":"M1","d":"S","p":[[12,845],[11,855]]},{"r":"17","s":"P2","d":"S","p":[[14,840],[13,855],[12,868],[11,879],[9,922],[8,937],[5,954],[2,996],[0,1025]]},{"r":"37","s":"P3","d":"S","p":[[9,930],[8,945],[5,962],[1,990]]},{"r":"85","s":"R4","d":"S","p":[[24,875],[22,895]]},{"r":"25","s":"D1","d":"S","p":[[22,905],[20,922],[19,933],[18,943],[10,975],[9,1005],[8,1020],[7,1030],[5,1045],[1,1075]]},{"r":"75","s":"R3","d":"S","p":[[26,870],[25,887],[24,920],[22,945]]},{"r":"47","s":"D4","d":"S","p":[[6,1041],[4,1055],[3,1068],[0,1090]]},{"r":"13","s":"D2","d":"S","p":[[9,1015],[8,1030],[2,1075],[0,1105]]},{"r":"39","s":"P3","d":"S","p":[[9,1055],[2,1100],[1,1140]]},{"r":"31","s":"D3","d":"S","p":[[13,990],[12,1004],[11,1016],[9,1061],[8,1076],[5,1094],[2,1135],[0,1160]]},{"r":"49","s":"D4","d":"S","p":[[6,1138],[4,1152],[3,1165],[0,1185]]},{"r":"19","s":"P2","d":"S","p":[[9,1100],[8,1115],[5,1132],[1,1160]]},{"r":"97","s":"M1","d":"S","p":[[24,990],[22,1012],[19,1038],[10,1080],[9,1105]]},{"r":"3","s":"P1","d":"S","p":[[26,915],[24,950],[22,975],[21,993],[17,1009],[16,1027],[15,1034],[14,1060],[13,1074],[12,1088],[11,1099],[9,1142],[8,1156],[7,1165],[5,1178],[1,1210]]},{"r":"67","s":"R2","d":"S","p":[[26,950],[22,995]]},{"r":"87","s":"R4","d":"S","p":[[26,965],[24,1000],[22,1020],[20,1040]]},{"r":"113","s":"SR1","d":"S","p":[[26,1005],[24,1030],[22,1041],[13,1087],[12,1077],[10,1102],[8,1117],[2,1153],[1,1170],[0,1135]]},{"r":"163","s":"CAP1","d":"S","p":[[24,1040],[22,1055],[16,1081],[14,1100],[13,1112],[9,1135],[8,1146],[5,1156],[1,1175]]},{"r":"77","s":"R3","d":"S","p":[[26,1010],[25,1027],[24,1060],[22,1085]]},{"r":"69","s":"R2","d":"S","p":[[26,1070],[24,1105],[22,1125]]},{"r":"89","s":"R4","d":"S","p":[[26,1120],[25,1135],[24,1165],[22,1185]]},{"r":"27","s":"D1","d":"S","p":[[9,1150],[8,1132],[7,1122],[5,1109],[2,1195],[0,1215]]}],"shifts":{"D1":{"r":["22","23","24","25","26","27"],"h":"13:00","diaria":"24%","meal":"1"},"D2":{"r":["8","9","10","11","12","13"],"h":"11:25","diaria":"24%","meal":"1"},"D3":{"r":["28","29","30","31"],"h":"13:20","diaria":"24%","meal":"1"},"D4":{"r":["40","41","42","43","44","45","46","47","48","49"],"h":"13:15","diaria":"24%","meal":"1"},"T1":{"r":["201T","202T","203T","204T","205T","206T","207T","208T","209T","210T","211T","212T","213T","214T","215T","216T","217T","218T"],"h":"13:35","diaria":"24%","meal":"1"},"T2":{"r":["231T","232T","233T","234T","235T","236T","237T","238T","239T","240T","241T","242T","243T","244T","245T","246T"],"h":"12:29","diaria":"24%","meal":"1"},"M1":{"r":["91","92","93","95","96","97","98"],"h":"13:30","diaria":"24%","meal":"1"},"R1":{"r":["5","6"],"h":"13:15","diaria":"24%","meal":"1"},"R2":{"r":["61","62","63","64","65","66","67","68","69","70"],"h":"13:15","diaria":"24%","meal":"1"},"R3":{"r":["71","72","73","74","75","76","77","78"],"h":"12:20","diaria":"24%","meal":"1"},"R4":{"r":["81","82","83","84","85","86","87","88","89","90"],"h":"12:40","diaria":"24%","meal":"1"},"CAR1":{"r":["151","152","153","155","156"],"h":"12:10","diaria":"24%","meal":"1"},"P1":{"r":["2","3"],"h":"12:45","diaria":"24%","meal":"1"},"P2":{"r":["14","15","16","17","18","19"],"h":"13:05","diaria":"24%","meal":"1"},"P3":{"r":["33","34","35","36","37","38","39"],"h":"12:55","diaria":"24%","meal":"1"},"CAP1":{"r":["159","160","161","162","163"],"h":"12:55","diaria":"24%","meal":"1"},"SR1":{"r":["110","111","112","113","114"],"h":"12:15","diaria":"24%","meal":"1"}}};
     
@@ -957,6 +966,10 @@
         button.classList.remove("is-selected");
         button.setAttribute("aria-pressed", "false");
       });
+      // Mostra di nuovo tutti i pastPath
+      root.querySelectorAll(".og-route-past").forEach((pastPath) => {
+        pastPath.style.display = "";
+      });
       clearStopRouteHighlight();
       renderSelectedCoursePills();
     }
@@ -1230,6 +1243,11 @@
         const isSelected = selectedRoutes.has(item.dataset.routeKey);
         item.classList.toggle("is-muted", !isSelected);
         item.classList.toggle("is-active", isSelected);
+        // Se selezionata, ripristina stili a visibile completo
+        if (isSelected && item.classList.contains("og-route")) {
+          item.style.opacity = "1";
+          item.style.strokeWidth = "2";
+        }
       });
       const selectedShifts = new Set(
         Array.from(selectedRoutes.values(), (entry) => entry.service.s)
@@ -1238,6 +1256,14 @@
         const isSelectedShift = selectedShifts.has(button.dataset.shift);
         button.classList.toggle("is-route-muted", !isSelectedShift);
         button.classList.toggle("is-route-active", isSelectedShift);
+      });
+      // Nascondi i pastPath delle corse selezionate
+      root.querySelectorAll(".og-route-past").forEach((pastPath) => {
+        if (selectedRoutes.has(pastPath.dataset.routeKey)) {
+          pastPath.style.display = "none";
+        } else {
+          pastPath.style.display = "";
+        }
       });
       syncRaceMenuSelection();
 
@@ -1447,6 +1473,8 @@
         }
       }
 
+
+
       const visible = data.services.filter((service) =>
         (selected.has(service.s) || selectedRoutes.has(routeKey(service))) &&
         (selectedStopFilter === null ||
@@ -1465,21 +1493,29 @@
         if (!service.p) return;
         const sorted = service.p.slice().sort((a, b) => a[1] - b[1]);
         if (!sorted.length) return;
-        const points = sorted.map(([stop, minute]) => x(minute) + "," + y(stop)).join(" ");
+        
         const seriesClass = " og-series-" + shiftOrder.indexOf(service.s);
         const courseColor = shiftColorMap[service.s] || "#3b82f6";
+        const routeKeyVal = routeKey(service);
+        
+        // Separa i punti in passato e futuro per la trasparenza
+        const pastPoints = [];
+        const futurePoints = [];
+        let lastPastPoint = null;
+        const allPoints = sorted.map(([stop, minute]) => x(minute) + "," + y(stop)).join(" ");
+        
         const path = node("polyline", {
-          points: points,
+          points: allPoints,
           class: "og-route" + seriesClass,
           "data-direction": service.d,
           "aria-label": routeText(service)
         });
         path.style.stroke = courseColor;
-        path.dataset.routeKey = routeKey(service);
+        path.dataset.routeKey = routeKeyVal;
         const hitPath = node("polyline", {
-          points: points,
+          points: allPoints,
           class: "og-route-hit",
-          "data-route-key": routeKey(service),
+          "data-route-key": routeKeyVal,
           "aria-label": "Seleziona " + routeText(service)
         });
         const handleRouteEnter = (event) => {
@@ -1502,7 +1538,9 @@
         };
         const handleRouteLeave = () => {
           if (isMobileLayout() && previewRouteKey === routeKey(service)) return;
-          if (!selectedRoutes.has(routeKey(service))) path.classList.remove("is-active");
+          if (!selectedRoutes.has(routeKey(service))) {
+            path.classList.remove("is-active");
+          }
           if (!selectedRoutes.size) clearStopRouteHighlight();
           hideTooltip();
         };
@@ -1591,13 +1629,30 @@
         });
         const first = sorted[0];
         const labelX = isMobileLayout() ? margin.left + 2 : x(first[1]) + 4;
-        fragment.appendChild(node("text", {
+        const label = node("text", {
           x: labelX, y: y(first[0]) - 5,
           class: "og-course-label",
           "data-route-key": routeKey(service)
-        }, selected.size > 1 ? service.s + "/" + service.r : service.r));
+        }, selected.size > 1 ? service.s + "/" + service.r : service.r);
+        
+        fragment.appendChild(label);
       });
       svg.appendChild(fragment);
+      
+      // Aggiungi ombra sul passato
+      const currentMinute = getDisplayedTimeMinutes();
+      if (currentMinute >= 450 && currentMinute <= 1250) {
+        const pastOverlay = node("rect", {
+          x: margin.left,
+          y: margin.top,
+          width: Math.max(0, x(currentMinute) - margin.left),
+          height: height - margin.top - margin.bottom,
+          fill: "#000000",
+          opacity: "0.35",
+          "pointer-events": "none"
+        });
+        svg.appendChild(pastOverlay);
+      }
       
       visibleCourseEntries.sort((a, b) => {
         const numberA = Number.parseInt(a.service.r, 10);
@@ -1746,6 +1801,51 @@
         else renderCoincidences();
       });
     }
+
+    // Controllo manuale dell'orario dell'ombra
+    const shadowTimeSlider = root.querySelector("#og-shadow-time");
+    const shadowTimeDisplay = root.querySelector("#og-shadow-time-display");
+
+    function updateShadowDisplay() {
+      if (!shadowTimeDisplay) return;
+      const currentMinutes = getDisplayedTimeMinutes();
+      if (displayedTimeMinutes === null) {
+        // Modalità "reale" - mostra e aggiorna con l'ora attuale
+        shadowTimeDisplay.textContent = formatTime(currentMinutes);
+        if (shadowTimeSlider) shadowTimeSlider.value = currentMinutes;
+      } else {
+        // Modalità manuale - mostra l'ora selezionata
+        shadowTimeDisplay.textContent = formatTime(displayedTimeMinutes);
+        if (shadowTimeSlider) shadowTimeSlider.value = displayedTimeMinutes;
+      }
+    }
+
+    if (shadowTimeSlider) {
+      shadowTimeSlider.addEventListener("input", (event) => {
+        displayedTimeMinutes = Number.parseInt(event.target.value, 10);
+        updateShadowDisplay();
+        draw(Boolean(selectedRoutes.size));
+      });
+    }
+
+    // Click sull'orario per reset immediato all'ora attuale
+    if (shadowTimeDisplay) {
+      shadowTimeDisplay.addEventListener("click", () => {
+        displayedTimeMinutes = null;
+        updateShadowDisplay();
+        draw(Boolean(selectedRoutes.size));
+      });
+    }
+
+    // Inizializza il display dell'ombra con l'ora attuale
+    updateShadowDisplay();
+
+    // Aggiorna lo slider ogni minuto se in modalità reale
+    setInterval(() => {
+      if (displayedTimeMinutes === null) {
+        updateShadowDisplay();
+      }
+    }, 60000);
 
     function lockStopAxisToLeft() {
       if (stopAxis && chartWrap) stopAxis.style.transform = "translateX(" + chartWrap.scrollLeft + "px)";

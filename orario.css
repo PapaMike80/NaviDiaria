@@ -841,6 +841,64 @@ svg {
   #orario-garda-viz .og-selection-tools {
     display: none;
   }
+  #orario-garda-viz #og-shadow-time {
+    width: 90px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #2dd4bf;
+    margin-right: 0.2rem;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, #143140 0%, #2dd4bf 50%, #143140 100%);
+    border-radius: 9px;
+  }
+  
+  #orario-garda-viz #og-shadow-time::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #2dd4bf;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(45, 212, 191, 0.5);
+  }
+  
+  #orario-garda-viz #og-shadow-time::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #2dd4bf;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 4px rgba(45, 212, 191, 0.5);
+  }
+  
+  #orario-garda-viz #og-shadow-time::-moz-range-track {
+    background: transparent;
+    border: none;
+  }
+  
+  #orario-garda-viz #og-shadow-time-display {
+    font-size: 1.5rem;
+    font-weight: 700;
+    height: 1.6rem;
+    min-width: 70px;
+    padding: 0 0.3rem;
+    text-align: center;
+    color: #2dd4bf;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  #orario-garda-viz #og-shadow-time-display:hover {
+    color: #3ae4cf;
+  }
+  
   #orario-garda-viz .og-residences {
     position: absolute;
     z-index: 7;
@@ -855,6 +913,23 @@ svg {
     border: 0;
     border-radius: 0;
     background: transparent;
+  }
+  #orario-garda-viz .og-zoom-controls {
+    position: absolute;
+    z-index: 9;
+    top: 0.6rem;
+    right: 0.6rem;
+    width: max-content;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.35rem;
+    border: 1px solid var(--line, #1f4250);
+    border-radius: 999px;
+    background: rgba(16, 39, 51, 0.94);
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
   }
   #orario-garda-viz .og-residence {
     display: block;
@@ -1123,6 +1198,30 @@ svg {
     color: var(--muted-foreground);
     background: var(--muted);
   }
+
+  #orario-garda-viz .og-table-link {
+    min-width: 3.5rem;
+    height: 1.6rem;
+    padding: 0 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: #9fb8c2;
+    font-size: 0.62rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  #orario-garda-viz .og-table-link:hover {
+    color: #2dd4bf;
+    border-color: #2dd4bf;
+  }
+
   #orario-garda-viz .og-chart {
     position: absolute;
     inset: 0;
@@ -1171,6 +1270,16 @@ svg {
     font-weight: 700;
     transform: translateX(-50%);
     white-space: nowrap;
+  }
+  #orario-garda-viz .og-current-time-label {
+    position: absolute;
+    top: 0.55rem;
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 900;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
   }
   #orario-garda-viz .og-stop-axis .og-axis-label {
     position: absolute;
@@ -1236,6 +1345,17 @@ svg {
     vector-effect: non-scaling-stroke;
     pointer-events: none;
     transition: opacity 140ms ease, stroke-width 140ms ease;
+  }
+  #orario-garda-viz .og-current-time-line {
+    fill: none;
+    pointer-events: stroke;
+    cursor: col-resize;
+    opacity: 0.8;
+    transition: opacity 100ms ease;
+  }
+  #orario-garda-viz .og-current-time-line:hover {
+    opacity: 1;
+    stroke-width: 4 !important;
   }
   #orario-garda-viz .og-route-hit {
     fill: none;
