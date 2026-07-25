@@ -163,7 +163,7 @@
 
   function startEditing(cell) {
     if (!cell || !cell.dataset.key) return;
-    cell.contentEditable = "plaintext-only";
+    cell.contentEditable = "true";
     cell.classList.add("is-editing");
     cell.focus();
     const selection = window.getSelection();

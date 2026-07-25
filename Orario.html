@@ -520,7 +520,9 @@
   #orario-garda-viz .og-chart-wrap {
     position: relative;
     width: 100%;
+    height: calc(100dvh - 4.75rem);
     height: calc(100vh - 4.75rem);
+    min-height: calc(100dvh - 4.75rem);
     min-height: calc(100vh - 4.75rem);
     overflow: auto;
     overscroll-behavior: contain;
@@ -536,7 +538,9 @@
   }
   @media (max-height: 820px) {
     #orario-garda-viz .og-chart-wrap {
+      height: calc(100dvh - 4.25rem);
       height: calc(100vh - 4.25rem);
+      min-height: calc(100dvh - 4.25rem);
       min-height: calc(100vh - 4.25rem);
     }
   }
@@ -647,7 +651,13 @@
   @media (max-width: 800px), (pointer: coarse) {
     #orario-garda-viz .og-zoom-controls {
       top: 0.75rem;
-      right: 0.75rem;
+      right: 0.5rem;
+      left: 0.5rem;
+      width: auto;
+      max-width: calc(100vw - 1rem);
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      row-gap: 0.28rem;
     }
     #orario-garda-viz .og-selected-course-pills {
       top: 3.8rem;
@@ -716,6 +726,19 @@
   #orario-garda-viz .og-table-link:hover {
     border-color: var(--accent);
     color: #fff;
+  }
+  @media (max-width: 520px) {
+    #orario-garda-viz .og-mobile-menu-toggle,
+    #orario-garda-viz .og-coincidence-toggle,
+    #orario-garda-viz .og-table-link {
+      min-width: 0;
+      font-size: 0.66rem;
+      padding-inline: 0.48rem;
+    }
+    #orario-garda-viz .og-zoom-value {
+      min-width: 2.55rem;
+      font-size: 0.68rem;
+    }
   }
   #orario-garda-viz .og-chart {
     position: absolute;
