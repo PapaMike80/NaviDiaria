@@ -15,6 +15,7 @@
   try {
     const root = document.getElementById("orario-garda-viz");
     if (!root) return;
+    const shared = window.NaviOrarioShared || {};
 
     const svg = root.querySelector(".og-chart");
     const chartStage = root.querySelector(".og-chart-stage");
@@ -113,24 +114,26 @@
     };
     data.stops = data.stops.map((stop) => shortenedStopNames[stop] || stop);
 
-    const ORARI_OVERRIDE_KEY = "navi.orari.tabella.overrides.v1";
-    function parseOverrideTime(value) {
+    const ORARI_OVERRIDE_KEY = shared.OVERRIDES_STORAGE_KEY || "navi.orari.tabella.overrides.v1";
+    const parseOverrideTime = shared.parseOverrideTime || function(value) {
       const normalized = String(value || "").trim().replace(".", ":");
       const match = normalized.match(/^(\d{1,2}):(\d{2})$/);
       if (!match) return null;
       return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-    }
+    };
 
     function applySharedOrariOverrides() {
       let overrides = {};
       try {
-        if (typeof window !== "undefined" && window.localStorage) {
-          const raw = window.localStorage.getItem(ORARI_OVERRIDE_KEY);
-          if (raw && raw !== "null") {
+        overrides = shared.loadOverrides
+          ? shared.loadOverrides()
+          : (() => {
+            if (typeof window === "undefined" || !window.localStorage) return {};
+            const raw = window.localStorage.getItem(ORARI_OVERRIDE_KEY);
+            if (!raw || raw === "null") return {};
             const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === "object") overrides = parsed;
-          }
-        }
+            return parsed && typeof parsed === "object" ? parsed : {};
+          })();
       } catch (e) {
         console.warn("Storage bloccato da iOS/Brave, uso dati di default");
         overrides = {};
@@ -256,7 +259,7 @@
     ].map(([name, shifts]) => [name, shifts.filter((shift) => shiftOrder.includes(shift))])
       .filter(([, shifts]) => shifts.length);
 
-    const shiftColorMap = {
+    const shiftColorMap = shared.SHIFT_COLOR_MAP || {
       D1: "#3b82f6", D2: "#10b981", D3: "#f97316", D4: "#d946ef",
       P1: "#06b6d4", P2: "#84cc16", P3: "#ef4444", CAP1: "#a78bfa",
       SR1: "#eab308", T1: "#2563eb", T2: "#14b8a6", M1: "#f59e0b",
@@ -472,11 +475,13 @@
       return element;
     }
 
-    function formatTime(minutes) {
-      if (minutes == null || isNaN(minutes)) return "--:--";
-      return String(Math.floor(minutes / 60)).padStart(2, "0") + ":" +
-        String(minutes % 60).padStart(2, "0");
-    }
+    const formatTime = shared.formatTime
+      ? (minutes) => shared.formatTime(minutes, "--:--")
+      : function(minutes) {
+        if (minutes == null || isNaN(minutes)) return "--:--";
+        return String(Math.floor(minutes / 60)).padStart(2, "0") + ":" +
+          String(minutes % 60).padStart(2, "0");
+      };
 
     function routeText(service) {
       if (!service || !service.p) return "";

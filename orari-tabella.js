@@ -1,5 +1,14 @@
 (() => {
-  const STORAGE_KEY = "navi.orari.tabella.overrides.v1";
+  const shared = window.NaviOrarioShared || {};
+  const STORAGE_KEY = shared.OVERRIDES_STORAGE_KEY || "navi.orari.tabella.overrides.v1";
+  const shiftColorMap = shared.SHIFT_COLOR_MAP || {
+    D1: "#3b82f6", D2: "#10b981", D3: "#f97316", D4: "#d946ef",
+    P1: "#06b6d4", P2: "#84cc16", P3: "#ef4444", CAP1: "#a78bfa",
+    SR1: "#eab308", T1: "#2563eb", T2: "#14b8a6", M1: "#f59e0b",
+    R1: "#8b5cf6", R2: "#22c55e", R3: "#f43f5e", R4: "#ec4899",
+    CAR1: "#64748b"
+  };
+  const defaultShiftColor = shared.DEFAULT_SHIFT_COLOR || "#38d6bf";
   const tablesRoot = document.getElementById("tablesRoot");
   const editStatus = document.getElementById("editStatus");
   const saveButton = document.getElementById("saveChanges");
@@ -9,20 +18,15 @@
   const resetButton = document.getElementById("resetChanges");
   let baseData = null;
   let overrides = loadOverrides();
-  const shiftColorMap = {
-    D1: "#3b82f6", D2: "#10b981", D3: "#f97316", D4: "#d946ef",
-    P1: "#06b6d4", P2: "#84cc16", P3: "#ef4444", CAP1: "#a78bfa",
-    SR1: "#eab308", T1: "#2563eb", T2: "#14b8a6", M1: "#f59e0b",
-    R1: "#8b5cf6", R2: "#22c55e", R3: "#f43f5e", R4: "#ec4899",
-    CAR1: "#64748b"
-  };
 
   function loadOverrides() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    } catch {
-      return {};
-    }
+    return shared.loadOverrides ? shared.loadOverrides() : (() => {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    })();
   }
 
   function saveOverrides() {
@@ -37,16 +41,20 @@
     editStatus.style.background = isError ? "rgba(239,68,68,.08)" : "rgba(56,214,191,.08)";
   }
 
-  function formatTime(minutes) {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
-  }
+  const formatTime = shared.formatTime
+    ? (minutes) => shared.formatTime(minutes, "")
+    : function(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+    };
 
-  function numericRace(value) {
-    const parsed = parseInt(String(value), 10);
-    return Number.isNaN(parsed) ? 9999 : parsed;
-  }
+  const numericRace = shared.numericRace
+    ? (value) => shared.numericRace(value, 9999)
+    : function(value) {
+      const parsed = parseInt(String(value), 10);
+      return Number.isNaN(parsed) ? 9999 : parsed;
+    };
 
   async function loadOrarioData() {
     const dataset = window.NaviOrarioDataset?.data;
@@ -106,7 +114,7 @@
     headRow.appendChild(stopHead);
     services.forEach((service) => {
       const th = document.createElement("th");
-      const color = shiftColorMap[service.s] || "#38d6bf";
+      const color = shiftColorMap[service.s] || defaultShiftColor;
       th.className = "race-col";
       th.style.setProperty("--col-color", color);
       th.style.borderBottomColor = color;
@@ -136,7 +144,7 @@
 
       services.forEach((service) => {
         const td = document.createElement("td");
-        const color = shiftColorMap[service.s] || "#38d6bf";
+        const color = shiftColorMap[service.s] || defaultShiftColor;
         const key = keyFor(direction, service.r, stopIndex);
         const value = getCellValue(direction, service, stopIndex);
         td.className = "time-cell" + (value ? "" : " empty") +
