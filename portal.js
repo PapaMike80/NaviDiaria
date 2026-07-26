@@ -19,9 +19,16 @@ document.addEventListener('click', event => {
 });
 
 async function hashPin(pin) {
-  const bytes = new TextEncoder().encode(`NaviDiaria:${pin}`);
-  const hash = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(hash)].map(value => value.toString(16).padStart(2, '0')).join('');
+  if (hasSecureCrypto()) {
+    const bytes = new TextEncoder().encode(`NaviDiaria:${pin}`);
+    const hash = await crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(hash)].map(value => value.toString(16).padStart(2, '0')).join('');
+  }
+  throw new Error('Questo login richiede HTTPS (Web Crypto non disponibile).');
+}
+
+function hasSecureCrypto() {
+  return typeof window !== 'undefined' && !!(window.crypto && window.crypto.subtle && typeof window.crypto.subtle.digest === 'function');
 }
 
 function renderSuggestions() {
@@ -95,12 +102,22 @@ $('agentSearch').addEventListener('input', renderSuggestions);
 $('loginForm').addEventListener('submit', async event => {
   event.preventDefault();
   const agent = selectedAgent();
-  const pin = $('agentPin').value;
   const button = $('loginSubmit');
   if (!agent) {
     $('loginMessage').textContent = 'Seleziona un agente dai suggerimenti.';
     return;
   }
+
+  if (!hasSecureCrypto()) {
+    // TODO: RIMUOVERE IN PRODUZIONE - BYPASS LOCALE
+    localStorage.setItem(DIARIA_SESSION, JSON.stringify(agent));
+    localStorage.setItem(TURNI_SESSION, JSON.stringify({ id:agent.id, name:agent.name, residence:agent.residence, qualifica:agent.qualifica, role:agent.role || '' }));
+    $('loginMessage').textContent = 'BYPASS LOCALE ATTIVO: accesso eseguito senza verifica PIN.';
+    showChoice(agent);
+    return;
+  }
+
+  const pin = $('agentPin').value;
   button.disabled = true;
   $('loginMessage').textContent = 'Verifica online…';
   try {

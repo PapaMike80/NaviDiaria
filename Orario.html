@@ -2,7 +2,7 @@
 <html lang="en" data-visualize-standalone>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="NaviDiaria">
@@ -154,6 +154,15 @@
     border: 0;
     border-radius: 0;
     background: transparent;
+    max-height: 85vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  #orario-garda-viz .og-residences::-webkit-scrollbar {
+    display: none;
   }
   #orario-garda-viz .og-mobile-menu-toggle {
     display: inline-flex;
@@ -176,6 +185,7 @@
   }
   #orario-garda-viz .og-residence {
     display: block;
+    flex-shrink: 0;
     padding: 0.12rem 0.16rem 0.18rem;
     border: 2px solid var(--residence-color);
     border-radius: 1.65rem;
@@ -314,6 +324,11 @@
     border: 1px solid var(--border);
     border-radius: 1.4rem;
     background: rgba(7, 23, 32, 0.96);
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
   }
   #orario-garda-viz .og-menu-action {
     display: grid;
@@ -357,8 +372,9 @@
       top: 0.75rem;
       left: 0.35rem;
       width: 4.1rem;
-      max-height: calc(100vh - 6rem);
-      overflow: auto;
+      max-height: 85vh;
+      overflow-y: auto;
+      overflow-x: hidden;
       padding: 0.28rem;
       border: 1px solid var(--border);
       border-radius: 1.1rem;
@@ -433,12 +449,16 @@
       bottom: 0.4rem;
       top: auto;
       width: auto;
-      max-height: 4.7rem;
+      max-height: 85vh;
       display: flex;
+      flex-wrap: nowrap;
       align-items: stretch;
       gap: 0.35rem;
       overflow-x: auto;
       overflow-y: hidden;
+      touch-action: pan-x;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
       padding: 0.3rem;
       border: 1px solid var(--border);
       border-radius: 1rem;
@@ -449,6 +469,9 @@
       display: none;
       pointer-events: none;
     }
+    #orario-garda-viz .og-residences::-webkit-scrollbar {
+      display: none;
+    }
     #orario-garda-viz.og-mobile-menu-open .og-residences {
       display: flex;
       flex-direction: row;
@@ -456,6 +479,7 @@
     }
     #orario-garda-viz .og-residence {
       display: inline-flex;
+      flex-shrink: 0;
       flex: 0 0 auto;
       flex-direction: row;
       align-items: center;
@@ -520,6 +544,11 @@
       align-items: center;
       padding: 0.12rem;
       border-radius: 1rem;
+      position: sticky;
+      right: 0;
+      margin-left: auto;
+      align-self: stretch;
+      flex: 0 0 auto;
     }
     #orario-garda-viz .og-menu-action {
       min-width: 2.8rem;

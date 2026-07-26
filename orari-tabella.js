@@ -16,8 +16,21 @@
   const importButton = document.getElementById("importChanges");
   const importFile = document.getElementById("importFile");
   const resetButton = document.getElementById("resetChanges");
+  const storageService = window.NaviStorageService || {
+    fetchTableEdits: async () => {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    },
+    saveTableEdits: async (data) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data || {}));
+      return {ok: true};
+    }
+  };
   let baseData = null;
-  let overrides = loadOverrides();
+  let overrides = {};
 
   function loadOverrides() {
     return shared.loadOverrides ? shared.loadOverrides() : (() => {
@@ -29,9 +42,9 @@
     })();
   }
 
-  function saveOverrides() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
-    updateStatus("Modifiche salvate. Il grafico Orario sullo stesso browser le leggerà subito al prossimo caricamento.");
+  async function saveOverrides() {
+    await storageService.saveTableEdits(overrides);
+    updateStatus("Modifiche salvate (mock cloud). Il grafico Orario le leggerà dal cache locale.");
   }
 
   function updateStatus(message, isError = false) {
@@ -57,9 +70,15 @@
     };
 
   async function loadOrarioData() {
-    const dataset = window.NaviOrarioDataset?.data;
-    if (!dataset) throw new Error("Dati orario non caricati.");
-    return JSON.parse(JSON.stringify(dataset));
+    try {
+      const dataset = window.NaviOrarioDataset?.data;
+      console.log("Dati ricevuti dalla tabella:", dataset);
+      if (!dataset) throw new Error("Dati orario non caricati.");
+      return JSON.parse(JSON.stringify(dataset));
+    } catch (error) {
+      console.error("[orari-tabella] Errore nel loadOrarioData:", error);
+      throw error;
+    }
   }
 
   function getServices(direction) {
@@ -164,9 +183,24 @@
   }
 
   function render() {
-    tablesRoot.innerHTML = "";
-    tablesRoot.appendChild(renderTable("N", "Verso nord", "Desenzano → Peschiera → Riva del Garda"));
-    tablesRoot.appendChild(renderTable("S", "Verso sud", "Riva del Garda → Peschiera → Desenzano"));
+    try {
+      if (!tablesRoot) throw new Error("Container tabella non trovato (#tablesRoot).");
+      if (!baseData || !Array.isArray(baseData.services) || !Array.isArray(baseData.stops)) {
+        throw new Error("Dataset tabella incompleto o non valido.");
+      }
+      console.log("[orari-tabella] Render start", {
+        stops: baseData.stops.length,
+        services: baseData.services.length,
+        overrides: Object.keys(overrides || {}).length
+      });
+      tablesRoot.innerHTML = "";
+      tablesRoot.appendChild(renderTable("N", "Verso nord", "Desenzano → Peschiera → Riva del Garda"));
+      tablesRoot.appendChild(renderTable("S", "Verso sud", "Riva del Garda → Peschiera → Desenzano"));
+      console.log("[orari-tabella] Render completato");
+    } catch (error) {
+      console.error("[orari-tabella] Errore durante render():", error);
+      updateStatus(error.message || "Errore durante il rendering della tabella.", true);
+    }
   }
 
   function startEditing(cell) {
@@ -199,36 +233,49 @@
     updateStatus("Modifica pronta. Premi “Salva locale” per riusarla anche nel grafico su questo browser.");
   }
 
-  tablesRoot.addEventListener("dblclick", (event) => {
-    const cell = event.target.closest(".time-cell");
-    if (!cell) return;
-    startEditing(cell);
-  });
+  if (tablesRoot) {
+    tablesRoot.addEventListener("dblclick", (event) => {
+      const cell = event.target.closest(".time-cell");
+      if (!cell) return;
+      startEditing(cell);
+    });
 
-  tablesRoot.addEventListener("blur", (event) => {
-    const cell = event.target.closest(".time-cell");
-    if (!cell) return;
-    finishEditing(cell);
-  }, true);
+    tablesRoot.addEventListener("blur", (event) => {
+      const cell = event.target.closest(".time-cell");
+      if (!cell) return;
+      finishEditing(cell);
+    }, true);
 
-  tablesRoot.addEventListener("keydown", (event) => {
-    const cell = event.target.closest(".time-cell");
-    if (!cell || !cell.isContentEditable) return;
-    if (event.key === "Enter") {
-      event.preventDefault();
-      cell.blur();
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      cell.textContent = Object.prototype.hasOwnProperty.call(overrides, cell.dataset.key)
-        ? overrides[cell.dataset.key]
-        : (cell.dataset.original || "");
-      cell.blur();
-    }
-  });
+    tablesRoot.addEventListener("keydown", (event) => {
+      const cell = event.target.closest(".time-cell");
+      if (!cell || !cell.isContentEditable) return;
+      if (event.key === "Enter") {
+        event.preventDefault();
+        cell.blur();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        cell.textContent = Object.prototype.hasOwnProperty.call(overrides, cell.dataset.key)
+          ? overrides[cell.dataset.key]
+          : (cell.dataset.original || "");
+        cell.blur();
+      }
+    });
+  }
 
-  saveButton.addEventListener("click", saveOverrides);
-  exportButton.addEventListener("click", () => {
+  if (saveButton) {
+    saveButton.addEventListener("click", async () => {
+      try {
+        await saveOverrides();
+      } catch (error) {
+        console.error("[orari-tabella] Errore salvataggio modifiche:", error);
+        updateStatus(error.message || "Impossibile salvare le modifiche.", true);
+      }
+    });
+  }
+
+  if (exportButton) {
+    exportButton.addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(overrides, null, 2)], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -237,36 +284,55 @@
     a.click();
     URL.revokeObjectURL(url);
     updateStatus("File JSON delle modifiche esportato.");
-  });
-  importButton.addEventListener("click", () => importFile.click());
-  importFile.addEventListener("change", async () => {
-    const file = importFile.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      overrides = JSON.parse(text);
-      saveOverrides();
-      render();
-      updateStatus("Modifiche importate. Anche il grafico le userà su questo browser.");
-    } catch {
-      updateStatus("File JSON non valido.", true);
-    }
-    importFile.value = "";
-  });
-  resetButton.addEventListener("click", () => {
-    overrides = {};
-    localStorage.removeItem(STORAGE_KEY);
-    render();
-    updateStatus("Modifiche locali ripristinate.");
-  });
+    });
+  }
 
-  loadOrarioData()
-    .then((data) => {
-      baseData = data;
+  if (importButton && importFile) {
+    importButton.addEventListener("click", () => importFile.click());
+    importFile.addEventListener("change", async () => {
+      const file = importFile.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const imported = JSON.parse(text);
+        overrides = imported && typeof imported === "object" ? imported : {};
+        await saveOverrides();
+        render();
+        updateStatus("Modifiche importate. Anche il grafico le userà su questo browser.");
+      } catch (error) {
+        console.error("[orari-tabella] Errore import JSON:", error);
+        updateStatus("File JSON non valido.", true);
+      }
+      importFile.value = "";
+    });
+  }
+
+  if (resetButton) {
+    resetButton.addEventListener("click", async () => {
+      try {
+        overrides = {};
+        await storageService.saveTableEdits(overrides);
+        render();
+        updateStatus("Modifiche ripristinate.");
+      } catch (error) {
+        console.error("[orari-tabella] Errore reset modifiche:", error);
+        updateStatus("Impossibile ripristinare le modifiche.", true);
+      }
+    });
+  }
+
+  async function initializeTablePage() {
+    try {
+      baseData = await loadOrarioData();
+      overrides = await storageService.fetchTableEdits();
+      console.log("[orari-tabella] Overrides caricati:", overrides);
       render();
       updateStatus("Orari caricati. Doppio clic su una cella per modificarla. I colori seguono i turni del grafico.");
-    })
-    .catch((error) => {
+    } catch (error) {
+      console.error("[orari-tabella] Errore inizializzazione tabella:", error);
       updateStatus(error.message || "Errore nel caricamento orari.", true);
-    });
+    }
+  }
+
+  initializeTablePage();
 })();

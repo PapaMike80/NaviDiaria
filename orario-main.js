@@ -14,44 +14,45 @@
 
   try {
     const root = document.getElementById("orario-garda-viz");
-    if (!root) return;
     const shared = window.NaviOrarioShared || {};
+    const fromRoot = (selector) => (root ? root.querySelector(selector) : null);
 
-    const svg = root.querySelector(".og-chart");
-    const chartStage = root.querySelector(".og-chart-stage");
-    const stopAxis = root.querySelector(".og-stop-axis");
-    const timeAxis = root.querySelector(".og-time-axis");
-    const allRacesButton = root.querySelector("#og-tutte");
-    const noRacesButton = root.querySelector("#og-nessuna");
-    const summary = root.querySelector(".og-summary");
-    const detail = root.querySelector(".og-detail");
-    const selectedCoursePills = root.querySelector(".og-selected-course-pills");
-    const selectedCoursePillList = root.querySelector(".og-selected-course-pill-list-main");
-    const selectedCoincidencePillList = root.querySelector(".og-selected-course-pill-list-coincidences");
-    const mobileMenuToggle = root.querySelector(".og-mobile-menu-toggle");
-    const mobileMenuBackdrop = root.querySelector(".og-mobile-menu-backdrop");
-    const tooltip = root.querySelector(".og-tooltip");
-    const coincidenceToggle = root.querySelector(".og-coincidence-toggle");
-    const residences = root.querySelector(".og-residences");
-    const normalMatrix = root.querySelector(".og-normal-matrix");
-    const rapidMatrix = root.querySelector(".og-rapid-matrix");
-    const tabChart = root.querySelector(".og-tab-chart");
-    const tabMatrix = root.querySelector(".og-tab-matrix");
-    const pageChart = root.querySelector(".og-page-chart");
-    const pageMatrix = root.querySelector(".og-page-matrix");
-    const courseCard = root.querySelector(".og-course-card");
-    const courseTitle = root.querySelector(".og-course-title");
-    const courseCode = root.querySelector(".og-course-code");
-    const courseSummary = root.querySelector(".og-course-summary");
-    const miniChart = root.querySelector(".og-mini-chart");
-    const courseStopsBody = root.querySelector(".og-course-stops tbody");
-    const courseClose = root.querySelector(".og-course-close");
-    const coursePrev = root.querySelector(".og-course-prev");
-    const courseNext = root.querySelector(".og-course-next");
-    const chartWrap = root.querySelector(".og-chart-wrap"); 
-    const zoomValue = root.querySelector(".og-zoom-value"); 
-    const zoomOut = root.querySelector(".og-zoom-out");     
-    const zoomIn = root.querySelector(".og-zoom-in");
+    const svg = fromRoot(".og-chart");
+    const chartStage = fromRoot(".og-chart-stage");
+    const stopAxis = fromRoot(".og-stop-axis");
+    const timeAxis = fromRoot(".og-time-axis");
+    const allRacesButton = fromRoot("#og-tutte");
+    const noRacesButton = fromRoot("#og-nessuna");
+    const summary = fromRoot(".og-summary");
+    const detail = fromRoot(".og-detail");
+    const selectedCoursePills = fromRoot(".og-selected-course-pills");
+    const selectedCoursePillList = fromRoot(".og-selected-course-pill-list-main");
+    const selectedCoincidencePillList = fromRoot(".og-selected-course-pill-list-coincidences");
+    const mobileMenuToggle = fromRoot(".og-mobile-menu-toggle");
+    const mobileMenuBackdrop = fromRoot(".og-mobile-menu-backdrop");
+    const tooltip = fromRoot(".og-tooltip");
+    const coincidenceToggle = fromRoot(".og-coincidence-toggle");
+    const residences = fromRoot(".og-residences");
+    const normalMatrix = fromRoot(".og-normal-matrix");
+    const rapidMatrix = fromRoot(".og-rapid-matrix");
+    const tabChart = fromRoot(".og-tab-chart");
+    const tabMatrix = fromRoot(".og-tab-matrix");
+    const pageChart = fromRoot(".og-page-chart");
+    const pageMatrix = fromRoot(".og-page-matrix");
+    const courseCard = fromRoot(".og-course-card");
+    const courseTitle = fromRoot(".og-course-title");
+    const courseCode = fromRoot(".og-course-code");
+    const courseSummary = fromRoot(".og-course-summary");
+    const miniChart = fromRoot(".og-mini-chart");
+    const courseStopsBody = fromRoot(".og-course-stops tbody");
+    const courseClose = fromRoot(".og-course-close");
+    const coursePrev = fromRoot(".og-course-prev");
+    const courseNext = fromRoot(".og-course-next");
+    const chartWrap = fromRoot(".og-chart-wrap"); 
+    const zoomControls = fromRoot(".og-zoom-controls");
+    const zoomValue = fromRoot(".og-zoom-value"); 
+    const zoomOut = fromRoot(".og-zoom-out");     
+    const zoomIn = fromRoot(".og-zoom-in");
 
     // Variabili per la linea rossa dell'ora
     let displayedTimeMinutes = null;
@@ -241,6 +242,8 @@
 
     window.NaviOrarioDataset = { data, officialConnections };
 
+    if (!root) return;
+
     const ns = "http://www.w3.org/2000/svg";
     let activePath = null;
     let activeCourseIndex = -1;
@@ -253,8 +256,154 @@
     const selectedRoutes = new Map();
     let visibleServices = [];
     let previewRouteKey = null;
-    let lastTapRouteKey = "";
-    let lastTapAt = 0;
+    let suppressPillClick = false;
+    let suppressTurniClick = false;
+    let pendingRouteTap = null;
+    const MOBILE_TAP_DELAY = 280;
+    const MOBILE_TAP_MOVE_THRESHOLD = 10;
+    const MIN_CHART_ZOOM = 0.5;
+    const MAX_CHART_ZOOM = 3;
+    const VIEWPORT_EDGE_PADDING = 10;
+
+    function eventPoint(event) {
+      if (event.touches && event.touches.length) {
+        return {x: event.touches[0].clientX, y: event.touches[0].clientY};
+      }
+      if (event.changedTouches && event.changedTouches.length) {
+        return {x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY};
+      }
+      if (event.clientX != null && event.clientY != null) {
+        return {x: event.clientX, y: event.clientY};
+      }
+      return null;
+    }
+
+    function readDragOffset(element) {
+      return {
+        x: Number.parseFloat(element.dataset.dragX || "0") || 0,
+        y: Number.parseFloat(element.dataset.dragY || "0") || 0
+      };
+    }
+
+    function setDragOffset(element, x, y) {
+      element.dataset.dragX = String(x);
+      element.dataset.dragY = String(y);
+      element.style.transform = "translate3d(" + x + "px," + y + "px,0)";
+    }
+
+    function clampElementToViewport(element, padding = VIEWPORT_EDGE_PADDING) {
+      if (!element || element.hidden) return;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const rect = element.getBoundingClientRect();
+      let adjustX = 0;
+      let adjustY = 0;
+      const rightLimit = viewportWidth - padding;
+      const bottomLimit = viewportHeight - padding;
+      if (rect.left < padding) adjustX = padding - rect.left;
+      else if (rect.right > rightLimit) adjustX = rightLimit - rect.right;
+      if (rect.top < padding) adjustY = padding - rect.top;
+      else if (rect.bottom > bottomLimit) adjustY = bottomLimit - rect.bottom;
+      if (!adjustX && !adjustY) return;
+      const offset = readDragOffset(element);
+      setDragOffset(element, offset.x + adjustX, offset.y + adjustY);
+    }
+
+    function clearPendingRouteTap() {
+      if (!pendingRouteTap) return;
+      clearTimeout(pendingRouteTap.timer);
+      pendingRouteTap = null;
+    }
+
+    function scheduleRouteSingleTap(routeKeyValue, callback) {
+      clearPendingRouteTap();
+      pendingRouteTap = {
+        key: routeKeyValue,
+        timer: setTimeout(() => {
+          const task = pendingRouteTap;
+          pendingRouteTap = null;
+          if (!task || task.key !== routeKeyValue) return;
+          callback();
+        }, MOBILE_TAP_DELAY)
+      };
+    }
+
+    function consumeRouteDoubleTap(routeKeyValue) {
+      if (!pendingRouteTap || pendingRouteTap.key !== routeKeyValue) return false;
+      clearPendingRouteTap();
+      return true;
+    }
+
+    function syncResidencesDragPosition() {
+      if (!residences) return;
+      const dragOffset = readDragOffset(residences);
+      if (!isMobileLayout() && chartWrap && residences.parentElement === chartWrap) {
+        residences.style.transform = "translate(" + (chartWrap.scrollLeft + dragOffset.x) + "px," +
+          (chartWrap.scrollTop + dragOffset.y) + "px)";
+      } else if (dragOffset.x || dragOffset.y) {
+        residences.style.transform = "translate3d(" + dragOffset.x + "px," + dragOffset.y + "px,0)";
+      } else {
+        residences.style.transform = "";
+      }
+    }
+
+    function enableDrag(element, options = {}) {
+      if (!element) return;
+      let state = null;
+
+      const move = (event) => {
+        if (!state) return;
+        const point = eventPoint(event);
+        if (!point) return;
+        const deltaX = point.x - state.startX;
+        const deltaY = point.y - state.startY;
+        if (!state.moved && Math.hypot(deltaX, deltaY) < 4) return;
+        state.moved = true;
+        setDragOffset(element, state.baseX + deltaX, state.baseY + deltaY);
+        if (typeof options.onMove === "function") options.onMove(event);
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+      };
+
+      const end = (event) => {
+        if (!state) return;
+        const moved = state.moved;
+        state = null;
+        document.removeEventListener("mousemove", move, true);
+        document.removeEventListener("touchmove", move, true);
+        document.removeEventListener("mouseup", end, true);
+        document.removeEventListener("touchend", end, true);
+        document.removeEventListener("touchcancel", end, true);
+        if (typeof options.onEnd === "function") options.onEnd(moved, event);
+        if (event && event.cancelable) event.preventDefault();
+        if (event) event.stopPropagation();
+      };
+
+      const start = (event) => {
+        if (typeof options.shouldStart === "function" && !options.shouldStart(event)) return;
+        const point = eventPoint(event);
+        if (!point) return;
+        const offset = readDragOffset(element);
+        state = {
+          startX: point.x,
+          startY: point.y,
+          baseX: offset.x,
+          baseY: offset.y,
+          moved: false
+        };
+        document.addEventListener("mousemove", move, true);
+        document.addEventListener("touchmove", move, {passive: false, capture: true});
+        document.addEventListener("mouseup", end, true);
+        document.addEventListener("touchend", end, true);
+        document.addEventListener("touchcancel", end, true);
+        if (typeof options.onStart === "function") options.onStart(event);
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+      };
+
+      element.addEventListener("mousedown", start);
+      element.addEventListener("touchstart", start, {passive: false});
+    }
 
     const shiftOrder = Object.keys(data.shifts).filter((shift) =>
       data.services.some((service) => service.s === shift)
@@ -364,20 +513,28 @@
       return window.matchMedia("(max-width: 820px), (pointer: coarse)").matches;
     }
 
+    function isTurniMenuOpen() {
+      if (isMobileLayout()) return root.classList.contains("og-mobile-menu-open");
+      return !root.classList.contains("og-turns-hidden");
+    }
+
+    function syncTurniMenuToggle() {
+      if (!mobileMenuToggle) return;
+      const open = isTurniMenuOpen();
+      mobileMenuToggle.setAttribute("aria-expanded", String(open));
+      mobileMenuToggle.classList.toggle("is-active", open);
+    }
+
     function setTurniMenuOpen(open) {
       if (isMobileLayout()) {
         root.classList.toggle("og-mobile-menu-open", open);
         root.classList.remove("og-turns-hidden");
-        if (mobileMenuToggle) {
-          mobileMenuToggle.setAttribute("aria-expanded", String(open));
-        }
+        syncTurniMenuToggle();
         return;
       }
       root.classList.remove("og-mobile-menu-open");
       root.classList.toggle("og-turns-hidden", !open);
-      if (mobileMenuToggle) {
-        mobileMenuToggle.setAttribute("aria-expanded", String(open));
-      }
+      syncTurniMenuToggle();
     }
 
     function closeMobileMenu() {
@@ -542,6 +699,7 @@
     function positionTooltipNearPointer(event) {
       if (!tooltip || tooltip.hidden) return;
       const offset = 14;
+      const edgePadding = VIEWPORT_EDGE_PADDING;
       const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
       requestAnimationFrame(() => {
@@ -549,8 +707,14 @@
         const th = tooltip.offsetHeight;
         let left = event.clientX + offset;
         let top = event.clientY + offset;
-        if (left + tw > viewportWidth - 8) left = Math.max(8, event.clientX - tw - offset);
-        if (top + th > viewportHeight - 8) top = Math.max(8, event.clientY - th - offset);
+        if (left + tw > viewportWidth - edgePadding) {
+          left = event.clientX - tw - offset;
+        }
+        if (top + th > viewportHeight - edgePadding) {
+          top = event.clientY - th - offset;
+        }
+        left = Math.max(edgePadding, Math.min(left, viewportWidth - tw - edgePadding));
+        top = Math.max(edgePadding, Math.min(top, viewportHeight - th - edgePadding));
         tooltip.style.left = left + "px";
         tooltip.style.top = top + "px";
       });
@@ -755,6 +919,7 @@
       selectedCoursePillList.innerHTML = services.map(coursePillMarkup).join("");
       selectedCoincidencePillList.innerHTML = coincidencePills.join("");
       selectedCoincidencePillList.hidden = !coincidencePills.length;
+      requestAnimationFrame(() => clampElementToViewport(selectedCoursePills));
     }
 
     function openCoincidenceRace(targetRace, targetShift) {
@@ -778,6 +943,12 @@
 
     if (selectedCoursePillList) {
       selectedCoursePillList.addEventListener("click", (event) => {
+        if (suppressPillClick) {
+          event.preventDefault();
+          event.stopPropagation();
+          suppressPillClick = false;
+          return;
+        }
         const coursePill = event.target.closest(".og-selected-course-pill[data-route-key]");
         if (!coursePill) return;
         const selection = selectedRoutes.get(coursePill.dataset.routeKey);
@@ -788,11 +959,89 @@
 
     if (selectedCoincidencePillList) {
       selectedCoincidencePillList.addEventListener("click", (event) => {
+        if (suppressPillClick) {
+          event.preventDefault();
+          event.stopPropagation();
+          suppressPillClick = false;
+          return;
+        }
         const pill = event.target.closest(".og-selected-course-pill-coincidence");
         if (!pill) return;
         openCoincidenceRace(pill.dataset.targetRace, pill.dataset.targetShift);
       });
     }
+
+    if (residences) {
+      residences.addEventListener("click", (event) => {
+        if (!suppressTurniClick) return;
+        event.preventDefault();
+        event.stopPropagation();
+        suppressTurniClick = false;
+      }, true);
+    }
+
+    enableDrag(zoomControls, {
+      shouldStart: (event) => {
+        if (event.type === "mousedown" && event.button !== 0) return false;
+        if (event.touches && event.touches.length > 1) return false;
+        if (event.target !== zoomControls) return false;
+        return true;
+      },
+      onStart: () => {
+        zoomControls.classList.add("is-dragging");
+      },
+      onEnd: () => {
+        zoomControls.classList.remove("is-dragging");
+      }
+    });
+
+    enableDrag(selectedCoursePills, {
+      shouldStart: (event) => {
+        if (event.type === "mousedown" && event.button !== 0) return false;
+        if (event.touches && event.touches.length > 1) return false;
+        return Boolean(event.target.closest(".og-selected-course-pill"));
+      },
+      onStart: () => {
+        selectedCoursePills.classList.add("is-dragging");
+      },
+      onMove: () => {
+        clampElementToViewport(selectedCoursePills);
+      },
+      onEnd: (moved) => {
+        selectedCoursePills.classList.remove("is-dragging");
+        clampElementToViewport(selectedCoursePills);
+        if (!moved) return;
+        suppressPillClick = true;
+        setTimeout(() => {
+          suppressPillClick = false;
+        }, 140);
+      }
+    });
+
+    enableDrag(residences, {
+      shouldStart: (event) => {
+        if (event.type === "mousedown" && event.button !== 0) return false;
+        if (event.touches && event.touches.length > 1) return false;
+        if (event.target !== residences) return false;
+        if (event.target.closest(".og-race-list")) return false;
+        return true;
+      },
+      onStart: () => {
+        residences.classList.add("is-dragging");
+      },
+      onMove: () => {
+        syncResidencesDragPosition();
+      },
+      onEnd: (moved) => {
+        residences.classList.remove("is-dragging");
+        syncResidencesDragPosition();
+        if (!moved) return;
+        suppressTurniClick = true;
+        setTimeout(() => {
+          suppressTurniClick = false;
+        }, 160);
+      }
+    });
 
     function pauseAfter(service) {
       if (!service || !service.p) return null;
@@ -1242,11 +1491,13 @@
       root.querySelectorAll(".og-route,.og-stop-dot,.og-course-label").forEach((item) => {
         const isSelected = selectedRoutes.has(item.dataset.routeKey);
         item.classList.toggle("is-muted", !isSelected);
-        item.classList.toggle("is-active", isSelected);
-        // Se selezionata, ripristina stili a visibile completo
-        if (isSelected && item.classList.contains("og-route")) {
-          item.style.opacity = "1";
-          item.style.strokeWidth = "2";
+        if (item.classList.contains("og-route")) {
+          // Mantieni invariato l'aspetto della linea anche se selezionata.
+          item.classList.remove("is-active");
+          item.style.removeProperty("stroke-width");
+          item.style.removeProperty("stroke-dasharray");
+        } else {
+          item.classList.toggle("is-active", isSelected);
         }
       });
       const selectedShifts = new Set(
@@ -1330,7 +1581,7 @@
         ((maxStop - minStop) / (data.stops.length - 1)) * basePlotH);
       const availableW = Math.max(180, chartWrap.clientWidth - left - 50);
       const availableH = Math.max(180, chartWrap.clientHeight - 60);
-      chartZoom = Math.max(1, Math.min(3,
+      chartZoom = Math.max(MIN_CHART_ZOOM, Math.min(MAX_CHART_ZOOM,
         Math.min(availableW / routeW, availableH / routeH) * 0.88));
       if (zoomValue) zoomValue.textContent = Math.round(chartZoom * 100) + "%";
       draw(true);
@@ -1538,35 +1789,72 @@
         };
         const handleRouteLeave = () => {
           if (isMobileLayout() && previewRouteKey === routeKey(service)) return;
-          if (!selectedRoutes.has(routeKey(service))) {
-            path.classList.remove("is-active");
-          }
+          path.classList.remove("is-active");
           if (!selectedRoutes.size) clearStopRouteHighlight();
           hideTooltip();
         };
+
+        let routeTouchStart = null;
+        const handleRouteTouchStart = (event) => {
+          if (!isMobileLayout() || !event.touches || event.touches.length !== 1) {
+            routeTouchStart = null;
+            return;
+          }
+          const touch = event.touches[0];
+          routeTouchStart = {
+            id: touch.identifier,
+            x: touch.clientX,
+            y: touch.clientY
+          };
+          event.stopPropagation();
+        };
+
+        const handleRouteTouchEnd = (event) => {
+          if (!isMobileLayout()) return;
+          if (!routeTouchStart || !event.changedTouches || event.changedTouches.length !== 1) {
+            routeTouchStart = null;
+            return;
+          }
+          const touch = event.changedTouches[0];
+          if (touch.identifier !== routeTouchStart.id) {
+            routeTouchStart = null;
+            return;
+          }
+          const deltaX = touch.clientX - routeTouchStart.x;
+          const deltaY = touch.clientY - routeTouchStart.y;
+          routeTouchStart = null;
+          if (Math.hypot(deltaX, deltaY) > MOBILE_TAP_MOVE_THRESHOLD) return;
+
+          const previewEvent = {clientX: touch.clientX, clientY: touch.clientY};
+          const key = routeKey(service);
+          if (consumeRouteDoubleTap(key)) {
+            clearRoutePreview();
+            toggleSelectedRoute(path, service, courseColor);
+          } else {
+            scheduleRouteSingleTap(key, () => {
+              previewRoute(path, service, courseColor, previewEvent, sorted);
+            });
+          }
+          if (event.cancelable) event.preventDefault();
+          event.stopPropagation();
+        };
+
+        const handleRouteTouchCancel = () => {
+          routeTouchStart = null;
+        };
+
         const handleRouteClick = (event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (isMobileLayout()) {
-            const now = Date.now();
-            const key = routeKey(service);
-            if (lastTapRouteKey === key && (now - lastTapAt) < 360) {
-              lastTapRouteKey = "";
-              lastTapAt = 0;
-              clearRoutePreview();
-              toggleSelectedRoute(path, service, courseColor);
-              return;
-            }
-            lastTapRouteKey = key;
-            lastTapAt = now;
-            previewRoute(path, service, courseColor, event, sorted);
-            return;
-          }
+          if (isMobileLayout()) return;
           toggleSelectedRoute(path, service, courseColor);
         };
         hitPath.addEventListener("mouseenter", handleRouteEnter);
         hitPath.addEventListener("mousemove", handleRouteEnter);
         hitPath.addEventListener("mouseleave", handleRouteLeave);
+        hitPath.addEventListener("touchstart", handleRouteTouchStart, {passive: true});
+        hitPath.addEventListener("touchend", handleRouteTouchEnd, {passive: false});
+        hitPath.addEventListener("touchcancel", handleRouteTouchCancel, {passive: true});
         hitPath.addEventListener("click", handleRouteClick);
         visibleCourseEntries.push({path: path, service: service});
         fragment.appendChild(path);
@@ -1614,15 +1902,15 @@
           };
           const handleDotClick = (event) => {
             event.stopPropagation();
-            if (isMobileLayout()) {
-              handleRouteClick(event);
-              return;
-            }
+            if (isMobileLayout()) return;
             toggleSelectedRoute(path, service, courseColor);
           };
           dotHit.addEventListener("mouseenter", handleDotEnter);
           dotHit.addEventListener("mousemove", positionTooltipNearPointer);
           dotHit.addEventListener("mouseleave", handleDotLeave);
+          dotHit.addEventListener("touchstart", handleRouteTouchStart, {passive: true});
+          dotHit.addEventListener("touchend", handleRouteTouchEnd, {passive: false});
+          dotHit.addEventListener("touchcancel", handleRouteTouchCancel, {passive: true});
           dotHit.addEventListener("click", handleDotClick);
           fragment.appendChild(dot);
           fragment.appendChild(dotHit);
@@ -1768,28 +2056,28 @@
     renderSelectedCoursePills();
     draw();
 
-    // Sincronizza lo stato iniziale del pulsante Turni
-    if (mobileMenuToggle) {
-      const shouldShowTurns = !root.classList.contains("og-turns-hidden");
-      mobileMenuToggle.setAttribute("aria-expanded", String(shouldShowTurns));
-    }
+    // Stato iniziale coerente: su mobile menu chiuso, su desktop visibile salvo override.
+    setTurniMenuOpen(isMobileLayout() ? false : !root.classList.contains("og-turns-hidden"));
 
     function syncResidencesHost() {
       if (isMobileLayout()) {
-        if (residences && residences.parentElement !== root && chartWrap) {
-          root.insertBefore(residences, chartWrap);
+        if (residences && residences.parentElement !== root) {
+          // Su mobile chartWrap puo' non essere figlio diretto di root durante alcuni reflow.
+          if (chartWrap && chartWrap.parentElement === root) {
+            root.insertBefore(residences, chartWrap);
+          } else {
+            root.appendChild(residences);
+          }
         }
-        if (residences) residences.style.transform = "";
+        syncResidencesDragPosition();
         return;
       }
       if (residences && chartWrap && residences.parentElement !== chartWrap) {
         chartWrap.insertBefore(residences, chartWrap.firstChild);
       }
+      syncResidencesDragPosition();
       // Sincronizza il pulsante quando cambia il layout
-      if (mobileMenuToggle) {
-        const shouldShowTurns = !root.classList.contains("og-turns-hidden");
-        mobileMenuToggle.setAttribute("aria-expanded", String(shouldShowTurns));
-      }
+      syncTurniMenuToggle();
     }
 
     if (coincidenceToggle) {
@@ -1850,12 +2138,7 @@
     function lockStopAxisToLeft() {
       if (stopAxis && chartWrap) stopAxis.style.transform = "translateX(" + chartWrap.scrollLeft + "px)";
       if (timeAxis && chartWrap) timeAxis.style.transform = "translateY(" + chartWrap.scrollTop + "px)";
-      if (!isMobileLayout() && residences && chartWrap && residences.parentElement === chartWrap) {
-        residences.style.transform = "translate(" + chartWrap.scrollLeft + "px," +
-          chartWrap.scrollTop + "px)";
-      } else if (residences) {
-        residences.style.transform = "";
-      }
+      syncResidencesDragPosition();
     }
 
     syncResidencesHost();
@@ -1865,7 +2148,7 @@
 
     function setChartZoom(nextZoom, clientX, clientY) {
       const previousZoom = chartZoom;
-      chartZoom = Math.max(1, Math.min(3, nextZoom));
+      chartZoom = Math.max(MIN_CHART_ZOOM, Math.min(MAX_CHART_ZOOM, nextZoom));
       if (chartZoom === previousZoom) return;
       if (!chartWrap) return;
       const rect = chartWrap.getBoundingClientRect();
@@ -1878,9 +2161,9 @@
       if (zoomValue) zoomValue.textContent = Math.round(chartZoom * 100) + "%";
       draw(Boolean(selectedRoutes.size));
       requestAnimationFrame(() => {
-        chartWrap.scrollLeft = fixedAxisWidth +
-          (contentX - fixedAxisWidth) * zoomRatio - pointerX;
-        chartWrap.scrollTop = 72 + (contentY - 72) * zoomRatio - pointerY;
+        chartWrap.scrollLeft = Math.max(0, fixedAxisWidth +
+          (contentX - fixedAxisWidth) * zoomRatio - pointerX);
+        chartWrap.scrollTop = Math.max(0, 72 + (contentY - 72) * zoomRatio - pointerY);
       });
     }
 
@@ -1911,9 +2194,26 @@
     }
 
     let panState = null;
+    let pinchState = null;
+    const pinchPointers = new Map();
     let suppressCourseClick = false;
     if (chartStage) {
       chartStage.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "touch") {
+          pinchPointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
+          if (pinchPointers.size >= 2) {
+            const points = Array.from(pinchPointers.values());
+            const dx = points[0].x - points[1].x;
+            const dy = points[0].y - points[1].y;
+            pinchState = {
+              startDistance: Math.max(1, Math.hypot(dx, dy)),
+              startZoom: chartZoom
+            };
+            panState = null;
+            chartStage.classList.add("is-panning");
+            return;
+          }
+        }
         if (event.button !== 0 || event.target.closest("button")) return;
         panState = {
           pointerId: event.pointerId,
@@ -1925,6 +2225,24 @@
         };
       });
       chartStage.addEventListener("pointermove", (event) => {
+        if (event.pointerType === "touch" && pinchPointers.has(event.pointerId)) {
+          pinchPointers.set(event.pointerId, {x: event.clientX, y: event.clientY});
+          if (pinchState && pinchPointers.size >= 2) {
+            const points = Array.from(pinchPointers.values());
+            const dx = points[0].x - points[1].x;
+            const dy = points[0].y - points[1].y;
+            const distance = Math.max(1, Math.hypot(dx, dy));
+            const midpointX = (points[0].x + points[1].x) / 2;
+            const midpointY = (points[0].y + points[1].y) / 2;
+            setChartZoom(
+              pinchState.startZoom * (distance / pinchState.startDistance),
+              midpointX,
+              midpointY
+            );
+            event.preventDefault();
+            return;
+          }
+        }
         if (!panState || panState.pointerId !== event.pointerId || !chartWrap) return;
         const deltaX = event.clientX - panState.startX;
         const deltaY = event.clientY - panState.startY;
@@ -1943,7 +2261,16 @@
     }
 
     function finishPan(event) {
-      if (!panState || panState.pointerId !== event.pointerId) return;
+      if (pinchPointers.has(event.pointerId)) {
+        pinchPointers.delete(event.pointerId);
+        if (pinchPointers.size < 2) pinchState = null;
+      }
+      if (!panState || panState.pointerId !== event.pointerId) {
+        if (chartStage && !pinchState && pinchPointers.size === 0) {
+          chartStage.classList.remove("is-panning");
+        }
+        return;
+      }
       suppressCourseClick = panState.dragged;
       if (chartStage) {
         chartStage.classList.remove("is-panning");
@@ -1969,8 +2296,7 @@
       chartStage.addEventListener("click", (event) => {
         if (isMobileLayout() && !event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) {
           clearRoutePreview();
-          lastTapRouteKey = "";
-          lastTapAt = 0;
+          clearPendingRouteTap();
         }
         if (!selectedRoutes.size) return;
         if (event.target.closest(".og-route-hit,.og-route,.og-stop-dot,.og-stop-hit")) return;
@@ -2005,7 +2331,11 @@
     let resizeTimer;
     const triggerResize = () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(draw, 80);
+      resizeTimer = setTimeout(() => {
+        syncTurniMenuToggle();
+        clampElementToViewport(selectedCoursePills);
+        draw();
+      }, 80);
     };
     
     if (typeof ResizeObserver !== "undefined") {

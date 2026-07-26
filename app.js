@@ -185,7 +185,11 @@ function startInlineEdit(cell){
   editor.className='inline-cell-editor';cell.replaceChildren(editor);editor.focus();if(editor.select)editor.select();let saved=false;const commit=async()=>{if(saved)return;saved=true;let value=editor.value;if(field==='shift'&&value==='__restore__'){editor.disabled=true;try{const assignment=await getScheduledAssignment(entry.date);value=assignment.shift;entry.travel=assignment.travel}catch(error){notify(error.message);render();return}}saveInlineEntry(entry,field,value)};editor.addEventListener('change',commit);editor.addEventListener('blur',commit);editor.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();commit()}if(event.key==='Escape'){saved=true;render()}})
 }
 function openTodayEditor(){const todayEntry=entries.find(e=>e.date===todayIso());if(todayEntry){startEdit(todayEntry.id)}else{resetEntryForm();$('dayEditorTitle').textContent='Aggiungi la giornata di oggi';$('dayEditor').hidden=false;$('entryForm').hidden=false;$('entryForm').style.display='grid';document.querySelector('.quick-entry').scrollIntoView({behavior:'smooth',block:'start'})}}
-async function hashPin(pin){const bytes=new TextEncoder().encode(`NaviDiaria:${pin}`);const hash=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+function hasSecureCrypto(){return typeof window!=='undefined'&&!!(window.crypto&&window.crypto.subtle&&typeof window.crypto.subtle.digest==='function')}
+function isLocalDevHost(){const host=String(location.hostname||'').toLowerCase();return host==='localhost'||host==='127.0.0.1'||host==='::1'||/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host)}
+function useDevPinFallback(){return !hasSecureCrypto()&&typeof window!=='undefined'&&window.isSecureContext===false&&isLocalDevHost()}
+function weakHashPin(pin){let hash=2166136261,text=`NaviDiaria:${pin}`;for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash+=(hash<<1)+(hash<<4)+(hash<<7)+(hash<<8)+(hash<<24)}return `dev-${(hash>>>0).toString(16).padStart(8,'0')}`}
+async function hashPin(pin){if(hasSecureCrypto()){const bytes=new TextEncoder().encode(`NaviDiaria:${pin}`),hash=await crypto.subtle.digest('SHA-256',bytes);return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}if(useDevPinFallback()){console.warn('TODO: rimuovere fallback PIN non crittografico prima della produzione.');return weakHashPin(pin)}throw new Error('Questo login richiede HTTPS (Web Crypto non disponibile).')}
 function showLoginMessage(message){$('loginMessage').textContent=message}
 async function loadAgentDirectory(){
   const data=await NaviSharedData.load(TURNS_URL);agentsDirectory=[];
@@ -201,7 +205,14 @@ async function renderAdminPinList(){
 }
 async function loginAgent(agentId,pin){
   const agent=agentsDirectory.find(item=>item.id===String(agentId));if(!agent)throw new Error('Seleziona un agente dalla lista');
-  const pinKey=`navidiaria.pin.${agent.id}`,digest=await hashPin(pin);await NaviCloud.request('auth',{agentId:agent.id,pinHash:digest});localStorage.setItem(pinKey,digest);
+  const pinKey=`navidiaria.pin.${agent.id}`,digest=await hashPin(pin);
+  if(useDevPinFallback()){ // TODO: rimuovere bypass login locale prima della produzione.
+    localStorage.setItem(pinKey,digest);
+    const personalKey=`navidiaria.entries.v1.${agent.id}`;if(agent.id==='92'&&!localStorage.getItem(personalKey)&&localStorage.getItem('navidiaria.entries.v1'))localStorage.setItem(personalKey,localStorage.getItem('navidiaria.entries.v1'));
+    localStorage.setItem(SESSION_KEY,JSON.stringify(agent));localStorage.setItem(NAVITURNI_SESSION_KEY,JSON.stringify({id:agent.id,name:agent.name,residence:agent.residence}));location.reload();
+    return;
+  }
+  await NaviCloud.request('auth',{agentId:agent.id,pinHash:digest});localStorage.setItem(pinKey,digest);
   const personalKey=`navidiaria.entries.v1.${agent.id}`;if(agent.id==='92'&&!localStorage.getItem(personalKey)&&localStorage.getItem('navidiaria.entries.v1'))localStorage.setItem(personalKey,localStorage.getItem('navidiaria.entries.v1'));
   localStorage.setItem(SESSION_KEY,JSON.stringify(agent));localStorage.setItem(NAVITURNI_SESSION_KEY,JSON.stringify({id:agent.id,name:agent.name,residence:agent.residence}));location.reload();
 }
@@ -234,7 +245,9 @@ $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const butt
 $('loginAgentSearch').addEventListener('input',()=>{if(agentsDirectory.length)renderAgentChoices()});
 $('pinSettingsButton').addEventListener('click',()=>{$('pinForm').reset();$('pinMessage').textContent='';$('pinOverlay').hidden=false;document.body.classList.add('login-open')});
 $('closePinSettings').addEventListener('click',()=>{$('pinOverlay').hidden=true;document.body.classList.remove('login-open')});
-$('pinForm').addEventListener('submit',async e=>{e.preventDefault();const current=$('currentPin').value,next=$('newPin').value,confirmation=$('confirmPin').value,key=`navidiaria.pin.${activeAgent.id}`;if(next!==confirmation){$('pinMessage').textContent='I nuovi PIN non coincidono';return}const currentHash=await hashPin(current);if(currentHash!==localStorage.getItem(key)){$('pinMessage').textContent='Il PIN attuale non è corretto';return}try{const newPinHash=await hashPin(next);await NaviCloud.request('change_pin',{...cloudCredentials(),newPinHash});localStorage.setItem(key,newPinHash);$('pinOverlay').hidden=true;document.body.classList.remove('login-open');notify('PIN modificato online')}catch(error){$('pinMessage').textContent=error.message}});
+$('pinForm').addEventListener('submit',async e=>{e.preventDefault();const current=$('currentPin').value,next=$('newPin').value,confirmation=$('confirmPin').value,key=`navidiaria.pin.${activeAgent.id}`;if(next!==confirmation){$('pinMessage').textContent='I nuovi PIN non coincidono';return}const currentHash=await hashPin(current);if(currentHash!==localStorage.getItem(key)){$('pinMessage').textContent='Il PIN attuale non è corretto';return}try{const newPinHash=await hashPin(next);if(useDevPinFallback()){ // TODO: rimuovere fallback cambio PIN locale prima della produzione.
+  localStorage.setItem(key,newPinHash);$('pinOverlay').hidden=true;document.body.classList.remove('login-open');notify('PIN aggiornato in fallback sviluppo (solo locale)');return}
+  await NaviCloud.request('change_pin',{...cloudCredentials(),newPinHash});localStorage.setItem(key,newPinHash);$('pinOverlay').hidden=true;document.body.classList.remove('login-open');notify('PIN modificato online')}catch(error){$('pinMessage').textContent=error.message}});
 $('resetOwnPin').addEventListener('click',async()=>{if(!confirm('Vuoi resettare il PIN? Verrai disconnesso e potrai sceglierne uno nuovo al prossimo accesso.'))return;try{await NaviCloud.request('reset_own_pin',cloudCredentials());localStorage.removeItem(`navidiaria.pin.${activeAgent.id}`);localStorage.removeItem(SESSION_KEY);localStorage.removeItem(NAVITURNI_SESSION_KEY);location.href='index.html'}catch(error){$('pinMessage').textContent=error.message}});
 $('refreshPinList').addEventListener('click',renderAdminPinList);
 $('adminPinList').addEventListener('click',async e=>{const button=e.target.closest('.reset-agent-pin');if(!button||!isAdmin())return;const name=button.dataset.agentName,id=button.dataset.agentId;if(!confirm(`Resettare il PIN di ${name}? I suoi dati resteranno invariati.`))return;button.disabled=true;try{await NaviCloud.request('reset_pin',{...cloudCredentials(),targetAgentId:id});localStorage.removeItem(`navidiaria.pin.${id}`);await renderAdminPinList();notify(`PIN di ${name} resettato online`)}catch(error){notify(error.message);button.disabled=false}});

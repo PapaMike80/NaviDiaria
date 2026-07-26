@@ -75,6 +75,11 @@
   --color-border-secondary: var(--border);
 }
 
+html,
+body.orario-page {
+  touch-action: manipulation;
+}
+
 :root[data-visualize-standalone] {
   background-color: var(--background) !important;
 }
@@ -1166,7 +1171,17 @@ svg {
     color: var(--accent);
     background: color-mix(in oklab, var(--accent) 18%, var(--background));
   }
+  #orario-garda-viz .og-mobile-menu-toggle.is-active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 18%, var(--background));
+  }
   #orario-garda-viz .og-mobile-menu-toggle[aria-expanded="false"] {
+    border-color: var(--border);
+    color: var(--muted-foreground);
+    background: var(--muted);
+  }
+  #orario-garda-viz .og-mobile-menu-toggle:not(.is-active) {
     border-color: var(--border);
     color: var(--muted-foreground);
     background: var(--muted);
@@ -1237,9 +1252,14 @@ svg {
     min-height: 720px;
     cursor: grab;
     user-select: none;
-    touch-action: manipulation;
+    touch-action: none;
   }
   #orario-garda-viz .og-chart-stage.is-panning {
+    cursor: grabbing;
+  }
+  #orario-garda-viz .og-zoom-controls.is-dragging,
+  #orario-garda-viz .og-selected-course-pills.is-dragging,
+  #orario-garda-viz .og-residences.is-dragging {
     cursor: grabbing;
   }
   #orario-garda-viz .og-stop-axis {
