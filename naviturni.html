@@ -1482,7 +1482,6 @@
 </head>
 <body class="turni-page">
 
-  <button class="turni-menu-button" id="turni-menu-button" type="button" aria-label="Apri menu" aria-expanded="false">☰</button>
   <aside class="turni-sidebar app-sidebar" id="turni-sidebar">
     <a class="turni-sidebar-brand" href="index.html"><span>N</span> NaviTurni</a>
     <nav>
@@ -1554,37 +1553,6 @@
         <tbody id="tbody"></tbody>
       </table>
     </div>
-
-    <section class="coverage-section" id="coverage-section" aria-labelledby="coverage-title">
-      <h2 class="coverage-title" id="coverage-title">Completezza equipaggi</h2>
-      <div class="coverage-shift-controls" aria-label="Seleziona corsa per la scheda equipaggio">
-        <span class="coverage-shift-label">Corsa:</span>
-        <div class="coverage-shift-buttons" id="coverage-shift-buttons"></div>
-        <button class="crew-minimum-toggle" id="crew-minimum-toggle" type="button" onclick="toggleCrewMinimumPanel()">⚙ Minimi</button>
-        <div class="coverage-residence-controls">
-          <span class="coverage-shift-label">Residenza:</span>
-          <div class="coverage-residence-buttons" id="coverage-residence-buttons"></div>
-        </div>
-      </div>
-      <div class="crew-minimum-panel" id="crew-minimum-panel">
-        <span class="crew-minimum-title">Numero minimo di componenti per corsa</span>
-        <div class="crew-minimum-grid" id="crew-minimum-grid"></div>
-      </div>
-      <div id="coverage-crew-copy" aria-label="Scheda equipaggio sempre visibile"></div>
-      <div class="coverage-wrap" id="coverage-matrix-wrap">
-        <table class="coverage-table">
-          <thead id="coverage-thead"></thead>
-          <tbody id="coverage-tbody"></tbody>
-        </table>
-      </div>
-      <div class="coverage-legend" aria-label="Legenda completezza equipaggi">
-        <span class="complete">Completo</span>
-        <span class="incomplete">Incompleto</span>
-        <span class="overstaffed">Sovrannumero</span>
-        <span class="transfer">Trasferta</span>
-        <span class="ods">Variazione ODS</span>
-      </div>
-    </section>
 
     <div class="upload-container" id="upload-container">
       <div class="upload-header" onclick="toggleUpload()">
@@ -2398,10 +2366,14 @@
     function generaFiltriTurnoRiferimento() {
       if (isEditMode) {
         document.getElementById("shift-filter-container").style.display = "none";
+        const modalWrapper = document.getElementById("modal-shift-buttons");
+        if (modalWrapper) modalWrapper.innerHTML = "";
         return;
       }
       const wrapper = document.getElementById("shift-buttons-wrapper");
-      wrapper.innerHTML = "";
+      const modalWrapper = document.getElementById("modal-shift-buttons");
+      if (wrapper) wrapper.innerHTML = "";
+      if (modalWrapper) modalWrapper.innerHTML = "";
 
       const chiaveResidenza = currentResidence.toLowerCase().trim();
       const turniFiltrati = turniMappaResidenze[chiaveResidenza] || [];
@@ -2414,12 +2386,9 @@
       document.getElementById("shift-filter-container").style.display = "flex";
 
       turniFiltrati.forEach(t => {
-        const btn = document.createElement("button");
-        btn.className = "shift-filter-btn";
-        btn.textContent = t;
-        if (getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t)) btn.classList.add("active");
-
-        btn.addEventListener("click", () => {
+        const color = shiftBorderColor[classify(t)] || "#94a3b8";
+        const isActive = getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t);
+        const handleShiftClick = (fromModal = false) => {
           clearPinnedAgentSelection();
           if (getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t)) {
             activeShiftFilter = null;
@@ -2435,8 +2404,26 @@
           } else {
             clearSelection();
           }
+          if (fromModal) {
+            document.getElementById("mobile-filter-modal")?.classList.remove("open");
+          }
+        };
+
+        const targets = [
+          { container: wrapper, fromModal: false },
+          { container: modalWrapper, fromModal: true }
+        ];
+
+        targets.forEach(({ container, fromModal }) => {
+          if (!container) return;
+          const btn = document.createElement("button");
+          btn.className = "shift-filter-btn";
+          btn.textContent = t;
+          btn.style.setProperty("--btn-color", color);
+          if (isActive) btn.classList.add("active");
+          btn.addEventListener("click", () => handleShiftClick(fromModal));
+          container.appendChild(btn);
         });
-        wrapper.appendChild(btn);
       });
     }
 
@@ -3987,7 +3974,12 @@
       currentResidence = resName;
       activeShiftFilter = null;
 
-      currentAgentsList = globalData.residenze[resName] || [];
+      if (resName === "TUTTE") {
+        // Aggrega tutti gli agenti di tutte le residenze visibili.
+        currentAgentsList = getVisibleResidences().flatMap(res => globalData.residenze[res] || []);
+      } else {
+        currentAgentsList = globalData.residenze[resName] || [];
+      }
       document.getElementById("stat-residence").textContent = resName;
       document.getElementById("stat-agents").textContent = currentAgentsList.length;
       const search = document.getElementById("agent-search");
@@ -4104,16 +4096,38 @@
     }
 
     function renderResidenceButtons() {
-      const container = document.getElementById("top-residence-buttons");
-      if (!container) return;
-      container.innerHTML = "";
-      getVisibleResidences().forEach(res => {
-        const btn = document.createElement("button");
-        btn.className = "coverage-residence-btn";
-        btn.dataset.res = res;
-        btn.textContent = res;
-        btn.addEventListener("click", () => selectResidence(res));
-        container.appendChild(btn);
+      const topContainer = document.getElementById("top-residence-buttons");
+      const modalContainer = document.getElementById("modal-residence-buttons");
+
+      if (topContainer) topContainer.innerHTML = "";
+      if (modalContainer) modalContainer.innerHTML = "";
+
+      // Inserisce "TUTTE" all'inizio seguito dalle residenze disponibili.
+      const residences = ["TUTTE", ...getVisibleResidences()];
+
+      residences.forEach(res => {
+        const active = res === currentResidence;
+
+        if (topContainer) {
+          const btnTop = document.createElement("button");
+          btnTop.className = `coverage-residence-btn ${active ? "active" : ""}`.trim();
+          btnTop.dataset.res = res;
+          btnTop.textContent = res;
+          btnTop.addEventListener("click", () => selectResidence(res));
+          topContainer.appendChild(btnTop);
+        }
+
+        if (modalContainer) {
+          const btnModal = document.createElement("button");
+          btnModal.className = active ? "active" : "";
+          btnModal.dataset.res = res;
+          btnModal.textContent = res;
+          btnModal.addEventListener("click", () => {
+            selectResidence(res);
+            document.getElementById("mobile-filter-modal")?.classList.remove("open");
+          });
+          modalContainer.appendChild(btnModal);
+        }
       });
     }
 
@@ -4465,14 +4479,16 @@
       drawerToggle.textContent = "⌄";
       drawerToggle.setAttribute("aria-expanded", "false");
       const menuButton = document.getElementById("turni-menu-button");
-      menuButton.addEventListener("click", () => {
-        const open = document.body.classList.toggle("turni-menu-open");
-        menuButton.setAttribute("aria-expanded", String(open));
-      });
+      if (menuButton) {
+        menuButton.addEventListener("click", () => {
+          const open = document.body.classList.toggle("turni-menu-open");
+          menuButton.setAttribute("aria-expanded", String(open));
+        });
+      }
       document.getElementById("turni-sidebar").addEventListener("click", event => {
         if (event.target.closest("a") && window.innerWidth <= 800) {
           document.body.classList.remove("turni-menu-open");
-          menuButton.setAttribute("aria-expanded", "false");
+          if (menuButton) menuButton.setAttribute("aria-expanded", "false");
         }
       });
       setupSynchronizedTableScrolls();
@@ -4484,6 +4500,65 @@
         // Gli errori sono gestiti dentro le singole funzioni
       });
     });
+  </script>
+
+  <!-- Navigazione Mobile Liquid Glass -->
+  <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
+    <a href="naviturni.html" class="nav-item active">
+      <span class="nav-icon">▦</span>
+      <span>Turni</span>
+    </a>
+    <a href="cambi_turno.html" class="nav-item">
+      <span class="nav-icon">⇄</span>
+      <span>Cambio</span>
+    </a>
+    <a href="documenti.html" class="nav-item">
+      <span class="nav-icon">▤</span>
+      <span>Doc</span>
+    </a>
+    <button type="button" class="nav-item" id="mobile-filter-btn" aria-label="Apri Filtri">
+      <span class="nav-icon">⎈</span>
+      <span>Filtri</span>
+    </button>
+  </nav>
+
+  <!-- Popup Filtri Liquid Glass -->
+  <div id="mobile-filter-modal" class="liquid-modal-overlay" hidden>
+    <div class="liquid-modal-content">
+      <div class="liquid-modal-header">
+        <button type="button" id="close-filter-modal" aria-label="Chiudi">✕</button>
+      </div>
+      <div class="liquid-modal-body">
+        <div class="filter-section">
+          <span class="filter-section-title">RESIDENZE</span>
+          <div id="modal-residence-buttons" class="modal-buttons-grid"></div>
+        </div>
+        <div class="filter-section">
+          <span class="filter-section-title">CORSE</span>
+          <div id="modal-shift-buttons" class="modal-buttons-grid"></div>
+        </div>
+        <button type="button" id="modal-sidebar-mini-toggle" aria-label="Apri menu laterale" style="position: absolute; bottom: 16px; right: 20px; background: transparent; border: none; font-size: 24px; color: var(--accent, #2dd4bf); cursor: pointer; padding: 8px;">☰</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const filterBtn = document.getElementById('mobile-filter-btn');
+      const modal = document.getElementById('mobile-filter-modal');
+
+      if (filterBtn && modal) {
+          modal.removeAttribute('hidden');
+          filterBtn.addEventListener('click', () => modal.classList.add('open'));
+          document.getElementById('close-filter-modal').addEventListener('click', () => modal.classList.remove('open'));
+          document.getElementById('modal-sidebar-mini-toggle')?.addEventListener('click', () => {
+            document.getElementById('mobile-filter-modal')?.classList.remove('open');
+            document.body.classList.toggle('turni-menu-open');
+            document.body.classList.toggle('sidebar-open');
+          });
+          modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+      }
+  });
   </script>
 
 </body>

@@ -1,3 +1,11 @@
+.menu-button,
+.turni-menu-button,
+#turni-menu-button {
+	display: none !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
 .app-sidebar{transition:transform .22s ease,box-shadow .22s ease}.sidebar-collapse-button{position:absolute;top:50%;right:-17px;z-index:5;display:grid;place-items:center;width:34px;height:48px;padding:0;border:1px solid #28505a;border-left:0;border-radius:0 10px 10px 0;background:#102b3f;color:#dff8f4;font-size:22px;line-height:1;cursor:pointer;box-shadow:8px 0 18px rgba(0,0,0,.16)}.sidebar-collapse-button:hover{background:#164153;color:#2dd4bf}.sidebar-reopen-button{position:fixed;top:50%;left:0;z-index:230;display:none;place-items:center;width:34px;height:52px;border:1px solid #28505a;border-left:0;border-radius:0 10px 10px 0;background:#102b3f;color:#dff8f4;font-size:22px;cursor:pointer;transform:translateY(-50%);box-shadow:8px 0 18px rgba(0,0,0,.18)}body.menu-collapsed .app-sidebar{transform:translateX(-105%)!important}body.menu-collapsed .sidebar-reopen-button{display:grid}.app-sidebar nav{gap:6px!important}.app-sidebar nav a,.app-sidebar nav button{min-height:43px!important;margin:0!important;border:1px solid transparent!important;border-radius:9px!important;background:transparent!important;color:#9fb8c2!important;font-family:"DM Sans",sans-serif!important;font-size:13px!important;font-weight:700!important;text-decoration:none!important}.app-sidebar nav a:hover,.app-sidebar nav button:hover,.app-sidebar nav a.active{border-color:#28505a!important;background:#102d37!important;color:#fff!important}.app-sidebar nav a span,.app-sidebar nav button span{color:#2dd4bf!important}.app-sidebar .sidebar-menu-label,.app-sidebar .turni-menu-label{margin:16px 12px 3px!important;color:#66818d!important;font-size:9px!important;font-weight:900!important;letter-spacing:.16em!important}
 @media(min-width:801px){body.diaria-page.menu-collapsed .app-shell{grid-template-columns:0 1fr}body.turni-page.menu-collapsed{padding-left:0!important}}
 @media(max-width:800px){.menu-button,.turni-menu-button{display:none!important}.sidebar-collapse-button{display:grid}.sidebar-reopen-button{top:72px;transform:none}body:not(.menu-collapsed) .app-sidebar{transform:translateX(0)!important}.app-sidebar.open,body.turni-menu-open .app-sidebar{transform:translateX(0)!important}}
@@ -15,3 +23,179 @@
 .sidebar-footer-update{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:39px;border:1px solid #28505a;border-radius:8px;background:#102d37;color:#dff8f4;font:800 11px Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}.sidebar-footer-update span{color:#2dd4bf;font-size:15px}.sidebar-footer-update:hover{border-color:#2dd4bf;background:#123b45}.sidebar-footer-update:disabled{opacity:.55}.sidebar-data-status{grid-column:1/-1;display:block;margin:-1px 2px 3px;color:#86efac;font:800 9px Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.08em;text-align:center;text-transform:uppercase}
 .ods-variation-status{margin:10px 1px 2px;padding:10px 11px;border:1px solid rgba(45,212,191,.28);border-radius:9px;background:rgba(45,212,191,.08);color:#9fe9df;font:700 10px/1.45 "DM Sans",sans-serif}.ods-variation-status[hidden]{display:none!important}
 .diaria-page .app-shell{display:block!important;padding-left:230px;transition:padding-left .22s ease}.diaria-page.menu-collapsed .app-shell{padding-left:0}.diaria-page .app-shell>main{min-width:0}@media(max-width:800px){.diaria-page .app-shell{padding-left:0}.diaria-page .app-shell>main{grid-column:auto}}
+
+/* Nascondi il menu di default su PC */
+body.turni-page .mobile-liquid-nav { display: none; }
+
+/* Menu mobile in basso, fisso e responsive */
+@media (max-width: 800px) {
+	body.turni-page .app-shell main,
+	body.turni-page > main { padding-bottom: 90px; }
+
+	body.turni-page .mobile-liquid-nav {
+		display: flex; position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+		width: 94%; height: 68px; z-index: 99999;
+		justify-content: space-evenly; align-items: center;
+		border-radius: 40px;
+		background: rgba(7, 23, 32, 0.75);
+		backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+		border-top: 1px solid rgba(126, 243, 226, 0.2);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.8);
+		box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.06), inset 0 -2px 5px rgba(0, 0, 0, 0.6);
+	}
+
+	body.turni-page .mobile-liquid-nav .nav-item {
+		display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+		text-decoration: none; color: var(--ink-dim, #9fb8c2); font-family: 'DM Sans', sans-serif;
+		font-size: 10px; font-weight: 600; width: 58px; height: 58px; border-radius: 50%;
+		transition: all 0.25s ease;
+	}
+
+	body.turni-page .mobile-liquid-nav .nav-item .nav-icon {
+		font-size: 20px;
+		line-height: 1;
+	}
+
+	body.turni-page .mobile-liquid-nav .nav-item.active {
+		color: var(--accent, #2dd4bf); background: rgba(45, 212, 191, 0.1);
+		box-shadow: inset 0 2px 5px rgba(45, 212, 191, 0.15);
+	}
+
+	/* Adattamento automatico al tema chiaro del telefono */
+	@media (prefers-color-scheme: light) {
+		body.turni-page .mobile-liquid-nav {
+			background: rgba(245, 247, 250, 0.8);
+			border-top: 1px solid rgba(255, 255, 255, 0.9); border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+			box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.8), inset 0 -2px 5px rgba(0, 0, 0, 0.05);
+		}
+		body.turni-page .mobile-liquid-nav .nav-item { color: #4b5563; }
+		body.turni-page .mobile-liquid-nav .nav-item.active {
+			color: #0d9488; background: rgba(13, 148, 136, 0.1);
+			box-shadow: inset 0 2px 5px rgba(13, 148, 136, 0.15);
+		}
+	}
+}
+
+/* Reset per il button nella nav */
+body.turni-page button.nav-item {
+	background: transparent;
+	border: none;
+	padding: 0;
+	font-family: inherit;
+	cursor: pointer;
+}
+
+/* Stili per il Modale Liquid Glass */
+body.turni-page .liquid-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	background: rgba(3, 10, 16, 0.6);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.3s ease;
+}
+body.turni-page .liquid-modal-overlay.open {
+	opacity: 1;
+	pointer-events: auto;
+}
+body.turni-page .liquid-modal-overlay[hidden] { display: none !important; }
+
+body.turni-page .liquid-modal-content {
+	position: relative;
+	width: 100%;
+	max-height: 85vh;
+	overflow-y: auto;
+	background: rgba(11, 28, 38, 0.95);
+	border-top: 1px solid rgba(126, 243, 226, 0.15);
+	border-radius: 24px 24px 0 0;
+	padding: 16px 24px 40px;
+	box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+	transform: translateY(100%);
+	transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.turni-page .liquid-modal-overlay.open .liquid-modal-content {
+	transform: translateY(0);
+}
+
+body.turni-page .liquid-modal-header {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 12px;
+}
+body.turni-page .liquid-modal-header button {
+	background: transparent;
+	border: none;
+	color: var(--ink-dim, #9fb8c2);
+	font-size: 20px;
+	font-weight: bold;
+	cursor: pointer;
+	padding: 4px;
+}
+
+/* Tipografia e griglia pulsanti */
+body.turni-page .filter-section { margin-bottom: 28px; }
+body.turni-page .filter-section-title {
+	display: block;
+	color: var(--ink-dim, #9fb8c2);
+	font-size: 13px;
+	font-weight: 800;
+	text-transform: uppercase;
+	text-align: center;
+	margin-bottom: 16px;
+	letter-spacing: 0.2em;
+}
+body.turni-page .modal-buttons-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+/* Stile Bottoni (Outline & Glow) */
+body.turni-page .modal-buttons-grid button {
+	width: 100%;
+	height: 44px;
+	background: transparent;
+	border: 2px solid var(--btn-color, #9fb8c2);
+	border-radius: 999px;
+	color: var(--btn-color, #9fb8c2);
+	font-size: 13px;
+	font-weight: 800;
+	font-family: inherit;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+/* Colori specifici (ereditati o mappati per coerenza) */
+body.turni-page .modal-buttons-grid button[data-res="RIVA"] { --btn-color: #a78bfa; }
+body.turni-page .modal-buttons-grid button[data-res="MADERNO"] { --btn-color: #fb923c; }
+body.turni-page .modal-buttons-grid button[data-res="DESENZANO"] { --btn-color: #2dd4bf; }
+body.turni-page .modal-buttons-grid button[data-res="PESCHIERA"] { --btn-color: #4ade80; }
+body.turni-page .modal-buttons-grid button[data-res="TUTTE"] { --btn-color: #f8fafc; }
+
+/* Stato Attivo con Neon Glow */
+body.turni-page .modal-buttons-grid button.active {
+	background: var(--btn-color, #2dd4bf);
+	color: #06201c;
+	box-shadow: 0 0 16px color-mix(in srgb, var(--btn-color) 60%, transparent);
+	border-color: var(--btn-color);
+}
+
+/* Aggiorna la griglia delle residenze nella barra laterale */
+body.turni-page .turni-sidebar .coverage-residence-buttons {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 6px;
+}
+
+/* Aggiorna la griglia delle residenze nel modale mobile */
+body.turni-page #modal-residence-buttons.modal-buttons-grid {
+	grid-template-columns: repeat(3, 1fr);
+}

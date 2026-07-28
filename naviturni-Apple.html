@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>NaviTurni Apple - Mese</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --text: #ffffff;
+      --muted: #8e8e93;
+      --glass-bg: rgba(28, 28, 30, 0.7);
+      --group-bg: #1c1c1e;
+      --group-bg-alt: #2c2c2e;
+      --separator: #38383a;
+      --today: #ff3b30;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      overscroll-behavior: contain;
+    }
+
+    .app {
+      position: relative;
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    .top-shell {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      background-color: var(--glass-bg);
+      border-bottom: 1px solid rgba(56, 56, 58, 0.35);
+      padding-top: calc(var(--safe-top) + 8px);
+    }
+
+    .month-title {
+      margin: 0;
+      padding: 8px 16px 10px;
+      font-size: 2.15rem;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      text-align: left;
+    }
+
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      padding: 0 10px 10px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-align: center;
+      user-select: none;
+    }
+
+    .calendar-scroll {
+      height: calc(100vh - 150px - var(--safe-bottom));
+      overflow-y: auto;
+      padding: 8px 8px 110px;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: #2f2f31 transparent;
+    }
+
+    .calendar-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .calendar-scroll::-webkit-scrollbar-thumb {
+      background: #2f2f31;
+      border-radius: 999px;
+    }
+
+    .sentinel {
+      height: 1px;
+      width: 100%;
+    }
+
+    .month-section {
+      margin: 8px 0 18px;
+    }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px 3px;
+      padding: 0 2px;
+    }
+
+    .day-cell {
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      min-height: 62px;
+      padding: 4px 1px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      cursor: pointer;
+      transition: opacity 0.12s ease, background-color 0.2s ease;
+      position: relative;
+    }
+
+    .day-cell:hover {
+      background: rgba(44, 44, 46, 0.3);
+    }
+
+    .day-cell:active,
+    .day-cell.feedback {
+      opacity: 0.55;
+    }
+
+    .day-cell.outside {
+      opacity: 0.26;
+      pointer-events: none;
+    }
+
+    .day-number {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .day-number.today {
+      background: var(--today);
+      color: #fff;
+    }
+
+    .pill-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 100%;
+    }
+
+    .shift-pill {
+      max-width: 44px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 0.56rem;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: #fff;
+    }
+
+    .alert-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+    }
+
+    .bottom-bar {
+      position: fixed;
+      left: 10px;
+      right: 10px;
+      bottom: calc(10px + var(--safe-bottom));
+      z-index: 22;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      border-radius: 18px;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      background-color: var(--glass-bg);
+      border: 1px solid rgba(56, 56, 58, 0.45);
+    }
+
+    .today-btn {
+      border: 0;
+      background: #2c2c2e;
+      color: var(--text);
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 10px 16px;
+      cursor: pointer;
+      min-width: 74px;
+    }
+
+    .icon-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      border: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      background: #2c2c2e;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn svg {
+      width: 17px;
+      height: 17px;
+      fill: currentColor;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: #000;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: calc(var(--safe-top) + 18px) 14px calc(var(--safe-bottom) + 28px);
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      padding: 0 4px;
+    }
+
+    .modal-title-wrap h2 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .modal-date {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+      font-weight: 500;
+    }
+
+    .close-btn {
+      border: 0;
+      background: #2c2c2e;
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      font-size: 1.2rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .inset-group {
+      background: var(--group-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      border: 1px solid rgba(56, 56, 58, 0.34);
+    }
+
+    .group-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 14px;
+      font-size: 0.96rem;
+      gap: 16px;
+    }
+
+    .group-row + .group-row {
+      border-top: 1px solid var(--separator);
+    }
+
+    .row-label {
+      color: var(--muted);
+      flex: 0 0 auto;
+    }
+
+    .row-value {
+      color: var(--text);
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .crew-list {
+      background: var(--group-bg-alt);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(56, 56, 58, 0.4);
+    }
+
+    .crew-item {
+      padding: 13px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 14px;
+      align-items: center;
+    }
+
+    .crew-item + .crew-item {
+      border-top: 1px solid var(--separator);
+    }
+
+    .crew-main {
+      min-width: 0;
+    }
+
+    .crew-name {
+      margin: 0;
+      font-size: 0.96rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .crew-note {
+      margin: 2px 0 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .crew-role {
+      font-size: 0.86rem;
+      color: #c7c7cc;
+      font-weight: 600;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 430px) {
+      .calendar-scroll {
+        height: calc(100vh - 144px - var(--safe-bottom));
+        padding-left: 6px;
+        padding-right: 6px;
+      }
+
+      .day-cell {
+        min-height: 58px;
+      }
+
+      .shift-pill {
+        max-width: 38px;
+        padding: 2px 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top-shell">
+      <h1 id="monthTitle" class="month-title">&nbsp;</h1>
+      <div class="weekdays" aria-hidden="true">
+        <span>L</span><span>M</span><span>M</span><span>G</span><span>V</span><span>S</span><span>D</span>
+      </div>
+    </header>
+
+    <main id="calendarScroll" class="calendar-scroll" aria-label="Calendario mese continuo">
+      <div id="topSentinel" class="sentinel" aria-hidden="true"></div>
+      <div id="monthsRoot"></div>
+      <div id="bottomSentinel" class="sentinel" aria-hidden="true"></div>
+    </main>
+
+    <div class="bottom-bar">
+      <button id="todayBtn" class="today-btn" type="button">Oggi</button>
+      <div class="icon-actions">
+        <button class="icon-btn" type="button" aria-label="Filtri">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2H3V5zm4 6h10v2H7v-2zm3 6h4v2h-4v-2z"/></svg>
+        </button>
+        <button class="icon-btn" type="button" aria-label="Ricerca">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm11 17-4.35-4.35-1.41 1.41L19.59 21 21 19.59z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <section id="crewModal" class="modal" aria-modal="true" role="dialog" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h2 id="modalTitle">Scheda Equipaggio</h2>
+        <p id="modalDate" class="modal-date"></p>
+      </div>
+      <button id="closeModalBtn" class="close-btn" type="button" aria-label="Chiudi">×</button>
+    </div>
+
+    <div class="inset-group">
+      <div class="group-row">
+        <span class="row-label">Nave</span>
+        <span id="modalShip" class="row-value"></span>
+      </div>
+      <div class="group-row">
+        <span class="row-label">Ormeggio serale</span>
+        <span id="modalDock" class="row-value"></span>
+      </div>
+      <div class="group-row">
+        <span class="row-label">Turno</span>
+        <span id="modalShift" class="row-value"></span>
+      </div>
+    </div>
+
+    <div id="crewList" class="crew-list" aria-label="Elenco equipaggio"></div>
+  </section>
+
+  <script>
+    (function () {
+      const calendarScroll = document.getElementById('calendarScroll');
+      const monthsRoot = document.getElementById('monthsRoot');
+      const monthTitle = document.getElementById('monthTitle');
+      const topSentinel = document.getElementById('topSentinel');
+      const bottomSentinel = document.getElementById('bottomSentinel');
+      const todayBtn = document.getElementById('todayBtn');
+
+      const modal = document.getElementById('crewModal');
+      const closeModalBtn = document.getElementById('closeModalBtn');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalDate = document.getElementById('modalDate');
+      const modalShip = document.getElementById('modalShip');
+      const modalDock = document.getElementById('modalDock');
+      const modalShift = document.getElementById('modalShift');
+      const crewList = document.getElementById('crewList');
+
+      const monthNames = [
+        'Gennaio',
+        'Febbraio',
+        'Marzo',
+        'Aprile',
+        'Maggio',
+        'Giugno',
+        'Luglio',
+        'Agosto',
+        'Settembre',
+        'Ottobre',
+        'Novembre',
+        'Dicembre'
+      ];
+
+      const shiftPalette = {
+        D1: '#0A84FF',
+        D2: '#64D2FF',
+        BIS: '#FF9F0A',
+        RIP: '#8E8E93',
+        N1: '#BF5AF2',
+        L: '#34C759'
+      };
+
+      const today = normalizeDate(new Date());
+      const todayKey = toDateKey(today);
+
+      const state = {
+        startMonthOffset: -4,
+        endMonthOffset: 6,
+        rendered: new Set(),
+        monthElements: new Map(),
+        currentTopMonthKey: null,
+        dataByDate: new Map(),
+        userName: getLoggedInUserName()
+      };
+
+      const ioTop = new IntersectionObserver(onTopIntersect, {
+        root: calendarScroll,
+        threshold: 0
+      });
+
+      const ioBottom = new IntersectionObserver(onBottomIntersect, {
+        root: calendarScroll,
+        threshold: 0
+      });
+
+      const ioMonths = new IntersectionObserver(onMonthVisible, {
+        root: calendarScroll,
+        threshold: 0.45
+      });
+
+      init();
+
+      function init() {
+        seedDemoData();
+        renderInitialMonths();
+        requestAnimationFrame(() => {
+          scrollToToday(false);
+          updateHeaderByScroll();
+        });
+
+        ioTop.observe(topSentinel);
+        ioBottom.observe(bottomSentinel);
+
+        calendarScroll.addEventListener('scroll', throttle(updateHeaderByScroll, 60));
+        monthsRoot.addEventListener('click', onDayClick);
+
+        todayBtn.addEventListener('click', () => scrollToToday(true));
+        closeModalBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) closeModal();
+        });
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && modal.classList.contains('open')) {
+            closeModal();
+          }
+        });
+      }
+
+      function renderInitialMonths() {
+        for (let offset = state.startMonthOffset; offset <= state.endMonthOffset; offset++) {
+          appendMonth(offset);
+        }
+      }
+
+      function appendMonth(offset) {
+        const monthDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+        const key = monthKey(monthDate);
+        if (state.rendered.has(key)) return;
+
+        const section = buildMonthSection(monthDate);
+        monthsRoot.appendChild(section);
+        state.rendered.add(key);
+        state.monthElements.set(key, section);
+        ioMonths.observe(section);
+      }
+
+      function prependMonth(offset) {
+        const monthDate = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+        const key = monthKey(monthDate);
+        if (state.rendered.has(key)) return;
+
+        const section = buildMonthSection(monthDate);
+        const previousHeight = monthsRoot.scrollHeight;
+        monthsRoot.insertBefore(section, monthsRoot.firstChild);
+        state.rendered.add(key);
+        state.monthElements.set(key, section);
+        ioMonths.observe(section);
+
+        // Preserve visual position when we inject past months above.
+        const deltaHeight = monthsRoot.scrollHeight - previousHeight;
+        calendarScroll.scrollTop += deltaHeight;
+      }
+
+      function buildMonthSection(monthDate) {
+        const section = document.createElement('section');
+        section.className = 'month-section';
+        section.dataset.monthKey = monthKey(monthDate);
+
+        const grid = document.createElement('div');
+        grid.className = 'month-grid';
+
+        const year = monthDate.getFullYear();
+        const month = monthDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const firstWeekdayMondayIndex = (firstDay.getDay() + 6) % 7;
+        const totalDays = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstWeekdayMondayIndex; i++) {
+          grid.appendChild(createOutsideCell());
+        }
+
+        for (let day = 1; day <= totalDays; day++) {
+          const date = new Date(year, month, day);
+          grid.appendChild(createDayCell(date));
+        }
+
+        section.appendChild(grid);
+        return section;
+      }
+
+      function createOutsideCell() {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell outside';
+        return cell;
+      }
+
+      function createDayCell(date) {
+        const key = toDateKey(date);
+        const dayData = getDayData(date);
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'day-cell';
+        button.dataset.date = key;
+        button.dataset.monthKey = monthKey(date);
+        button.dataset.shift = dayData.shiftCode;
+
+        const num = document.createElement('span');
+        num.className = 'day-number';
+        num.textContent = String(date.getDate());
+
+        if (key === todayKey) {
+          num.classList.add('today');
+          button.dataset.isToday = '1';
+        }
+
+        const row = document.createElement('span');
+        row.className = 'pill-row';
+
+        const shiftPill = document.createElement('span');
+        shiftPill.className = 'shift-pill';
+        shiftPill.textContent = dayData.shiftCode;
+        shiftPill.style.backgroundColor = shiftPalette[dayData.shiftCode] || '#636366';
+        row.appendChild(shiftPill);
+
+        if (dayData.alertColor) {
+          const dot = document.createElement('span');
+          dot.className = 'alert-dot';
+          dot.style.backgroundColor = dayData.alertColor;
+          row.appendChild(dot);
+        }
+
+        button.appendChild(num);
+        button.appendChild(row);
+
+        return button;
+      }
+
+      function getDayData(date) {
+        const key = toDateKey(date);
+        if (state.dataByDate.has(key)) {
+          return state.dataByDate.get(key);
+        }
+
+        // If no explicit data exists, generate a stable fallback shift pattern.
+        const fallback = generateFallbackShift(date);
+        state.dataByDate.set(key, fallback);
+        return fallback;
+      }
+
+      function seedDemoData() {
+        const externalData = readExternalShiftData();
+        if (externalData) {
+          Object.keys(externalData).forEach((key) => {
+            state.dataByDate.set(key, externalData[key]);
+          });
+          return;
+        }
+
+        const start = new Date(today.getFullYear(), today.getMonth() - 8, 1);
+        const end = new Date(today.getFullYear(), today.getMonth() + 14, 0);
+        const cursor = new Date(start);
+
+        while (cursor <= end) {
+          const key = toDateKey(cursor);
+          state.dataByDate.set(key, generateFallbackShift(cursor));
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      }
+
+      function readExternalShiftData() {
+        const globalData = window.naviTurniData;
+        if (!globalData || typeof globalData !== 'object') return null;
+
+        const normalized = {};
+        const userKey = state.userName;
+
+        Object.keys(globalData).forEach((dateKey) => {
+          const entry = globalData[dateKey];
+          const userShift = entry.userShifts && entry.userShifts[userKey];
+          const shiftCode = userShift || entry.shiftCode || 'RIP';
+
+          normalized[dateKey] = {
+            shiftCode,
+            alertColor: entry.alertColor || null,
+            ship: entry.ship || 'NaviTurni Alpha',
+            dock: entry.dock || 'Molo 7',
+            routeName: entry.routeName || `Corsa ${shiftCode}`,
+            crew: Array.isArray(entry.crew) && entry.crew.length ? entry.crew : buildCrewTemplate(shiftCode)
+          };
+        });
+
+        return normalized;
+      }
+
+      function generateFallbackShift(date) {
+        const patterns = ['D1', 'D2', 'BIS', 'RIP', 'N1', 'L'];
+        const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+        const index = (dayOfYear + hashString(state.userName)) % patterns.length;
+        const shiftCode = patterns[(index + patterns.length) % patterns.length];
+
+        let alertColor = null;
+        if (date.getDate() % 9 === 0) alertColor = '#FF9F0A';
+        if (date.getDate() % 13 === 0) alertColor = '#30D158';
+
+        return {
+          shiftCode,
+          alertColor,
+          ship: shiftCode === 'BIS' ? 'M/N Atlante' : 'M/N Odissea',
+          dock: shiftCode === 'RIP' ? 'Nessun ormeggio' : 'Molo ' + ((date.getDate() % 5) + 1),
+          routeName: `Corsa ${shiftCode}`,
+          crew: buildCrewTemplate(shiftCode)
+        };
+      }
+
+      function buildCrewTemplate(shiftCode) {
+        return [
+          { name: 'Com.te L. Ferri', note: 'Primo imbarco 06:20', role: 'Comandante' },
+          { name: 'M. Serra', note: shiftCode === 'RIP' ? 'Reperibile' : 'Ponte passeggeri', role: 'Ufficiale' },
+          { name: 'A. Vitale', note: shiftCode === 'N1' ? 'Supporto notturno' : 'Turno regolare', role: 'Marinaio' },
+          { name: 'S. Neri', note: 'Check dotazioni', role: 'Motorista' }
+        ];
+      }
+
+      function onDayClick(event) {
+        const cell = event.target.closest('.day-cell[data-date]');
+        if (!cell) return;
+
+        cell.classList.add('feedback');
+        setTimeout(() => cell.classList.remove('feedback'), 130);
+
+        const date = parseDateKey(cell.dataset.date);
+        openCrewModal(date);
+      }
+
+      function openCrewModal(date) {
+        const data = getDayData(date);
+        modalTitle.textContent = data.routeName || 'Scheda Equipaggio';
+        modalDate.textContent = formatLongDate(date);
+        modalShip.textContent = data.ship || 'N/D';
+        modalDock.textContent = data.dock || 'N/D';
+        modalShift.textContent = data.shiftCode || 'N/D';
+
+        crewList.innerHTML = '';
+        const crew = Array.isArray(data.crew) ? data.crew : [];
+        crew.forEach((member) => {
+          const item = document.createElement('div');
+          item.className = 'crew-item';
+
+          const left = document.createElement('div');
+          left.className = 'crew-main';
+
+          const name = document.createElement('p');
+          name.className = 'crew-name';
+          name.textContent = member.name || 'Equipaggio';
+
+          const note = document.createElement('p');
+          note.className = 'crew-note';
+          note.textContent = member.note || '';
+
+          left.appendChild(name);
+          left.appendChild(note);
+
+          const role = document.createElement('div');
+          role.className = 'crew-role';
+          role.textContent = member.role || 'Mansione';
+
+          item.appendChild(left);
+          item.appendChild(role);
+          crewList.appendChild(item);
+        });
+
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      function onTopIntersect(entries) {
+        const hit = entries.some((entry) => entry.isIntersecting);
+        if (!hit) return;
+
+        const nextOffset = state.startMonthOffset - 1;
+        prependMonth(nextOffset);
+        state.startMonthOffset = nextOffset;
+      }
+
+      function onBottomIntersect(entries) {
+        const hit = entries.some((entry) => entry.isIntersecting);
+        if (!hit) return;
+
+        const nextOffset = state.endMonthOffset + 1;
+        appendMonth(nextOffset);
+        state.endMonthOffset = nextOffset;
+      }
+
+      function onMonthVisible(entries) {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+        if (!visible.length) return;
+
+        const key = visible[0].target.dataset.monthKey;
+        if (key && key !== state.currentTopMonthKey) {
+          state.currentTopMonthKey = key;
+          const [y, m] = key.split('-').map(Number);
+          monthTitle.textContent = monthNames[m] + ' ' + y;
+        }
+      }
+
+      function updateHeaderByScroll() {
+        const sections = Array.from(monthsRoot.querySelectorAll('.month-section'));
+        const rootTop = calendarScroll.getBoundingClientRect().top;
+
+        let best = null;
+        for (const section of sections) {
+          const box = section.getBoundingClientRect();
+          const delta = Math.abs(box.top - rootTop - 44);
+          if (!best || delta < best.delta) {
+            best = { section, delta };
+          }
+        }
+
+        if (!best) return;
+        const key = best.section.dataset.monthKey;
+        if (!key || key === state.currentTopMonthKey) return;
+
+        state.currentTopMonthKey = key;
+        const [y, m] = key.split('-').map(Number);
+        monthTitle.textContent = monthNames[m] + ' ' + y;
+      }
+
+      function scrollToToday(smooth) {
+        const todayCell = monthsRoot.querySelector('.day-cell[data-is-today="1"]');
+        if (!todayCell) return;
+
+        todayCell.scrollIntoView({
+          block: 'center',
+          inline: 'nearest',
+          behavior: smooth ? 'smooth' : 'auto'
+        });
+      }
+
+      function getLoggedInUserName() {
+        const keys = ['naviturniUser', 'loggedUser', 'username', 'userName'];
+        for (const key of keys) {
+          const v = localStorage.getItem(key);
+          if (v && v.trim()) return v.trim();
+        }
+
+        return 'Utente';
+      }
+
+      function normalizeDate(date) {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      }
+
+      function monthKey(date) {
+        return `${date.getFullYear()}-${date.getMonth()}`;
+      }
+
+      function toDateKey(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function parseDateKey(key) {
+        const [y, m, d] = key.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      }
+
+      function formatLongDate(date) {
+        const weekday = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'][date.getDay()];
+        return `${weekday} ${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+      }
+
+      function hashString(value) {
+        let hash = 0;
+        for (let i = 0; i < value.length; i++) {
+          hash = (hash << 5) - hash + value.charCodeAt(i);
+          hash |= 0;
+        }
+        return Math.abs(hash);
+      }
+
+      function throttle(fn, delay) {
+        let last = 0;
+        let timer = null;
+
+        return function throttled() {
+          const now = Date.now();
+          const remain = delay - (now - last);
+
+          if (remain <= 0) {
+            last = now;
+            fn();
+            return;
+          }
+
+          if (timer) return;
+          timer = setTimeout(() => {
+            last = Date.now();
+            timer = null;
+            fn();
+          }, remain);
+        };
+      }
+    })();
+  </script>
+</body>
+</html>

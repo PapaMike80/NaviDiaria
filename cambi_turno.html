@@ -1465,7 +1465,6 @@
 </head>
 <body class="turni-page trova-turno-page">
 
-  <button class="turni-menu-button" id="turni-menu-button" type="button" aria-label="Apri menu" aria-expanded="false">☰</button>
   <aside class="turni-sidebar app-sidebar" id="turni-sidebar">
     <a class="turni-sidebar-brand" href="index.html"><span>N</span> NaviTurni</a>
     <nav>
@@ -1535,37 +1534,6 @@
         <tbody id="tbody"></tbody>
       </table>
     </div>
-
-    <section class="coverage-section" id="coverage-section" aria-labelledby="coverage-title">
-      <h2 class="coverage-title" id="coverage-title">Completezza equipaggi</h2>
-      <div class="coverage-shift-controls" aria-label="Seleziona corsa per la scheda equipaggio">
-        <span class="coverage-shift-label">Corsa:</span>
-        <div class="coverage-shift-buttons" id="coverage-shift-buttons"></div>
-        <button class="crew-minimum-toggle" id="crew-minimum-toggle" type="button" onclick="toggleCrewMinimumPanel()">⚙ Minimi</button>
-        <div class="coverage-residence-controls">
-          <span class="coverage-shift-label">Residenza:</span>
-          <div class="coverage-residence-buttons" id="coverage-residence-buttons"></div>
-        </div>
-      </div>
-      <div class="crew-minimum-panel" id="crew-minimum-panel">
-        <span class="crew-minimum-title">Numero minimo di componenti per corsa</span>
-        <div class="crew-minimum-grid" id="crew-minimum-grid"></div>
-      </div>
-      <div id="coverage-crew-copy" aria-label="Scheda equipaggio sempre visibile"></div>
-      <div class="coverage-wrap" id="coverage-matrix-wrap">
-        <table class="coverage-table">
-          <thead id="coverage-thead"></thead>
-          <tbody id="coverage-tbody"></tbody>
-        </table>
-      </div>
-      <div class="coverage-legend" aria-label="Legenda completezza equipaggi">
-        <span class="complete">Completo</span>
-        <span class="incomplete">Incompleto</span>
-        <span class="overstaffed">Sovrannumero</span>
-        <span class="transfer">Trasferta</span>
-        <span class="ods">Variazione ODS</span>
-      </div>
-    </section>
 
     <div class="upload-container" id="upload-container">
       <div class="upload-header" onclick="toggleUpload()">
@@ -2190,10 +2158,14 @@
     function generaFiltriTurnoRiferimento() {
       if (isEditMode) {
         document.getElementById("shift-filter-container").style.display = "none";
+        const modalWrapper = document.getElementById("modal-shift-buttons");
+        if (modalWrapper) modalWrapper.innerHTML = "";
         return;
       }
       const wrapper = document.getElementById("shift-buttons-wrapper");
-      wrapper.innerHTML = "";
+      const modalWrapper = document.getElementById("modal-shift-buttons");
+      if (wrapper) wrapper.innerHTML = "";
+      if (modalWrapper) modalWrapper.innerHTML = "";
 
       const chiaveResidenza = currentResidence.toLowerCase().trim();
       const turniFiltrati = turniMappaResidenze[chiaveResidenza] || [];
@@ -2206,12 +2178,9 @@
       document.getElementById("shift-filter-container").style.display = "flex";
 
       turniFiltrati.forEach(t => {
-        const btn = document.createElement("button");
-        btn.className = "shift-filter-btn";
-        btn.textContent = t;
-        if (getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t)) btn.classList.add("active");
-
-        btn.addEventListener("click", () => {
+        const color = shiftBorderColor[classify(t)] || "#94a3b8";
+        const isActive = getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t);
+        const handleShiftClick = (fromModal = false) => {
           clearPinnedAgentSelection();
           if (getCrewShiftKey(activeShiftFilter) === getCrewShiftKey(t)) {
             activeShiftFilter = null;
@@ -2227,8 +2196,26 @@
           } else {
             clearSelection();
           }
+          if (fromModal) {
+            document.getElementById("mobile-filter-modal")?.classList.remove("open");
+          }
+        };
+
+        const targets = [
+          { container: wrapper, fromModal: false },
+          { container: modalWrapper, fromModal: true }
+        ];
+
+        targets.forEach(({ container, fromModal }) => {
+          if (!container) return;
+          const btn = document.createElement("button");
+          btn.className = "shift-filter-btn";
+          btn.textContent = t;
+          btn.style.setProperty("--btn-color", color);
+          if (isActive) btn.classList.add("active");
+          btn.addEventListener("click", () => handleShiftClick(fromModal));
+          container.appendChild(btn);
         });
-        wrapper.appendChild(btn);
       });
     }
 
@@ -3732,6 +3719,7 @@
     }
 
     function selectResidence(resName) {
+      if (String(resName || "").toUpperCase() === "BARISTE" && !isBaristaProfile()) return;
       if (isEditMode) {
         if (!confirm("Uscire dalla modalità modifica senza salvare i cambi correnti?")) return;
         toggleEditMode();
@@ -3741,7 +3729,12 @@
       currentResidence = resName;
       activeShiftFilter = null;
 
-      currentAgentsList = globalData.residenze[resName] || [];
+      if (resName === "TUTTE") {
+        // Aggrega tutti gli agenti di tutte le residenze visibili.
+        currentAgentsList = getVisibleResidences().flatMap(res => globalData.residenze[res] || []);
+      } else {
+        currentAgentsList = globalData.residenze[resName] || [];
+      }
       document.getElementById("stat-residence").textContent = resName;
       document.getElementById("stat-agents").textContent = currentAgentsList.length;
       const search = document.getElementById("agent-search");
@@ -3844,17 +3837,46 @@
     }
 
     function renderResidenceButtons() {
-      const container = document.getElementById("top-residence-buttons");
-      if (!container) return;
-      container.innerHTML = "";
-      Object.keys(globalData.residenze).forEach(res => {
+      const modalContainer = document.getElementById("modal-residence-buttons");
+      if (!modalContainer) return;
+      modalContainer.innerHTML = "";
+
+      // Solo TUTTE + residenza corrente per Trova Turno.
+      const residences = ["TUTTE", currentResidence];
+
+      residences.forEach(res => {
         const btn = document.createElement("button");
-        btn.className = "coverage-residence-btn";
+        btn.className = (res === currentResidence && res !== "TUTTE") ? "active" : "";
         btn.dataset.res = res;
         btn.textContent = res;
-        btn.addEventListener("click", () => selectResidence(res));
-        container.appendChild(btn);
+
+        if (res === "RIVA") btn.style.setProperty("--btn-color", "#a78bfa");
+        if (res === "MADERNO") btn.style.setProperty("--btn-color", "#fb923c");
+        if (res === "DESENZANO") btn.style.setProperty("--btn-color", "#2dd4bf");
+        if (res === "PESCHIERA") btn.style.setProperty("--btn-color", "#4ade80");
+
+        btn.addEventListener("click", () => {
+          if (res === "TUTTE") {
+            currentAgentsList = getVisibleResidences().flatMap(r => globalData.residenze[r] || []);
+            currentResidence = "TUTTE";
+            document.getElementById("stat-residence").textContent = "TUTTE";
+            document.getElementById("stat-agents").textContent = currentAgentsList.length;
+            renderTable();
+          } else {
+            selectResidence(res);
+          }
+          document.getElementById('mobile-filter-modal')?.classList.remove('open');
+          renderTable();
+          renderResidenceButtons();
+        });
+        modalContainer.appendChild(btn);
       });
+    }
+
+    function getVisibleResidences() {
+      return Object.keys(globalData?.residenze || {}).filter(residence =>
+        String(residence || "").toUpperCase() !== "BARISTE" || isBaristaProfile()
+      );
     }
 
 
@@ -4197,14 +4219,16 @@
       drawerToggle.textContent = "⌄";
       drawerToggle.setAttribute("aria-expanded", "false");
       const menuButton = document.getElementById("turni-menu-button");
-      menuButton.addEventListener("click", () => {
-        const open = document.body.classList.toggle("turni-menu-open");
-        menuButton.setAttribute("aria-expanded", String(open));
-      });
+      if (menuButton) {
+        menuButton.addEventListener("click", () => {
+          const open = document.body.classList.toggle("turni-menu-open");
+          menuButton.setAttribute("aria-expanded", String(open));
+        });
+      }
       document.getElementById("turni-sidebar").addEventListener("click", event => {
         if (event.target.closest("a") && window.innerWidth <= 800) {
           document.body.classList.remove("turni-menu-open");
-          menuButton.setAttribute("aria-expanded", "false");
+          if (menuButton) menuButton.setAttribute("aria-expanded", "false");
         }
       });
       setupSynchronizedTableScrolls();
@@ -4514,6 +4538,49 @@
   #tbody tr.cambio-altra-residenza {
     overflow:visible !important;
   }
+</style>
+
+<style id="trova-turno-mobile-liquid-modal-style">
+  @media(max-width:800px) {
+    body.trova-turno-page .turni-menu-button,
+    body.trova-turno-page .menu-button {
+      display:none !important;
+    }
+  }
+  body.trova-turno-page .liquid-modal-overlay {
+    position:fixed;
+    inset:0;
+    z-index:100000;
+    display:flex;
+    align-items:flex-end;
+    background:rgba(3,10,16,.6);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s;
+  }
+  body.trova-turno-page .liquid-modal-overlay.open { opacity:1; pointer-events:auto; }
+  body.trova-turno-page .liquid-modal-content {
+    position:relative;
+    width:100%;
+    background:rgba(11,28,38,.95);
+    border-top:1px solid rgba(126,243,226,.15);
+    border-radius:24px 24px 0 0;
+    padding:16px 24px 40px;
+    transform:translateY(100%);
+    transition:transform .3s;
+  }
+  body.trova-turno-page .liquid-modal-overlay.open .liquid-modal-content { transform:translateY(0); }
+  body.trova-turno-page .liquid-modal-header { display:flex; justify-content:flex-end; margin-bottom:12px; }
+  body.trova-turno-page .liquid-modal-header button { background:transparent; border:none; color:#9fb8c2; font-size:20px; font-weight:bold; cursor:pointer; }
+  body.trova-turno-page .filter-section { margin-bottom:28px; }
+  body.trova-turno-page .filter-section span { display:block; color:#9fb8c2; font-size:13px; font-weight:800; text-align:center; margin-bottom:16px; letter-spacing:.2em; }
+  body.trova-turno-page .modal-buttons-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
+  body.trova-turno-page .modal-buttons-grid button { height:44px; background:transparent; border:2px solid var(--btn-color, #9fb8c2); border-radius:999px; color:var(--btn-color, #9fb8c2); font-weight:800; cursor:pointer; }
+  body.trova-turno-page .modal-buttons-grid button[data-res="MENU"] { --btn-color: #3b82f6; grid-column: 1 / -1; }
+  body.trova-turno-page .modal-buttons-grid button[data-res="TUTTE"] { --btn-color: #f8fafc; }
+  body.trova-turno-page .modal-buttons-grid button.active { background:var(--btn-color); color:#06201c; box-shadow:0 0 16px color-mix(in srgb, var(--btn-color) 60%, transparent); }
 </style>
 <script id="cambi-turno-logic">
 (() => {
@@ -5884,6 +5951,81 @@
     box-shadow:inset 4px 0 0 #facc15,2px 0 0 var(--line) !important;
   }
 </style>
+
+<!-- Navigazione Mobile Liquid Glass -->
+<nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
+  <a href="naviturni.html" class="nav-item">
+    <span class="nav-icon">▦</span>
+    <span>Turni</span>
+  </a>
+  <a href="cambi_turno.html" class="nav-item active">
+    <span class="nav-icon">⇄</span>
+    <span>Cambio</span>
+  </a>
+  <a href="documenti.html" class="nav-item">
+    <span class="nav-icon">▤</span>
+    <span>Doc</span>
+  </a>
+  <button type="button" class="nav-item" id="mobile-altre-btn" aria-label="Altre residenze">
+    <span class="nav-icon">⎈</span>
+    <span>Altre</span>
+  </button>
+</nav>
+
+<!-- Popup Filtri Liquid Glass -->
+<div id="mobile-filter-modal" class="liquid-modal-overlay" hidden>
+  <div class="liquid-modal-content">
+    <div class="liquid-modal-header">
+      <button type="button" id="close-filter-modal" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="liquid-modal-body">
+      <div class="filter-section">
+        <span>NAVIGAZIONE</span>
+        <div class="modal-buttons-grid">
+          <button type="button" id="modal-sidebar-toggle" data-res="MENU">☰ Apri Menu</button>
+        </div>
+      </div>
+      <div class="filter-section">
+        <span>RESIDENZE</span>
+        <div id="modal-residence-buttons" class="modal-buttons-grid"></div>
+      </div>
+      <button type="button" id="modal-sidebar-mini-toggle" aria-label="Apri menu laterale" style="position: absolute; bottom: 16px; right: 20px; background: transparent; border: none; font-size: 24px; color: var(--accent, #2dd4bf); cursor: pointer; padding: 8px;">☰</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('mobile-filter-modal');
+  const altreBtn = document.getElementById('mobile-altre-btn');
+
+  if (altreBtn) {
+    altreBtn.classList.toggle('active', Boolean(window.cambioShowOtherResidences));
+    altreBtn.addEventListener('click', () => {
+      if (typeof window.toggleOtherResidences === 'function') {
+        window.toggleOtherResidences();
+        altreBtn.classList.toggle('active', Boolean(window.cambioShowOtherResidences));
+      }
+    });
+  }
+
+  if(modal) {
+    modal.removeAttribute('hidden');
+    document.getElementById('close-filter-modal')?.addEventListener('click', () => modal.classList.remove('open'));
+    document.getElementById('modal-sidebar-toggle')?.addEventListener('click', () => {
+      modal.classList.remove('open');
+      document.body.classList.toggle('turni-menu-open');
+      document.body.classList.toggle('sidebar-open');
+    });
+    document.getElementById('modal-sidebar-mini-toggle')?.addEventListener('click', () => {
+      document.getElementById('mobile-filter-modal')?.classList.remove('open');
+      document.body.classList.toggle('turni-menu-open');
+      document.body.classList.toggle('sidebar-open');
+    });
+    modal.addEventListener('click', e => { if(e.target===modal) modal.classList.remove('open'); });
+  }
+});
+</script>
 
 </body>
 </html>
