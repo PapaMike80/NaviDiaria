@@ -1,0 +1,56 @@
+NAVITURNI — PROVA CALENDARIO IPHONE E ANDROID
+
+FILE DA AGGIORNARE
+
+1. Nel progetto Google Apps Script sostituire:
+   - Codice.gs
+   - navidiaria-cloud.gs
+   e aggiungere:
+   - navi-calendar-schedule.gs
+
+2. In Apps Script aprire:
+   Esegui il deployment > Gestisci deployment > Modifica
+   e pubblicare una nuova versione della Web App.
+
+3. Nel sito NaviDiaria sostituire:
+   - impostazioni.html
+
+4. Accedere normalmente a NaviTurni, aprire Impostazioni e usare
+   la nuova sezione "Calendario turni".
+
+IPHONE
+
+Premere "Attiva calendario", quindi "Collega su iPhone".
+Confermare l'iscrizione nell'app Calendario.
+
+ANDROID / GOOGLE CALENDAR
+
+Premere "Collega su Android". L'indirizzo viene copiato e si apre
+Google Calendar. Incollarlo in:
+
+  Altri calendari > + > Da URL
+
+Il primo collegamento richiede il browser. In seguito il calendario
+comparirà automaticamente anche nell'app Google Calendar su Android.
+
+ORARI
+
+- Gli eventi dei turni D1-D4, T1-T2, M1, R1-R4, CAR1,
+  P1-P3, CAP1, SR1, IE e BIS hanno partenza e arrivo.
+- L'evento inizia un'ora prima della prima partenza, per comprendere
+  la presenza obbligatoria a bordo, e termina all'ultimo arrivo.
+- Nel dettaglio dell'evento sono indicati nave ed equipaggio del turno.
+- Gli orari sono stati estratti dai prospetti allegati, validi dal
+  16/05/2026 al 04/10/2026.
+- I turni non presenti nel prospetto restano eventi giornalieri.
+- Il file orari_corse_2026.csv contiene tutte le 127 corse estratte.
+
+NOTE DELLA VERSIONE DI PROVA
+
+- RIP è facoltativo.
+- Nave e variazioni ODS vengono aggiunte quando disponibili.
+- Il calendario è in sola lettura e si aggiorna dal Foglio Google.
+- Il collegamento contiene un token personale: non condividerlo.
+- "Nuovo collegamento" revoca automaticamente quello precedente.
+- Dopo qualsiasi modifica al backend occorre pubblicare una nuova
+  versione del deployment Apps Script.

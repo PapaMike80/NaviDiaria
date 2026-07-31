@@ -19,7 +19,7 @@
   <link rel="shortcut icon" href="logo/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="logo/icona_apple_180.png">
   <link rel="apple-touch-startup-image" href="logo/splash_ios.png">
-  <title>NaviSuite Turni</title>
+  <title>NaviSuite Turni · Development</title>
   <link rel="stylesheet" href="navi-shared.css">
   <link rel="stylesheet" href="navi-layout.css">
   <link rel="stylesheet" href="turni-common.css">
@@ -1541,15 +1541,12 @@
     height:56px !important; min-height:56px !important; max-height:56px !important;
     box-sizing:border-box !important; vertical-align:top !important; padding:4px 2px 3px !important;
   }
-  #matrix-scroll-wrap .date-head-day,
-  #matrix-scroll-wrap .date-head-num { display:block; line-height:1.05; }
+  #matrix-scroll-wrap .date-head-day, #matrix-scroll-wrap .date-head-num { display:block; line-height:1.05; }
   #matrix-scroll-wrap .date-head-markers {
     display:flex !important; height:15px !important; min-height:15px !important; margin:3px auto 0 !important;
     align-items:center !important; justify-content:center !important;
   }
-  #matrix-scroll-wrap #tbody tr {
-    height:38px !important; min-height:38px !important; max-height:38px !important;
-  }
+  #matrix-scroll-wrap #tbody tr { height:38px !important; min-height:38px !important; max-height:38px !important; }
   #matrix-scroll-wrap #tbody td {
     height:38px !important; min-height:38px !important; max-height:38px !important;
     box-sizing:border-box !important; padding-top:3px !important; padding-bottom:3px !important;
@@ -3010,15 +3007,11 @@
         renderCrewMinimumControls();
       }
 
-      thead.innerHTML = `<tr><th>Corsa</th>${dateCalendario.map((cal, index) => {
-        const weekDraftLabel = cal.weekStatus === "bozza"
-          ? '<span class="week-draft-label">BOZZA</span>'
-          : '<span class="week-draft-label is-empty" aria-hidden="true">BOZZA</span>';
-        const markers = cal.odsCoverageNumber ? `<span class="date-head-ods" aria-label="Coperto dall’ODS ${cal.odsCoverageNumber}" title="Coperto dall’ODS ${cal.odsCoverageNumber} fino al ${cal.odsCoverageUntil.split('-').reverse().join('/')}" ></span>` : '';
-        return `<th data-col="${cal.col}" class="${getCalendarVisualClasses(cal, index)}"><span class="date-head-day">${cal.giornoSett}</span><span class="date-head-num">${cal.dayNum}</span>${weekDraftLabel}${markers ? `<span class="date-head-markers">${markers}</span>` : ''}</th>`;
-      }).join("")} </tr>`;
+      thead.innerHTML = `<tr><th>Corsa</th>${dateCalendario.map((cal, index) =>
+        `<th data-col="${cal.col}" class="${getCalendarVisualClasses(cal, index)}"><span class="date-head-day">${cal.giornoSett}</span><span class="date-head-num">${cal.dayNum}</span>${cal.weekStatus === "bozza" ? '<span class="week-draft-label">BOZZA</span>' : '<span class="week-draft-label is-empty" aria-hidden="true">BOZZA</span>'}${cal.odsCoverageNumber ? `<span class="date-head-markers"><span class="date-head-ods" aria-label="Coperto dall’ODS ${cal.odsCoverageNumber}" title="Coperto dall’ODS ${cal.odsCoverageNumber} fino al ${cal.odsCoverageUntil.split('-').reverse().join('/')}"></span></span>` : ''}</th>`
+      ).join("")}</tr>`;
 
-            tbody.innerHTML = shifts.map(shift => {
+      tbody.innerHTML = shifts.map(shift => {
         const shiftColor = shiftBorderColor[classify(shift)] || "#94a3b8";
         const requiredValue = requirements[shift] ?? requirements[shift.toUpperCase()];
         const required = requiredValue === "" || requiredValue == null ? null : parseInt(requiredValue, 10);
@@ -4520,7 +4513,7 @@
 
     // Carica i dati dal Google Sheet condiviso tramite Apps Script.
     // Se il Google Sheet non risponde, usa l'ultima copia salvata nel browser.
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylirtrVh36Swhbtj-NO9MMoo7t2jBNG-HuhWQYJEZ0BRDOxHNiBTfMTJKp9dA4R8zrIg/exec";
     const TURNI_CACHE_KEY = "turno_finali_data";
     const TURNI_CACHE_DB = "naviturni-offline";
     const TURNI_CACHE_STORE = "dati";
@@ -4827,7 +4820,7 @@
 </style>
 <script id="naviturni-change-request-cloud">
 (()=>{
- const API="https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec";
+ const API="https://script.google.com/macros/s/AKfycbylirtrVh36Swhbtj-NO9MMoo7t2jBNG-HuhWQYJEZ0BRDOxHNiBTfMTJKp9dA4R8zrIg/exec";
  let requests=[];
  let changeAdminUpdates={odsVariations:[],dismissedOdsApprovals:[]};
  let lastFocusRefresh=0;
@@ -4943,6 +4936,12 @@
  });
 })();
 </script>
+
+
+<style id="development-environment-badge">
+#navi-development-badge{position:fixed;right:10px;bottom:10px;z-index:99999;background:#7c2d12;color:#fff;border:2px solid #fed7aa;border-radius:999px;padding:7px 11px;font:800 12px/1 Arial,sans-serif;letter-spacing:.05em;box-shadow:0 4px 16px rgba(0,0,0,.24);pointer-events:none}
+</style>
+<div id="navi-development-badge" aria-label="Ambiente di sviluppo">DEVELOPMENT</div>
 
 <style id="navisuite-stable-cell-highlights">
   /* Durante la selezione non rendere trasparente tutta la riga: i nomi degli

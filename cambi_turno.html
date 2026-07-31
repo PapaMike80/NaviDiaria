@@ -20,7 +20,7 @@
   <link rel="icon" href="logo/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="logo/icona_apple_180.png">
   <link rel="apple-touch-startup-image" href="logo/splash_ios.png">
-  <title>NaviTurni · Trova turno</title>
+  <title>NaviSuite Cambi</title>
   <link rel="stylesheet" href="navi-shared.css">
   <link rel="stylesheet" href="navi-layout.css">
   <link rel="stylesheet" href="turni-common.css">
@@ -1462,6 +1462,25 @@
     box-shadow: 0 2px 0 var(--line), 2px 0 0 var(--line) !important;
   }
 </style>
+<style id="change-request-cloud-style">
+#cambio-request-sent{border-color:#22c55e!important;background:rgba(34,197,94,.16)!important;color:#bbf7d0!important;font-weight:900!important}
+#change-request-register{margin:14px 0;padding:14px;border:1px solid #28505a;border-radius:12px;background:#0d202b;color:#edf6f7}
+#change-request-register h2{margin:0 0 10px;color:#5eead4;font-size:15px}.change-register-wrap{overflow:auto}.change-register-wrap table{width:100%;border-collapse:collapse}.change-register-wrap th,.change-register-wrap td{padding:9px;border-bottom:1px solid #234452;text-align:left;font-size:12px}.change-register-wrap td strong{color:#fde68a}.change-empty{color:#9bb4bc}
+
+#change-request-register .change-actions{display:flex;gap:6px;flex-wrap:wrap}
+#change-request-register .change-action-btn{border:1px solid #3a6470;border-radius:8px;background:#16313d;color:#e7f6f7;padding:7px 10px;font:inherit;font-weight:800;cursor:pointer}
+#change-request-register .change-action-btn:hover{filter:brightness(1.15)}
+#change-request-register .change-action-send{border-color:#2dd4bf;color:#99f6e4;background:rgba(45,212,191,.12)}
+#change-request-register .change-action-delete{border-color:#ef4444;color:#fecaca;background:rgba(239,68,68,.12)}
+.change-send-modal{position:fixed;inset:0;z-index:5000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,8,12,.78);backdrop-filter:blur(5px)}
+.change-send-modal.open{display:flex}.change-send-dialog{width:min(520px,100%);border:1px solid #315866;border-radius:16px;background:#0c202a;color:#eefafa;box-shadow:0 25px 80px rgba(0,0,0,.55);padding:18px}
+.change-send-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.change-send-head h3{margin:0;color:#5eead4;font-size:18px}.change-send-close{border:0;background:transparent;color:#bdd1d6;font-size:26px;line-height:1;cursor:pointer}
+.change-send-summary{padding:10px;border-radius:10px;background:rgba(255,255,255,.045);font-size:13px;line-height:1.5;margin-bottom:14px;white-space:pre-wrap}.change-send-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}.change-send-buttons a{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:11px;text-decoration:none;font-weight:900}
+.change-send-mail{background:#2563eb;color:white}.change-send-whatsapp{background:#16a34a;color:white}@media(max-width:520px){.change-send-buttons{grid-template-columns:1fr}}
+</style>
+<style id="change-register-both-agents-style">
+.change-day-block{display:grid;grid-template-columns:minmax(82px,auto) minmax(0,1fr);gap:2px 12px;align-items:start}.change-day-date{grid-row:1 / span 2;color:#5eead4;font-weight:900;text-transform:capitalize;white-space:nowrap}.change-agent-line{display:block;line-height:1.45;white-space:nowrap}.change-agent-line+ .change-agent-line{margin-top:2px;color:#fdba74}.change-day-separator{border:0;border-top:1px solid rgba(255,255,255,.12);margin:8px 0}
+</style>
 </head>
 <body class="turni-page trova-turno-page">
 
@@ -1497,7 +1516,7 @@
   <header class="page-header">
     <div class="turni-header-copy">
       <p class="turni-header-label">NAVITURNI</p>
-      <h1 class="doc-title" id="turniWelcome">Benvenuto</h1>
+      <h1 class="doc-title" id="turniWelcome">NaviSuite Cambi</h1>
       <p class="turni-header-context">Pannello turni dal <strong id="periodLabel">periodo in caricamento</strong></p>
     </div>
   </header>
@@ -1553,14 +1572,16 @@
   </main>
 
   <footer>
-    Dati letti dal Foglio Google · turno ufficiale e bozza nella stessa pagina<br>
+    Dati letti dal Foglio Google · gestione settimane dal foglio NAVI_SETTIMANE<br>
     Questa pagina è stata pensata e creata da MP per la gestione dei turni
   </footer>
 
   <script src="turni-shared.js"></script>
+  <script src="admin-firebase-rest.js?v=30"></script>
   <script src="shared-data.js"></script>
   <script src="cloud-data.js"></script>
   <script src="shared-menu.js?v=1.02"></script>
+  <script type="module" src="firebase-data.js"></script>
   <script>
     let globalData = null;
     let currentResidence = "";
@@ -1621,7 +1642,7 @@
       if (welcome) {
         const agentData = Object.values(globalData?.residenze || {}).flat().find(agent => String(agent.id || "") === String(loggedAgentProfile?.id || ""));
         const grade = String(agentData?.qualifica || loggedAgentProfile?.qualifica || "Agente").trim().toLocaleLowerCase("it").replace(/(^|\s)\S/g, letter => letter.toLocaleUpperCase("it"));
-        welcome.textContent = loggedAgentProfile ? `Benvenuto ${grade} ${loggedAgentProfile.name}` : "Benvenuto";
+        welcome.textContent = "NaviSuite Cambi";
       }
     }
 
@@ -2076,13 +2097,10 @@
         if (d.giornoSett === "Lun") clsArr.push("week-start");
         if (d.giornoSett === "Dom") clsArr.push("week-end");
         if (isTodayDate(d.realObj)) clsArr.push("today-col");
-        if (d.isBozza) clsArr.push("bozza-col");
-        const currentIndex = dateCalendario.indexOf(d);
-        if (d.isBozza && dateCalendario[currentIndex - 1]?.isBozza !== true) {
-          clsArr.push("bozza-start");
-        }
-        const cls = `class="${clsArr.join(" ")}"`;
-        const markers = `${d.isBozza ? '<span class="date-head-draft" aria-label="Bozza" title="Bozza"></span>' : ''}${d.odsCoverageNumber ? `<span class="date-head-ods" aria-label="Coperto dall’ODS ${d.odsCoverageNumber}" title="Coperto dall’ODS ${d.odsCoverageNumber} fino al ${d.odsCoverageUntil.split('-').reverse().join('/')}"></span>` : ''}`;
+                const cls = `class="${clsArr.join(" ")}"`;
+        const markers = d.odsCoverageNumber
+          ? `<span class="date-head-ods" aria-label="Coperto dall’ODS ${d.odsCoverageNumber}" title="Coperto dall’ODS ${d.odsCoverageNumber} fino al ${d.odsCoverageUntil.split('-').reverse().join('/')}"></span>`
+          : "";
         html += `<th ${cls} data-col="${d.col}" onclick="eseguiRicercaHeader(${d.col})"><span class="date-head-day">${d.giornoSett}</span><span class="date-head-num">${d.dayNum}</span>${markers ? `<span class="date-head-markers">${markers}</span>` : ''}</th>`;
       });
       html += `</tr>`;
@@ -2640,8 +2658,7 @@
       if (cal.giornoSett === "Lun") classes.push("week-start");
       if (cal.giornoSett === "Dom") classes.push("week-end");
       if (isTodayDate(cal.realObj)) classes.push("today-col");
-      if (cal.isBozza) classes.push("bozza-col");
-      if (cal.isBozza && dateCalendario[index - 1]?.isBozza !== true) classes.push("bozza-start");
+
       return classes.join(" ");
     }
 
@@ -2673,7 +2690,7 @@
       }
 
       thead.innerHTML = `<tr><th>Corsa</th>${dateCalendario.map((cal, index) =>
-        `<th data-col="${cal.col}" class="${getCalendarVisualClasses(cal, index)}"><span class="date-head-day">${cal.giornoSett}</span><span class="date-head-num">${cal.dayNum}</span>${cal.isBozza || cal.odsCoverageNumber ? `<span class="date-head-markers">${cal.isBozza ? '<span class="date-head-draft" aria-label="Bozza" title="Bozza"></span>' : ''}${cal.odsCoverageNumber ? `<span class="date-head-ods" aria-label="Coperto dall’ODS ${cal.odsCoverageNumber}" title="Coperto dall’ODS ${cal.odsCoverageNumber} fino al ${cal.odsCoverageUntil.split('-').reverse().join('/')}"></span>` : ''}</span>` : ''}</th>`
+        `<th data-col="${cal.col}" class="${getCalendarVisualClasses(cal, index)}"><span class="date-head-day">${cal.giornoSett}</span><span class="date-head-num">${cal.dayNum}</span>${cal.odsCoverageNumber ? `<span class="date-head-markers"><span class="date-head-ods" aria-label="Coperto dall’ODS ${cal.odsCoverageNumber}" title="Coperto dall’ODS ${cal.odsCoverageNumber} fino al ${cal.odsCoverageUntil.split('-').reverse().join('/')}"></span></span>` : ''}</th>`
       ).join("")}</tr>`;
 
       tbody.innerHTML = shifts.map(shift => {
@@ -2910,9 +2927,7 @@
         if (cal.giornoSett === "Lun") tdClasses.push("week-start");
         if (cal.giornoSett === "Dom") tdClasses.push("week-end");
         if (isTodayDate(cal.realObj)) tdClasses.push("today-col");
-        if (cal.isBozza) tdClasses.push("bozza-col");
-        const prevCal = dateCalendario[dateCalendario.indexOf(cal) - 1];
-        if (cal.isBozza && (!prevCal || !prevCal.isBozza)) tdClasses.push("bozza-start");
+
           const crewStatus = getCrewStatusForDate(cal, turnoVal);
         const odsVariation = agenteObj.variazioni_ods?.[cal.iso] || null;
         const shipInfo = getShipDayInfo(cal, turnoVal);
@@ -3904,9 +3919,12 @@
 
     function applyOdsVariations(data) {
       const variations = Array.isArray(data?.variazioni_ods)
-        ? [...data.variazioni_ods].sort((a, b) => {
+          ? [...data.variazioni_ods].sort((a, b) => {
             const odsNumber = value => Number.parseInt(String(value?.ods || "").match(/\d+/)?.[0] || "0", 10);
-            return odsNumber(a) - odsNumber(b);
+            const priority = value => String(value?.tipo || "").toUpperCase() === "MANUALE"
+              ? (value?.requestId ? -1 : 1000000)
+              : odsNumber(value);
+            return priority(a) - priority(b);
           })
         : [];
       if (!variations.length) return data;
@@ -4171,7 +4189,7 @@
           const source = window.NaviSharedData && typeof NaviSharedData.source === "function"
             ? NaviSharedData.source()
             : "network";
-          menuStatus.textContent = source === "network" ? "Aggiornato" : "Locale";
+          menuStatus.textContent = source === "local" ? "Locale" : "Aggiornato";
         }
         document.getElementById("upload-status").textContent = "✅ Dati aggiornati — " + new Date().toLocaleTimeString("it-IT");
       } catch (errore) {
@@ -4733,28 +4751,258 @@
       mail.id = 'cambio-mail-box';
       mail.innerHTML = `
         <div class="cambio-mail-head">
-          <strong>Testo da inviare via mail a infogarda@navigazionelaghi.it</strong>
+          <strong>Riepilogo del cambio selezionato</strong>
         </div>
         <div class="cambio-mail-actions">
-          <button type="button" id="cambio-copy-button">Copia testo</button>
-          <a id="cambio-mail-link" href="#">Apri Mail</a>
+          <button type="button" id="cambio-request-sent">✓ Registra richiesta</button>
         </div>
         <div id="cambio-hours-summary" aria-live="polite"></div>
-        <textarea id="cambio-mail-text" aria-label="Testo della richiesta di cambio turno"></textarea>
-        <div class="cambio-whatsapp-block">
-          <div class="cambio-whatsapp-title">Messaggio WhatsApp per il collega</div>
-          <div class="cambio-whatsapp-actions">
-            <button type="button" id="cambio-whatsapp-copy">Copia WhatsApp</button>
-            <a id="cambio-whatsapp-link" href="#" target="_blank" rel="noopener">Apri WhatsApp</a>
-          </div>
-          <textarea id="cambio-whatsapp-text" aria-label="Messaggio WhatsApp per il collega"></textarea>
-        </div>
         <div id="cambio-mail-status" aria-live="polite"></div>`;
       wrap.parentNode.insertBefore(mail, wrap.nextSibling);
-      mail.querySelector('#cambio-copy-button').addEventListener('click', copyCambioText);
-      mail.querySelector('#cambio-whatsapp-copy').addEventListener('click', copyCambioWhatsapp);
+      mail.querySelector('#cambio-request-sent').addEventListener('click', saveCurrentChangeRequest);
     }
     return {info, mail};
+  }
+
+
+  const CHANGE_REQUEST_API = "https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec";
+  let cloudChangeRequests = [];
+
+  function changeRequestCacheKey() {
+    return `navisuite.changeRequests.v1.${String(loggedAgentProfile?.id || 'guest')}`;
+  }
+
+  function readCachedChangeRequests() {
+    try {
+      const value = JSON.parse(localStorage.getItem(changeRequestCacheKey()) || "[]");
+      return Array.isArray(value) ? value : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function cacheChangeRequests(requests) {
+    try { localStorage.setItem(changeRequestCacheKey(), JSON.stringify(requests || [])); } catch (_) {}
+  }
+
+  function changeRequestPayload() {
+    if (!selectedSwap || !loggedAgentProfile) return null;
+    const {selectedCal, exchangeCal, me, colleague} = selectedSwap;
+    const myFrom = displayShift(effectiveRawShift(me, selectedCal));
+    const colleagueFrom = displayShift(effectiveRawShift(colleague, exchangeCal));
+    const sameDay = selectedCal.iso === exchangeCal.iso;
+    const changes = sameDay
+      ? [{date:selectedCal.iso, from:myFrom, to:colleagueFrom}]
+      : [
+          {date:selectedCal.iso, from:myFrom, to:'RIP'},
+          {date:exchangeCal.iso, from:'RIP', to:colleagueFrom}
+        ];
+    return {
+      action:'save_change_request',
+      agentId:String(loggedAgentProfile.id || ''),
+      agentName:String(loggedAgentProfile.name || me.agente || ''),
+      colleagueId:String(colleague.id || ''),
+      colleagueName:String(colleague.agente || ''),
+      sentAt:new Date().toISOString(),
+      changes
+    };
+  }
+
+  async function cloudChangePost(payload) {
+    const firebase = window.NaviFirebase || window.NaviAdminFirebase;
+    if (firebase) {
+      if (payload?.action === 'list_change_requests') {
+        return {ok:true, requests:await firebase.listChangeRequests(payload.agentId)};
+      }
+      if (payload?.action === 'save_change_request') {
+        return {ok:true, request:await firebase.saveChangeRequest(payload)};
+      }
+      if (payload?.action === 'delete_change_request') {
+        await firebase.deleteChangeRequest(payload.requestId);
+        return {ok:true};
+      }
+    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), payload?.action === 'list_change_requests' ? 6000 : 10000);
+    try {
+      const response = await fetch(CHANGE_REQUEST_API, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify(payload),
+        signal:controller.signal
+      });
+      const data = await response.json();
+      if (!data?.ok) throw new Error(data?.error || 'Salvataggio non riuscito');
+      return data;
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('aggiornamento troppo lento');
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async function deleteCloudChangeRequest(requestId) {
+    const item = cloudChangeRequests.find(entry => String(entry.id) === String(requestId));
+    if (!item || !loggedAgentProfile?.id) return;
+    const description = `${item.colleagueName || 'collega'} — ${plainPrettyChange(item)}`;
+    if (!window.confirm(`Eliminare questa richiesta?\n\n${description}`)) return;
+    try {
+      await cloudChangePost({action:'delete_change_request', agentId:String(loggedAgentProfile.id), requestId:String(requestId)});
+      await loadCloudChangeRequests();
+    } catch (error) {
+      alert('Impossibile eliminare la richiesta: ' + error.message);
+    }
+  }
+
+  function escapeChangeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
+  function plainPrettyChange(item) {
+    return (item.changes || []).map(c => `${c.date}: ${c.from} → ${c.to}`).join(' · ');
+  }
+
+  function requestWhatsappText(item) {
+    const colleague = String(item.colleagueName || 'collega').trim();
+    const lines = (item.changes || []).map(c => {
+      const date = c.date ? new Date(`${c.date}T12:00:00`).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '';
+      return `${date}: ${c.from} → ${c.to}`;
+    });
+    return [`Ciao ${colleague}.`, 'Ti inoltro la richiesta di cambio turno:', ...lines, 'Fammi sapere se è tutto corretto.'].join('\n');
+  }
+
+  function formalChangeRequestText(item) {
+    const agentName = String(item.agentName || loggedAgentProfile?.name || 'AGENTE').trim().toUpperCase();
+    const colleagueName = String(item.colleagueName || 'COLLEGA').trim().toUpperCase();
+    const schedule = (item.changes || []).flatMap(change => {
+      const date = change.date
+        ? new Date(`${change.date}T12:00:00`).toLocaleDateString('it-IT', {
+            weekday:'long', day:'numeric', month:'long', year:'numeric'
+          }).toUpperCase()
+        : '';
+      return [
+        date,
+        `${agentName}: ${String(change.to || 'RIP').toUpperCase()}`,
+        `${colleagueName}: ${String(change.from || 'RIP').toUpperCase()}`
+      ];
+    });
+    return [
+      'Spett.le Direzione NLG.',
+      'Uff. Movimento',
+      'Desenzano',
+      `In accordo con l'agente ${colleagueName}, chiedo un cambio sulla bozza del turno senza oneri per l'azienda.`,
+      ...schedule,
+      'Cordiali saluti'
+    ].join('\n');
+  }
+
+  function ensureChangeSendModal() {
+    let modal = document.getElementById('change-send-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'change-send-modal';
+    modal.className = 'change-send-modal';
+    modal.setAttribute('role','dialog');
+    modal.setAttribute('aria-modal','true');
+    modal.innerHTML = `<div class="change-send-dialog">
+      <div class="change-send-head"><h3>Invia richiesta</h3><button type="button" class="change-send-close" aria-label="Chiudi">×</button></div>
+      <div id="change-send-summary" class="change-send-summary"></div>
+      <div class="change-send-buttons"><a id="change-send-mail" class="change-send-mail" href="#">✉ Invia Mail</a><a id="change-send-whatsapp" class="change-send-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a></div>
+    </div>`;
+    document.body.appendChild(modal);
+    const close = () => modal.classList.remove('open');
+    modal.querySelector('.change-send-close').addEventListener('click', close);
+    modal.addEventListener('click', event => { if (event.target === modal) close(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
+    return modal;
+  }
+
+  function openChangeSendPopup(requestId) {
+    const item = cloudChangeRequests.find(entry => String(entry.id) === String(requestId));
+    if (!item) return;
+    const modal = ensureChangeSendModal();
+    const mailText = formalChangeRequestText(item);
+    const whatsappText = mailText;
+    const subject = `Richiesta cambio turno - ${item.agentName || ''} / ${item.colleagueName || ''}`;
+    modal.querySelector('#change-send-summary').textContent = mailText;
+    modal.querySelector('#change-send-mail').href = `mailto:infogarda@navigazionelaghi.it?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailText)}`;
+    modal.querySelector('#change-send-whatsapp').href = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+    modal.classList.add('open');
+  }
+
+  window.deleteCloudChangeRequest = deleteCloudChangeRequest;
+  window.openChangeSendPopup = openChangeSendPopup;
+
+  async function saveCurrentChangeRequest() {
+    const payload = changeRequestPayload();
+    const status = document.getElementById('cambio-mail-status');
+    if (!payload) return;
+    const button = document.getElementById('cambio-request-sent');
+    button.disabled = true;
+    if (status) status.textContent = 'Salvataggio della richiesta…';
+    try {
+      await cloudChangePost(payload);
+      if (status) status.textContent = '✓ Richiesta salvata nel registro condiviso.';
+      await loadCloudChangeRequests();
+    } catch (error) {
+      if (status) status.textContent = '❌ ' + error.message;
+    } finally { button.disabled = false; }
+  }
+
+  function ensureChangeRequestRegister() {
+    let section = document.getElementById('change-request-register');
+    if (section) return section;
+    section = document.createElement('section');
+    section.id = 'change-request-register';
+    section.innerHTML = '<h2>Richieste inviate</h2><div id="change-request-register-body">Caricamento…</div>';
+    const mail = document.getElementById('cambio-mail-box');
+    (mail?.parentNode || document.querySelector('main') || document.body).insertBefore(section, mail?.nextSibling || null);
+    return section;
+  }
+
+  function prettyChange(item) {
+    const me = String(item.agentName || loggedAgentProfile?.name || 'Tu').toUpperCase();
+    const colleague = String(item.colleagueName || 'Collega').toUpperCase();
+    return (item.changes || []).map(c => {
+      const date = c.date
+        ? new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'})
+            .format(new Date(`${c.date}T12:00:00`)).replace(/\./g,'')
+        : 'Data';
+      return `<div class="change-day-block"><span class="change-day-date">${escapeChangeHtml(date)}</span>` +
+      `<span class="change-agent-line"><b>${me}</b> → ${escapeChangeHtml(c.to)}</span>` +
+      `<span class="change-agent-line"><b>${colleague}</b> → ${escapeChangeHtml(c.from)}</span></div>`;
+    }
+    ).join('<hr class="change-day-separator">');
+  }
+
+  function renderCloudChangeRequests() {
+    ensureChangeRequestRegister();
+    const body = document.getElementById('change-request-register-body');
+    if (!cloudChangeRequests.length) { body.innerHTML='<p class="change-empty">Nessuna richiesta registrata.</p>'; return; }
+    body.innerHTML = `<div class="change-register-wrap"><table><thead><tr><th>Inviata</th><th>Collega</th><th>Cambio richiesto</th><th>Azioni</th></tr></thead><tbody>${cloudChangeRequests.map(item => `<tr><td>${new Date(item.sentAt).toLocaleDateString('it-IT')}</td><td>${escapeChangeHtml(item.colleagueName || '')}</td><td><strong>${prettyChange(item)}</strong></td><td><div class="change-actions"><button type="button" class="change-action-btn change-action-send" onclick="openChangeSendPopup('${escapeChangeHtml(item.id)}')">Invia</button><button type="button" class="change-action-btn change-action-delete" onclick="deleteCloudChangeRequest('${escapeChangeHtml(item.id)}')">Elimina</button></div></td></tr>`).join('')}</tbody></table></div>`;
+  }
+
+  async function loadCloudChangeRequests() {
+    if (!loggedAgentProfile?.id) return;
+    ensureChangeRequestRegister();
+    const cached = readCachedChangeRequests();
+    if (cached.length) {
+      cloudChangeRequests = cached;
+      renderCloudChangeRequests();
+    } else {
+      document.getElementById('change-request-register-body').textContent='Aggiornamento richieste…';
+    }
+    try {
+      const data = await cloudChangePost({action:'list_change_requests', agentId:String(loggedAgentProfile.id)});
+      cloudChangeRequests = Array.isArray(data.requests) ? data.requests : [];
+      cacheChangeRequests(cloudChangeRequests);
+      renderCloudChangeRequests();
+    } catch (error) {
+      if (!cached.length) {
+        document.getElementById('change-request-register-body').textContent='Registro non disponibile: '+error.message;
+      }
+    }
   }
 
   function clearCambioSearch() {
@@ -5043,21 +5291,11 @@
     if (!selectedCal || !exchangeCal || !location?.agent || !colleague) return;
 
     selectedSwap = {selectedCal, exchangeCal, me:location.agent, colleague};
-    const text = makeMailText(location.agent, colleague, selectedCal, exchangeCal);
-    const whatsappText = makeWhatsappText(location.agent, colleague, selectedCal, exchangeCal);
     const {mail} = ensurePanels();
     renderHoursSummary(location.agent, colleague, selectedCal, exchangeCal);
-    const textarea = document.getElementById('cambio-mail-text');
-    textarea.value = text;
-    const whatsappArea = document.getElementById('cambio-whatsapp-text');
-    whatsappArea.value = whatsappText;
-    document.getElementById('cambio-whatsapp-link').href = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-    const subject = `Richiesta cambio turno - ${displaySurname(location.agent.agente)} / ${displaySurname(colleague.agente)}`;
-    document.getElementById('cambio-mail-link').href = `mailto:infogarda@navigazionelaghi.it?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
     document.getElementById('cambio-mail-status').textContent = '';
     mail.classList.add('open');
-    textarea.focus();
-    textarea.setSelectionRange(0, 0);
+    document.getElementById('cambio-request-sent')?.focus();
     mail.scrollIntoView({behavior:'smooth', block:'nearest'});
   }
 
@@ -5118,13 +5356,6 @@
     const myShift = cleanShift(me, cal);
     clearCambioVisuals({keepMail:true});
 
-    if (!myShift) {
-      const {info} = ensurePanels();
-      info.innerHTML = 'In questa data sei già di <strong>riposo</strong>: scegli una giornata in cui lavori.';
-      info.classList.add('open');
-      return false;
-    }
-
     selectedCol = cal.col;
     selectedShiftValue = myRaw;
 
@@ -5151,18 +5382,19 @@
 
         /*
          * CAMBIO NELLA STESSA GIORNATA
-         * Il collega lavora, ma con una corsa diversa dalla mia.
+         * I due turni sono diversi. È valido anche lo scambio diretto
+         * tra un turno lavorato e un riposo.
          * La bolla selezionabile è quella della data scelta.
          */
-        if (colleagueShiftToday && colleagueShiftToday !== myShift) {
+        if (colleagueShiftToday !== myShift) {
           const cell = row.querySelector(`td[data-col="${cal.col}"]`);
           if (cell?.querySelector('.cell-pill')) {
             cell.classList.add('cambio-possibile');
             cell.dataset.cambioAgentId = String(agent.id ?? '');
             cell.dataset.cambioCol = String(cal.col);
             cell.title =
-              `Cambio con ${agent.agente}: tu prenderesti ${colleagueShiftToday}, ` +
-              `${agent.agente} prenderebbe ${myShift}`;
+              `Cambio con ${agent.agente}: tu prenderesti ${displayShift(effectiveRawShift(agent, cal))}, ` +
+              `${agent.agente} prenderebbe ${displayShift(myRaw)}`;
 
             rowHasSelectableChange = true;
             selectableChanges++;
@@ -5175,7 +5407,7 @@
          * Il collega è libero nella mia giornata e ha un turno,
          * nella stessa settimana, in una giornata in cui io sono libero.
          */
-        if (!colleagueShiftToday) {
+        if (myShift && !colleagueShiftToday) {
           dateCalendario.forEach(otherCal => {
             if (otherCal.weekKey !== cal.weekKey || otherCal.col === cal.col) return;
             if (!isRest(me, otherCal) || isRest(agent, otherCal)) return;
@@ -5276,7 +5508,7 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     const title = document.querySelector('.doc-title');
-    if (title) title.innerHTML = 'Navi<span class="wave">Turni</span> · Trova turno';
+    if (title) title.textContent = 'NaviSuite Cambi';
     const subtitle = document.querySelector('.doc-subtitle');
     if (subtitle) subtitle.textContent = 'Passa o tocca una data per vedere i cambi possibili';
 
@@ -5285,6 +5517,8 @@
     document.getElementById('crew-drawer-toggle')?.remove();
     document.querySelectorAll('#coverage-board,.coverage-board,.coverage-section').forEach(el => el.remove());
     ensurePanels();
+    ensureChangeRequestRegister();
+    loadCloudChangeRequests();
     applyCambioDateWindow();
 
     const tableWrap = document.getElementById('matrix-scroll-wrap');

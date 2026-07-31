@@ -71,7 +71,7 @@ const GRADE_INFO={
   'marinaio':{label:'Marinaio',className:'grade-marinaio'},'operaio':{label:'Operaio',className:'grade-operaio'},'ufficio':{label:'Ufficio',className:'grade-ufficio'}
 };
 function formatAgentName(name){return String(name||'').trim().split(/\s+/).map(part=>/^[A-ZÀ-ÖØ-Ý]+[.,]?$/.test(part)&&part.replace(/[.,]/g,'').length>1?part.charAt(0)+part.slice(1).toLowerCase():part).join(' ')}
-function updateWelcome(){if(!activeAgent)return;const grade=GRADE_INFO[String(activeAgent.qualifica||'marinaio').trim().toLowerCase()]||GRADE_INFO.marinaio,name=formatAgentName(activeAgent.name);$('welcomeName').innerHTML=`Benvenuto <span class="grade-label ${grade.className}">${grade.label}</span> ${escapeHtml(name)}`;$('sidebarAgentName').textContent=name.toLocaleUpperCase('it')}
+function updateWelcome(){if(!activeAgent)return;const name=formatAgentName(activeAgent.name);$('welcomeName').textContent='NaviSuite Diaria';$('sidebarAgentName').textContent=name.toLocaleUpperCase('it')}
 function scheduleAssignment(raw){
   const cleaned=String(raw||'').trim().replace(/\*/g,'').replace(/--/g,'');
   if(/^rip\.?$/i.test(cleaned)||cleaned==='----'||!cleaned)return {shift:'Riposo',travel:false};

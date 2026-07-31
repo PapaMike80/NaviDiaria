@@ -1,5 +1,5 @@
 (function(){
-  const APP_VERSION='v1.27';
+  const APP_VERSION='v1.28';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   if('serviceWorker' in navigator){
     if(!window.__naviSwRegistrationPromise){
@@ -60,7 +60,7 @@
     status='';
   }else if(page==='settings'){
     common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Trova turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','NaviDiaria',false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('#telegram','⚙','Impostazioni',true);
-    specific=`<span class="sidebar-menu-label">PREFERENZE</span>${item('#telegram','◇','Notifiche Telegram')}${item('#altre-preferenze','≡','Altre preferenze')}${isAdminAgent(sessionAgent)?item('#gestione-utenti','♙','Gestione utenti'):''}`;
+    specific=`<span class="sidebar-menu-label">PREFERENZE</span>${item('#telegram','◇','Notifiche Telegram')}${item('#altre-preferenze','≡','Altre preferenze')}${isAdminAgent(sessionAgent)?item('aggiornamenti.html','↻','Aggiornamenti turni')+item('#gestione-utenti','♙','Gestione utenti'):''}`;
     user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }else{
     common=item('naviturni.html','▦','NaviTurni')+item('navidiaria.html','≈','NaviDiaria',false,'diariaNavLink')+item('#turni-docs','▤','Documenti',true,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
@@ -78,9 +78,16 @@
     status='';
   }
 
+  // Collegamento amministrativo comune: non viene mai creato per gli utenti
+  // ordinari o per le bariste. In Impostazioni è già presente nella sezione
+  // PREFERENZE, quindi evitiamo di mostrarlo due volte.
+  if(isAdminAgent(sessionAgent)&&page!=='settings'){
+    common+=item('aggiornamenti.html','↻','Aggiornamenti');
+  }
+
   common=item('index.html','⌂','Home')+common;
 
-  const brandTitle=page==='diaria'?'NaviDiaria':page==='trova'?'Trova turno':page==='turni'?'NaviTurni':page==='orario'?'Orario':page==='orario-data'?'Orari tabella':page==='settings'?'Impostazioni':'Documenti';
+  const brandTitle=page==='diaria'?'NaviSuite Diaria':page==='trova'?'NaviSuite Cambi':page==='turni'?'NaviSuite Turni':page==='orario'?'NaviSuite Orario':page==='orario-data'?'NaviSuite Orari':page==='settings'?'NaviSuite Impostazioni':'NaviSuite Documenti';
   const version=`<div class="shared-app-version" aria-label="Versione applicazione">Versione ${APP_VERSION}</div>`;
 
   const brandHref=isBaristaSession?(page==='turni'?'#turni-operativi':'naviturni.html'):'index.html';
@@ -311,14 +318,20 @@
   toggle.type='button';
   document.body.appendChild(toggle);
 
+  function syncCollapseToggle(){
+    toggle.hidden=window.innerWidth<=800;
+  }
+
   function setCollapsed(value){
     document.body.classList.toggle('menu-collapsed',value);
     toggle.setAttribute('aria-expanded',String(!value));
     toggle.setAttribute('aria-label',value?'Mostra menu':'Nascondi menu');
     toggle.textContent=value?'›':'‹';
+    syncCollapseToggle();
   }
 
   toggle.addEventListener('click',()=>setCollapsed(!document.body.classList.contains('menu-collapsed')));
+  window.addEventListener('resize',syncCollapseToggle);
   sidebar.querySelector('nav')?.addEventListener('click',event=>{
     if(window.innerWidth<=800&&event.target.closest('a'))setCollapsed(true);
   });

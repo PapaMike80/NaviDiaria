@@ -7,7 +7,7 @@
  * - provare sempre prima la rete e usare la cache solo come fallback.
  */
 
-const CACHE_VERSION = 'navidiaria-v2';
+const CACHE_VERSION = 'navisuite-v54';
 const CACHE_NAME = CACHE_VERSION;
 
 // File statici da pre-caricare durante l'installazione.
@@ -26,6 +26,7 @@ const STATIC_ASSETS = [
   'navidiaria.html',
   'naviturni.html',
   'cambi_turno.html',
+  'aggiornamenti.html',
   'documenti.html',
   'impostazioni.html',
   'Orario.html',
@@ -40,6 +41,11 @@ const STATIC_ASSETS = [
   'turni-common.css',
   'shared-menu.css',
   'shared-data.js',
+  'firebase-data.js',
+  'admin-firebase-rest.js',
+  'aggiornamenti-data.js',
+  'vendor/pdfjs/pdf.min.js',
+  'vendor/pdfjs/pdf.worker.min.js',
   'cloud-data.js',
   'portal.js',
   'app.js',

@@ -28,41 +28,62 @@ function doPost(e) {
     if (request && (request.update_id || request.message || request.callback_query)) {
       return jsonOutput(handleNaviTelegramWebhook_(request));
     }
+
     const action = String(request.action || "").trim().toLowerCase();
     if (!action) throw new Error("Azione mancante.");
 
-    const lock = LockService.getScriptLock();
-    lock.waitLock(15000);
-    try {
-      const sheets = ensureNavidiariaCloudSheets_();
-      if (action === "directory") return jsonOutput(listNaviPublicDirectory_(sheets.directory));
-      if (action === "auth") return jsonOutput(authNavidiaria_(sheets, request));
-      if (action === "list_change_requests") return jsonOutput(listNaviChangeRequests_(sheets.changeRequests, request.agentId));
-      if (action === "save_change_request") return jsonOutput(saveNaviChangeRequest_(sheets.changeRequests, request));
-      if (action === "delete_change_request") return jsonOutput(deleteNaviChangeRequest_(sheets.changeRequests, request));
-      if (action === "week_status_public") return jsonOutput(listNaviWeekStatus_());
-
-      const user = authenticateNavidiaria_(sheets.users, request.agentId, request.pinHash);
-      if (action === "load_diaria") return jsonOutput(loadNavidiaria_(sheets.data, user));
-      if (action === "save_diaria") return jsonOutput(saveNavidiaria_(sheets.data, user, request.entries));
-      if (action === "list_users") return jsonOutput(listNavidiariaUsers_(sheets.users, user));
-      if (action === "admin_directory") return jsonOutput(listNaviAdminDirectory_(sheets.directory, user));
-      if (action === "update_user") return jsonOutput(updateNaviDirectoryUser_(sheets.directory, user, request));
-      if (action === "reset_pin") return jsonOutput(resetNavidiariaPin_(sheets.users, user, request.targetAgentId));
-      if (action === "change_pin") return jsonOutput(changeNavidiariaPin_(sheets.users, user, request.newPinHash));
-      if (action === "reset_own_pin") return jsonOutput(resetNavidiariaOwnPin_(sheets.users, user));
-      if (action === "telegram_status") return jsonOutput(getNaviTelegramStatus_(sheets.telegram, user));
-      if (action === "telegram_link") return jsonOutput(createNaviTelegramLink_(sheets.telegram, user));
-      if (action === "telegram_preferences") return jsonOutput(saveNaviTelegramPreferences_(sheets.telegram, user, request));
-      if (action === "telegram_disconnect") return jsonOutput(disconnectNaviTelegram_(sheets.telegram, user));
-      if (action === "list_documents") return jsonOutput(listNaviDocuments_(sheets.documents));
-      if (action === "variation_status") return jsonOutput(getNaviVariationStatus_(sheets.documents));
-      if (action === "upload_document") return jsonOutput(uploadNaviDocument_(sheets.documents, user, request));
-      if (action === "delete_document") return jsonOutput(deleteNaviDocument_(sheets.documents, user, request.documentId));
-      throw new Error("Azione non riconosciuta: " + action);
-    } finally {
-      lock.releaseLock();
+    // Le letture non devono mai attendere LockService.
+    // In questo modo più pagine/dispositivi possono caricare insieme senza timeout.
+    if (action === "week_status_public") {
+      return jsonOutput(listNaviWeekStatusPublic_());
     }
+
+    const readSheets = getNavidiariaCloudSheets_();
+    if (action === "directory") {
+      return jsonOutput(listNaviPublicDirectory_(readSheets.directory));
+    }
+    if (action === "list_change_requests") {
+      return jsonOutput(listNaviChangeRequests_(readSheets.changeRequests, request.agentId));
+    }
+
+    // Login e operazioni di scrittura: blocco breve e circoscritto.
+    if (isNaviCloudWriteAction_(action)) {
+      return jsonOutput(withNaviCloudWriteLock_(function() {
+        const sheets = ensureNavidiariaCloudSheets_();
+        if (action === "auth") return authNavidiaria_(sheets, request);
+        if (action === "save_change_request") return saveNaviChangeRequest_(sheets.changeRequests, request);
+        if (action === "delete_change_request") return deleteNaviChangeRequest_(sheets.changeRequests, request);
+        if (action === "save_week_status") {
+          const user = authenticateNavidiaria_(sheets.users, request.agentId, request.pinHash);
+          return saveNaviWeekStatus_(sheets.weeks, user, request.statuses);
+        }
+
+        const user = authenticateNavidiaria_(sheets.users, request.agentId, request.pinHash);
+        if (action === "save_diaria") return saveNavidiaria_(sheets.data, user, request.entries);
+        if (action === "update_user") return updateNaviDirectoryUser_(sheets.directory, user, request);
+        if (action === "reset_pin") return resetNavidiariaPin_(sheets.users, user, request.targetAgentId);
+        if (action === "change_pin") return changeNavidiariaPin_(sheets.users, user, request.newPinHash);
+        if (action === "reset_own_pin") return resetNavidiariaOwnPin_(sheets.users, user);
+        if (action === "telegram_link") return createNaviTelegramLink_(sheets.telegram, user);
+        if (action === "telegram_preferences") return saveNaviTelegramPreferences_(sheets.telegram, user, request);
+        if (action === "telegram_disconnect") return disconnectNaviTelegram_(sheets.telegram, user);
+        if (action === "upload_document") return uploadNaviDocument_(sheets.documents, user, request);
+        if (action === "delete_document") return deleteNaviDocument_(sheets.documents, user, request.documentId);
+        throw new Error("Azione di scrittura non riconosciuta: " + action);
+      }));
+    }
+
+    // Letture autenticate, sempre senza lock.
+    const user = authenticateNavidiaria_(readSheets.users, request.agentId, request.pinHash);
+    if (action === "load_diaria") return jsonOutput(loadNavidiaria_(readSheets.data, user));
+    if (action === "list_users") return jsonOutput(listNavidiariaUsers_(readSheets.users, user));
+    if (action === "list_week_status") { requireNavidiariaAdmin_(user); return jsonOutput(listNaviWeekStatus_(readSheets.weeks)); }
+    if (action === "admin_directory") return jsonOutput(listNaviAdminDirectory_(readSheets.directory, user));
+    if (action === "telegram_status") return jsonOutput(getNaviTelegramStatus_(readSheets.telegram, user));
+    if (action === "list_documents") return jsonOutput(listNaviDocuments_(readSheets.documents));
+    if (action === "variation_status") return jsonOutput(getNaviVariationStatus_(readSheets.documents));
+
+    throw new Error("Azione non riconosciuta: " + action);
   } catch (error) {
     return jsonOutput({
       ok: false,
@@ -71,61 +92,130 @@ function doPost(e) {
   }
 }
 
-function listNaviWeekStatus_() {
+function isNaviCloudWriteAction_(action) {
+  return [
+    "auth",
+    "save_change_request",
+    "delete_change_request",
+    "save_week_status",
+    "save_diaria",
+    "update_user",
+    "reset_pin",
+    "change_pin",
+    "reset_own_pin",
+    "telegram_link",
+    "telegram_preferences",
+    "telegram_disconnect",
+    "upload_document",
+    "delete_document"
+  ].indexOf(action) !== -1;
+}
+
+function withNaviCloudWriteLock_(callback) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) {
+    throw new Error("Archivio momentaneamente occupato. Riprova tra qualche secondo.");
+  }
+  try {
+    return callback();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getNavidiariaCloudSheets_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.weeksSheetName || "NAVI_SETTIMANE");
-  if (!sheet || sheet.getLastRow() < 2) return { ok:true, weeks:[] };
+  return {
+    users: ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.usersSheetName),
+    data: ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.dataSheetName),
+    documents: ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.documentsSheetName),
+    directory: ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.directorySheetName),
+    telegram: ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.telegramSheetName),
+    changeRequests: ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.changeRequestsSheetName),
+    weeks: ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.weeksSheetName)
+  };
+}
 
-  const values = sheet.getDataRange().getValues();
-  const display = sheet.getDataRange().getDisplayValues();
-  const headers = display[0].map(function(value) {
-    return String(value || "").trim().toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "_");
+function listNaviWeekStatusPublic_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.weeksSheetName);
+  return listNaviWeekStatus_(sheet);
+}
+
+function listNaviWeekStatus_(weeksSheet) {
+  const available = buildNaviWeeksFromFoglio1_();
+  const saved = {};
+  if (weeksSheet && weeksSheet.getLastRow() > 1) {
+    const rows = weeksSheet.getRange(2, 1, weeksSheet.getLastRow() - 1, 5).getDisplayValues();
+    rows.forEach(function(row) {
+      const start = String(row[0] || "").trim();
+      const state = normalizeNaviWeekState_(row[2]);
+      if (start && state) saved[start] = state;
+    });
+  }
+  return {
+    ok: true,
+    weeks: available.map(function(week) {
+      return { start:week.start, end:week.end, days:week.days, state:saved[week.start] || "ufficiale" };
+    })
+  };
+}
+
+function saveNaviWeekStatus_(weeksSheet, user, statusesValue) {
+  requireNavidiariaAdmin_(user);
+  if (!Array.isArray(statusesValue)) throw new Error("Calendario settimane non valido.");
+  const available = buildNaviWeeksFromFoglio1_();
+  const allowed = {};
+  available.forEach(function(week) { allowed[week.start] = week; });
+  const now = new Date();
+  const rows = statusesValue.map(function(item) {
+    const start = String(item && item.start || "").trim();
+    const week = allowed[start];
+    const state = normalizeNaviWeekState_(item && item.state);
+    if (!week || !state) throw new Error("Settimana o stato non valido: " + start);
+    return [week.start, week.end, state, now, user.id];
   });
+  if (weeksSheet.getLastRow() > 1) weeksSheet.getRange(2, 1, weeksSheet.getLastRow() - 1, 5).clearContent();
+  if (rows.length) weeksSheet.getRange(2, 1, rows.length, 5).setValues(rows);
+  return { ok:true, saved:rows.length, updatedAt:formatNavidiariaDate_(now) };
+}
 
-  function findHeader_(names) {
-    for (let i = 0; i < headers.length; i++) {
-      if (names.indexOf(headers[i]) >= 0) return i;
-    }
-    return -1;
-  }
+function normalizeNaviWeekState_(value) {
+  const state = String(value || "").trim().toLowerCase();
+  return ["ufficiale", "bozza", "nascosta"].indexOf(state) >= 0 ? state : "";
+}
 
-  let startCol = findHeader_(["inizio", "data_inizio", "inizio_settimana", "dal", "data", "settimana"]);
-  let stateCol = findHeader_(["stato", "tipo", "status", "ufficiale_bozza", "bozza"]);
-  if (startCol < 0) startCol = 0;
-  if (stateCol < 0) stateCol = Math.min(1, headers.length - 1);
-
-  const tz = Session.getScriptTimeZone() || "Europe/Rome";
-  function isoDate_(raw, shown) {
-    if (raw instanceof Date && !isNaN(raw.getTime())) return Utilities.formatDate(raw, tz, "yyyy-MM-dd");
-    const text = String(shown || raw || "").trim();
-    let m = text.match(/^(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-    if (m) return m[1] + "-" + String(m[2]).padStart(2,"0") + "-" + String(m[3]).padStart(2,"0");
-    m = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](20\d{2})$/);
-    if (m) return m[3] + "-" + String(m[2]).padStart(2,"0") + "-" + String(m[1]).padStart(2,"0");
-    m = text.match(/(\d{1,2})[-/.](\d{1,2})(?:[-/.](20\d{2}))?/);
-    if (m) {
-      const year = m[3] || String(new Date().getFullYear());
-      return year + "-" + String(m[2]).padStart(2,"0") + "-" + String(m[1]).padStart(2,"0");
-    }
-    return "";
-  }
-
-  const weeks = [];
-  for (let r = 1; r < values.length; r++) {
-    const start = isoDate_(values[r][startCol], display[r][startCol]);
-    if (!start) continue;
-    let state = String(display[r][stateCol] || values[r][stateCol] || "ufficiale").trim().toLowerCase();
-    state = state.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (/bozza|draft|provvisor/.test(state)) state = "bozza";
-    else if (/nascond|hidden/.test(state)) state = "nascosta";
-    else state = "ufficiale";
-    weeks.push({ start:start, state:state });
-  }
-
-  weeks.sort(function(a,b) { return a.start.localeCompare(b.start); });
-  return { ok:true, weeks:weeks, source:"NAVI_SETTIMANE" };
+function buildNaviWeeksFromFoglio1_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(NAVITURNI_CONFIG.sheetName);
+  if (!sheet || sheet.getLastColumn() < 5) return [];
+  const headers = sheet.getRange(1, 5, 1, sheet.getLastColumn() - 4).getDisplayValues()[0];
+  const yearFallback = new Date().getFullYear();
+  const dates = [];
+  headers.forEach(function(header) {
+    const match = String(header || "").trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?/);
+    if (!match) return;
+    const date = new Date(Number(match[3] || yearFallback), Number(match[2]) - 1, Number(match[1]), 12, 0, 0);
+    if (isNaN(date.getTime())) return;
+    dates.push(date);
+  });
+  const groups = {};
+  dates.forEach(function(date) {
+    const monday = new Date(date);
+    const day = monday.getDay();
+    monday.setDate(monday.getDate() - ((day + 6) % 7));
+    const key = Utilities.formatDate(monday, Session.getScriptTimeZone() || "Europe/Rome", "yyyy-MM-dd");
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(date);
+  });
+  return Object.keys(groups).sort().map(function(start) {
+    const days = groups[start].sort(function(a,b){ return a-b; });
+    return {
+      start:start,
+      end:Utilities.formatDate(days[days.length - 1], Session.getScriptTimeZone() || "Europe/Rome", "yyyy-MM-dd"),
+      days:days.length
+    };
+  });
 }
 
 function getNaviVariationStatus_(documentsSheet) {
@@ -171,6 +261,7 @@ function ensureNavidiariaCloudSheets_() {
   let directory = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.directorySheetName);
   let telegram = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.telegramSheetName);
   let changeRequests = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.changeRequestsSheetName);
+  let weeks = ss.getSheetByName(NAVIDIARIA_CLOUD_CONFIG.weeksSheetName);
 
   if (!users) users = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.usersSheetName);
   if (!data) data = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.dataSheetName);
@@ -178,6 +269,7 @@ function ensureNavidiariaCloudSheets_() {
   if (!directory) directory = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.directorySheetName);
   if (!telegram) telegram = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.telegramSheetName);
   if (!changeRequests) changeRequests = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.changeRequestsSheetName);
+  if (!weeks) weeks = ss.insertSheet(NAVIDIARIA_CLOUD_CONFIG.weeksSheetName);
 
   ensureNavidiariaHeader_(users, ["ID_AGENTE", "AGENTE", "PIN_HASH", "REGISTRATO_IL", "ULTIMO_ACCESSO"]);
   ensureNavidiariaHeader_(data, ["ID_AGENTE", "JSON_DATI", "VERSIONE", "AGGIORNATO_IL"]);
@@ -185,6 +277,7 @@ function ensureNavidiariaCloudSheets_() {
   ensureNavidiariaHeader_(directory, ["ID", "NOME", "RUOLO", "QUALIFICA", "RESIDENZA", "ATTIVO", "REGISTRATO", "REGISTRATO_IL", "ULTIMO_ACCESSO"]);
   ensureNavidiariaHeader_(telegram, ["ID_AGENTE", "AGENTE", "CHAT_ID", "USERNAME", "ATTIVO", "ORA_INVIO", "RESIDENZA", "COLLEGATO_IL", "ULTIMO_INVIO"]);
   ensureNavidiariaHeader_(changeRequests, ["ID_RICHIESTA", "ID_AGENTE", "AGENTE", "ID_COLLEGA", "COLLEGA", "INVIATA_IL", "CAMBI_JSON", "TESTO_MAIL"]);
+  ensureNavidiariaHeader_(weeks, ["INIZIO", "FINE", "STATO", "AGGIORNATO_IL", "AGGIORNATO_DA"]);
 
   syncNaviDirectory_(ss, directory, users);
 
@@ -195,7 +288,8 @@ function ensureNavidiariaCloudSheets_() {
   directory.setFrozenRows(1);
   telegram.setFrozenRows(1);
   changeRequests.setFrozenRows(1);
-  return { users: users, data: data, documents: documents, directory: directory, telegram: telegram, changeRequests: changeRequests };
+  weeks.setFrozenRows(1);
+  return { users: users, data: data, documents: documents, directory: directory, telegram: telegram, changeRequests: changeRequests, weeks: weeks };
 }
 
 function ensureNavidiariaHeader_(sheet, headers) {
@@ -1195,7 +1289,7 @@ function saveNaviChangeRequest_(sheet, request) {
 
 function listNaviChangeRequests_(sheet, agentIdValue) {
   const agentId = cleanNavidiariaId_(agentIdValue);
-  if (!agentId || sheet.getLastRow() < 2) return {ok:true,requests:[]};
+  if (!agentId || !sheet || sheet.getLastRow() < 2) return {ok:true,requests:[]};
   const rows = sheet.getRange(2,1,sheet.getLastRow()-1,8).getValues();
   const requests = rows.filter(function(row){return cleanNavidiariaId_(row[1])===agentId;}).map(function(row){
     let changes=[]; try{changes=JSON.parse(String(row[6]||"[]"));}catch(e){}
@@ -1209,13 +1303,16 @@ function deleteNaviChangeRequest_(sheet, request) {
   const agentId = cleanNavidiariaId_(request.agentId);
   const requestId = String(request.requestId || "").trim();
   if (!agentId || !requestId) throw new Error("Richiesta non valida.");
-  if (sheet.getLastRow() < 2) throw new Error("Richiesta non trovata.");
+  if (!sheet || sheet.getLastRow() < 2) return { ok:true, deleted:false };
+
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getDisplayValues();
-  for (let i = rows.length - 1; i >= 0; i--) {
-    if (String(rows[i][0] || "").trim() !== requestId) continue;
-    if (cleanNavidiariaId_(rows[i][1]) !== agentId) throw new Error("Non puoi eliminare questa richiesta.");
-    sheet.deleteRow(i + 2);
-    return {ok:true, deleted:true, id:requestId};
+  for (let index = 0; index < rows.length; index++) {
+    if (String(rows[index][0] || "").trim() !== requestId) continue;
+    if (cleanNavidiariaId_(rows[index][1]) !== agentId) {
+      throw new Error("Non puoi eliminare una richiesta di un altro agente.");
+    }
+    sheet.deleteRow(index + 2);
+    return { ok:true, deleted:true };
   }
-  throw new Error("Richiesta non trovata.");
+  return { ok:true, deleted:false };
 }

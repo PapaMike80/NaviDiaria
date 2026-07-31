@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 652 652" role="img" aria-labelledby="title desc">
+  <title id="title">Gestione Navigazione Laghi</title>
+  <desc id="desc">Logo circolare ispirato al marchio ufficiale usato come identità visiva della PWA</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="62%">
+      <stop offset="0%" stop-color="#3a2f78"/>
+      <stop offset="100%" stop-color="#2c2664"/>
+    </radialGradient>
+    <path id="topArc" d="M 108 322 A 218 218 0 0 1 544 322"/>
+    <path id="bottomArc" d="M 544 322 A 218 218 0 0 1 108 322"/>
+  </defs>
+  <circle cx="326" cy="326" r="278" fill="url(#bg)"/>
+  <circle cx="326" cy="326" r="218" fill="#ffffff"/>
+  <circle cx="326" cy="326" r="184" fill="#ffffff" stroke="#f0f4fb" stroke-width="10"/>
+  <circle cx="326" cy="326" r="150" fill="#ffffff"/>
+
+  <text fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="3.5">
+    <textPath href="#topArc" startOffset="50%" text-anchor="middle">GESTIONE NAVIGAZIONE</textPath>
+  </text>
+  <text fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="3.5">
+    <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">ITALIA</textPath>
+  </text>
+
+  <path d="M337 195c-5 0-9 4-9 9v94h-16c-6 0-11 5-11 11s5 11 11 11h16v54h-19c-6 0-11 5-11 11s5 11 11 11h19v25c0 5 4 9 9 9s9-4 9-9v-25h19c6 0 11-5 11-11s-5-11-11-11h-19v-54h16c6 0 11-5 11-11s-5-11-11-11h-16v-94c0-5-4-9-9-9Z" fill="#2c2664"/>
+  <circle cx="337" cy="258" r="20" fill="#ffffff" stroke="#2c2664" stroke-width="10"/>
+  <path d="M213 311c30-58 79-92 116-92 17 0 34 8 50 24 12 12 23 28 34 46-19 11-43 18-71 18-36 0-72 2-129 4Z" fill="#2c2664"/>
+  <path d="M270 359c37-10 79-16 129-16 41 0 79 5 116 15-24 33-66 54-115 54-52 0-93-15-130-53Z" fill="#2c2664"/>
+  <path d="M196 378c29 0 58 8 82 24-36 16-75 16-116 1 8-12 19-23 34-25Z" fill="#2c2664"/>
+  <path d="M214 455c26 13 61 21 110 21 57 0 100-12 132-36-20 21-41 36-65 46-19 8-42 13-67 15-27 2-53-1-79-9-23-7-43-19-61-37Z" fill="#2c2664" opacity="0.16"/>
+  <path d="M198 230c0 76 52 136 128 136 42 0 78-15 104-40-10 69-66 123-133 123-73 0-132-59-132-132 0-35 14-67 36-91 0 1-3 2-3 4Z" fill="#2c2664" opacity="0.08"/>
+</svg>

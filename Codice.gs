@@ -19,8 +19,12 @@ const NAVITURNI_CONFIG = {
   titolo: "NAVITURNI — TURNO DEL PERSONALE"
 };
 
-function doGet() {
+function doGet(e) {
   try {
+    const calendarToken = String(e && e.parameter && e.parameter.calendar || "").trim();
+    if (calendarToken) {
+      return serveNaviCalendar_(calendarToken);
+    }
     const lock = LockService.getScriptLock();
     if (!lock.tryLock(8000)) {
       throw new Error("Il foglio è temporaneamente occupato. Riprova tra qualche secondo.");

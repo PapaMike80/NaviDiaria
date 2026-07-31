@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1290 2796" role="img" aria-labelledby="title desc">
+  <title id="title">NaviDiaria iOS splash screen</title>
+  <desc id="desc">Schermata di avvio dedicata per dispositivi iOS</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#061720"/>
+      <stop offset="100%" stop-color="#0f3349"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="40%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1290" height="2796" fill="url(#bg)"/>
+  <circle cx="645" cy="780" r="520" fill="url(#glow)"/>
+  <circle cx="645" cy="910" r="318" fill="#0f3558"/>
+  <circle cx="645" cy="910" r="254" fill="#f7f5ef"/>
+  <circle cx="645" cy="910" r="220" fill="#ffffff"/>
+  <path d="M455 960c34-75 97-121 141-121 26 0 52 14 75 41-26 18-52 39-73 66-22 27-43 69-68 98-35-18-60-47-75-84Z" fill="#0f3c75"/>
+  <path d="M645 822c31 0 56 25 56 56s-25 56-56 56-56-25-56-56 25-56 56-56Zm0 24c-18 0-32 14-32 32s14 32 32 32 32-14 32-32-14-32-32-32Z" fill="#0f3c75"/>
+  <rect x="632" y="862" width="26" height="366" rx="13" fill="#0f3c75"/>
+  <path d="M663 926c93 0 179 33 231 90-59 25-126 38-205 38-63 0-127-10-197-31 31-61 94-97 171-97Z" fill="#0f3c75"/>
+  <path d="M494 1109h302v24H494z" fill="#d8a84f" opacity="0.96"/>
+  <path d="M470 1143h350v18H470z" fill="#f7f5ef" opacity="0.84"/>
+  <text x="645" y="1462" font-family="Manrope, DM Sans, Arial, sans-serif" font-size="94" font-weight="800" text-anchor="middle" fill="#f7f5ef">NaviDiaria</text>
+  <text x="645" y="1538" font-family="DM Sans, Arial, sans-serif" font-size="38" font-weight="500" text-anchor="middle" fill="#d9e3ea" opacity="0.9">Turni, diaria e documenti sempre aggiornati</text>
+</svg>

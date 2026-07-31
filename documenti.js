@@ -6,7 +6,7 @@ const CONFIG = {
   branch: 'main',
   folders: ['turni', 'ods'],
   metadataFile: 'documenti.json',
-  version: 'v1.03'
+  version: 'v1.05'
 };
 
 const state = {
@@ -21,7 +21,12 @@ const elements = {
   odsCount: document.getElementById('odsCount'),
   refreshButton: document.getElementById('refreshButton'),
   notice: document.getElementById('notice'),
-  emptyState: document.getElementById('emptyState')
+  emptyState: document.getElementById('emptyState'),
+  viewer: document.getElementById('documentViewer'),
+  viewerFrame: document.getElementById('documentFrame'),
+  viewerTitle: document.getElementById('viewerTitle'),
+  viewerDownload: document.getElementById('viewerDownload'),
+  viewerClose: document.getElementById('viewerClose')
 };
 
 function setText(id, text) {
@@ -200,7 +205,8 @@ function fileToDocument(file, folder) {
     data: metadata.data || null,
     inizio: metadata.inizio || range.inizio || null,
     fine: metadata.fine || range.fine || null,
-    filename
+    filename,
+    source:'github'
   };
 }
 
@@ -229,7 +235,22 @@ function fallbackFromJson() {
     ...item,
     file: pagesPdfUrl(item.file || ''),
     path: item.file || '',
-    filename: (item.file || '').split('/').pop()
+    filename: (item.file || '').split('/').pop(),
+    source:'json'
+  }));
+}
+
+async function loadFirebaseDocuments() {
+  const provider = window.NaviAdminFirebase;
+  if (!provider?.getAdminDocuments) return [];
+  await provider.ready;
+  const documents = await provider.getAdminDocuments();
+  return documents.map(item => ({
+    ...item,
+    id:String(item.id),
+    file:'',
+    path:'',
+    source:'firebase'
   }));
 }
 
@@ -298,35 +319,78 @@ function turnCard(documentItem) {
       : 'TURNO · PUBBLICATO';
 
   return `
-    <a class="${classes}"
-       href="${escapeHtml(documentItem.file)}"
-       target="_blank"
-       rel="noopener">
+    <article class="${classes}" data-document-id="${escapeHtml(documentItem.id)}">
       <span class="pdf-icon">PDF</span>
       <div>
         <small>${label}</small>
         <strong>${escapeHtml(documentItem.titolo)}</strong>
         <p>${documentDescription(documentItem)}</p>
       </div>
-      <b aria-hidden="true">↗</b>
-    </a>
+      ${documentActions(documentItem)}
+    </article>
   `;
 }
 
 function odsCard(documentItem) {
   return `
-    <a class="document"
-       href="${escapeHtml(documentItem.file)}"
-       target="_blank"
-       rel="noopener">
+    <article class="document" data-document-id="${escapeHtml(documentItem.id)}">
       <span class="ods-number">${escapeHtml(documentItem.numero || '≡')}</span>
       <div>
         <strong>${escapeHtml(documentItem.titolo)}</strong>
         <p>${documentDescription(documentItem)}</p>
       </div>
-      <b aria-hidden="true">↗</b>
-    </a>
+      ${documentActions(documentItem)}
+    </article>
   `;
+}
+
+function documentActions(documentItem) {
+  return `
+    <div class="document-actions">
+      <button class="document-action" type="button" data-open-document="${escapeHtml(documentItem.id)}">Apri</button>
+      <button class="document-action download" type="button" data-download-document="${escapeHtml(documentItem.id)}">↓ Scarica</button>
+    </div>
+  `;
+}
+
+async function documentUrl(documentItem) {
+  if (documentItem?.source !== 'firebase') return documentItem?.file || '';
+  return window.NaviAdminFirebase.getAdminDocumentFile(documentItem.id);
+}
+
+async function openDocument(documentId) {
+  const documentItem = state.documents.find(item => String(item.id) === String(documentId));
+  if (!documentItem || !elements.viewer || !elements.viewerFrame) return;
+
+  const url = await documentUrl(documentItem);
+  if (!url) throw new Error('Contenuto del documento non disponibile');
+  elements.viewerTitle.textContent = documentItem.titolo || documentItem.filename || 'Documento';
+  elements.viewerDownload.href = url;
+  elements.viewerDownload.download = documentItem.filename || 'documento.pdf';
+  elements.viewerFrame.src = url;
+  elements.viewer.hidden = false;
+  document.body.classList.add('document-viewer-open');
+  elements.viewerClose?.focus();
+}
+
+async function downloadDocument(documentId) {
+  const documentItem = state.documents.find(item => String(item.id) === String(documentId));
+  if (!documentItem) return;
+  const url = await documentUrl(documentItem);
+  if (!url) throw new Error('Contenuto del documento non disponibile');
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = documentItem.filename || 'documento.pdf';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function closeDocument() {
+  if (!elements.viewer) return;
+  elements.viewer.hidden = true;
+  if (elements.viewerFrame) elements.viewerFrame.src = 'about:blank';
+  document.body.classList.remove('document-viewer-open');
 }
 
 function documentScore(documentItem) {
@@ -375,6 +439,17 @@ function renderDocuments() {
     elements.emptyState.style.display =
       state.documents.length ? 'none' : 'block';
   }
+
+  document.querySelectorAll('[data-open-document]').forEach(button => {
+    button.addEventListener('click', () => openDocument(button.dataset.openDocument).catch(error => {
+      if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco ad aprire il documento: ${error.message}`}
+    }));
+  });
+  document.querySelectorAll('[data-download-document]').forEach(button => {
+    button.addEventListener('click', () => downloadDocument(button.dataset.downloadDocument).catch(error => {
+      if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco a scaricare il documento: ${error.message}`}
+    }));
+  });
 }
 
 async function loadDocuments() {
@@ -408,6 +483,16 @@ async function loadDocuments() {
     }
   }
 
+  try {
+    const uploaded = await loadFirebaseDocuments();
+    const byId = new Map(state.documents.map(item => [String(item.id), item]));
+    uploaded.forEach(item => byId.set(String(item.id), item));
+    state.documents = [...byId.values()];
+    if (uploaded.length) setText('sourceLabel', 'Archivio GitHub + Firebase');
+  } catch (error) {
+    console.warn('Documenti Firebase non disponibili.', error);
+  }
+
   renderDocuments();
   addVersionToMenu();
 
@@ -417,6 +502,14 @@ async function loadDocuments() {
 if (elements.refreshButton) {
   elements.refreshButton.addEventListener('click', loadDocuments);
 }
+
+elements.viewerClose?.addEventListener('click', closeDocument);
+elements.viewer?.addEventListener('click', event => {
+  if (event.target === elements.viewer) closeDocument();
+});
+window.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !elements.viewer?.hidden) closeDocument();
+});
 
 /*
  * shared-menu.js può ricostruire il menu dopo il caricamento della pagina.

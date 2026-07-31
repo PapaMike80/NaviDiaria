@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="logo/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="logo/icona_apple_180.png">
   <link rel="apple-touch-startup-image" href="logo/splash_ios.png">
-  <title>Documenti · NaviTurni</title>
+  <title>NaviSuite Documenti</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,6 +59,87 @@
       outline-offset: 3px;
     }
 
+    .document-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .document-action {
+      min-width: 82px;
+      padding: 8px 10px;
+      border: 1px solid #2d6570;
+      border-radius: 8px;
+      background: #12313b;
+      color: #dffcff;
+      font: 800 11px DM Sans, sans-serif;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .document-action:hover {
+      border-color: #38d6bf;
+      background: #17434a;
+    }
+
+    .document-action.download {
+      color: #86efac;
+    }
+
+    .document-viewer[hidden] {
+      display: none;
+    }
+
+    .document-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: 14px;
+      background: rgba(2, 13, 18, .94);
+      backdrop-filter: blur(8px);
+    }
+
+    .viewer-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      padding: 10px 12px;
+      border: 1px solid #28515d;
+      border-bottom: 0;
+      border-radius: 12px 12px 0 0;
+      background: #0c2530;
+    }
+
+    .viewer-toolbar strong {
+      min-width: 0;
+      margin-right: auto;
+      overflow: hidden;
+      color: #edfafa;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .viewer-toolbar .document-action {
+      flex: 0 0 auto;
+    }
+
+    #documentFrame {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #28515d;
+      border-radius: 0 0 12px 12px;
+      background: white;
+    }
+
+    body.document-viewer-open {
+      overflow: hidden;
+    }
+
     .archive-notice {
       margin: 0 0 22px;
       padding: 13px 16px;
@@ -91,6 +172,31 @@
     @media (max-width: 720px) {
       .archive-status {
         margin-top: 20px;
+      }
+
+      .document {
+        grid-template-columns: auto 1fr;
+      }
+
+      .document-actions {
+        grid-column: 1 / -1;
+        flex-direction: row;
+      }
+
+      .document-action {
+        flex: 1;
+      }
+
+      .document-viewer {
+        padding: 0;
+      }
+
+      .viewer-toolbar {
+        border-radius: 0;
+      }
+
+      #documentFrame {
+        border-radius: 0;
       }
     }
   </style>
@@ -161,8 +267,18 @@
     </div>
   </main>
 
+  <section id="documentViewer" class="document-viewer" hidden aria-label="Visualizzatore documento">
+    <div class="viewer-toolbar">
+      <strong id="viewerTitle">Documento</strong>
+      <a id="viewerDownload" class="document-action download" href="#" download>↓ Scarica</a>
+      <button id="viewerClose" class="document-action" type="button">✕ Chiudi</button>
+    </div>
+    <iframe id="documentFrame" title="Documento PDF"></iframe>
+  </section>
+
   <script src="shared-menu.js"></script>
-  <script src="documenti.js?v=1.02"></script>
+  <script src="admin-firebase-rest.js?v=30"></script>
+  <script src="documenti.js?v=1.05"></script>
 
   <!-- Navigazione Mobile Liquid Glass -->
   <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
