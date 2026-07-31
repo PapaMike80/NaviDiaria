@@ -1,5 +1,5 @@
 (function(){
-  const APP_VERSION='v1.28';
+  const APP_VERSION='v1.35';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   if('serviceWorker' in navigator){
     if(!window.__naviSwRegistrationPromise){
@@ -21,6 +21,14 @@
     location.replace('index.html');
     return;
   }
+  // Registra su Firebase l'accesso alle pagine interne senza conservare il PIN.
+  window.NaviAdminFirebase?.recordUserAccess?.(sessionAgent).catch(() => {});
+  if(window.NaviAdminFirebase?.touchUserPresence){
+    const signalPresence=()=>window.NaviAdminFirebase.touchUserPresence(sessionAgent).catch(()=>{});
+    signalPresence();
+    setInterval(signalPresence,45000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)signalPresence();});
+  }
   // Mantiene allineate le due chiavi di sessione usate dalle pagine storiche.
   try{
     if(!localStorage.getItem('navidiaria.activeAgent'))localStorage.setItem('navidiaria.activeAgent',JSON.stringify(sessionAgent));
@@ -40,7 +48,7 @@
 
   if(page==='diaria'){
     common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Trova turno',false,'trovaTurnoNavLink')+item('#oggi','≈','NaviDiaria',true,'diariaNavLink')+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
-    specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,'competencyNav')}${item('impostazioni.html#gestione-utenti','♙','Gestione utenti',false,'adminNav')}`;
+    specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,'competencyNav')}${item('agenti.html','♙','Gestione agenti',false,'adminNav')}`;
     user=`<div class="sidebar-user-actions"><button id="syncShifts" class="sidebar-footer-update" type="button"><span>↻</span>Aggiorna</button><small id="syncStatus" class="sidebar-data-status">Locale</small><strong id="sidebarAgentName" class="sidebar-agent-name">AGENTE</strong><button id="logoutButton" class="sidebar-action sidebar-exit" type="button" hidden>Esci</button><button id="pinSettingsButton" class="sidebar-action" type="button" hidden>Cambia PIN</button></div>`;
   }else if(page==='trova'){
     common=item('naviturni.html','▦','NaviTurni')+item('#turni-operativi','⇄','Trova turno',true)+item('navidiaria.html','≈','NaviDiaria',false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
@@ -60,7 +68,7 @@
     status='';
   }else if(page==='settings'){
     common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Trova turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','NaviDiaria',false,'diariaNavLink')+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('#telegram','⚙','Impostazioni',true);
-    specific=`<span class="sidebar-menu-label">PREFERENZE</span>${item('#telegram','◇','Notifiche Telegram')}${item('#altre-preferenze','≡','Altre preferenze')}${isAdminAgent(sessionAgent)?item('aggiornamenti.html','↻','Aggiornamenti turni')+item('#gestione-utenti','♙','Gestione utenti'):''}`;
+    specific=`<span class="sidebar-menu-label">PREFERENZE</span>${item('#telegram','◇','Notifiche Telegram')}${item('#altre-preferenze','≡','Altre preferenze')}${isAdminAgent(sessionAgent)?item('aggiornamenti.html','↻','Aggiornamenti turni')+item('agenti.html','♙','Gestione agenti'):''}`;
     user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }else{
     common=item('naviturni.html','▦','NaviTurni')+item('navidiaria.html','≈','NaviDiaria',false,'diariaNavLink')+item('#turni-docs','▤','Documenti',true,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
@@ -83,6 +91,7 @@
   // PREFERENZE, quindi evitiamo di mostrarlo due volte.
   if(isAdminAgent(sessionAgent)&&page!=='settings'){
     common+=item('aggiornamenti.html','↻','Aggiornamenti');
+    common+=item('agenti.html','♙','Agenti');
   }
 
   common=item('index.html','⌂','Home')+common;

@@ -10,7 +10,7 @@
     gtag('config', 'G-R59ZS3YB4Q');
   </script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NaviDiaria">
@@ -1563,6 +1563,22 @@
     line-height:1.2 !important;
   }
 </style>
+<style id="naviturni-mobile-header-fix">
+  @media (max-width:950px) {
+    :root { --month-header-height:14px !important; --date-header-height:42px !important; }
+    body.turni-page { padding-top:env(safe-area-inset-top,0px) !important; padding-left:0 !important; }
+    #matrix-scroll-wrap { margin-left:0 !important; left:0 !important; width:max-content !important; min-width:100% !important; }
+    #matrix-scroll-wrap .month-header th { top:env(safe-area-inset-top,0px) !important; height:14px !important; min-height:14px !important; max-height:14px !important; padding:0 4px !important; line-height:12px !important; font-size:7px !important; }
+    #matrix-scroll-wrap .date-header th { top:calc(env(safe-area-inset-top,0px) + 14px) !important; height:42px !important; min-height:42px !important; max-height:42px !important; padding:2px 1px !important; vertical-align:top !important; }
+    #matrix-scroll-wrap .date-head-day { font-size:8px !important; line-height:9px !important; }
+    #matrix-scroll-wrap .date-head-num { font-size:14px !important; line-height:15px !important; }
+    #matrix-scroll-wrap .date-head-markers { height:11px !important; min-height:11px !important; margin:1px auto 0 !important; font-size:7px !important; line-height:9px !important; }
+    #matrix-scroll-wrap th:first-child,
+    #matrix-scroll-wrap td:first-child { left:0 !important; }
+    #matrix-scroll-wrap .month-header th:first-child,
+    #matrix-scroll-wrap .date-header th:first-child { width:126px !important; min-width:126px !important; max-width:126px !important; }
+  }
+</style>
 </head>
 <body class="turni-page">
 
@@ -1661,7 +1677,8 @@
   </footer>
 
   <script src="turni-shared.js"></script>
-  <script src="admin-firebase-rest.js?v=30"></script>
+  <script src="admin-firebase-rest.js?v=34"></script>
+  <script src="draft-period.js?v=1"></script>
   <script src="shared-data.js"></script>
   <script src="cloud-data.js"></script>
   <script src="shared-menu.js"></script>
@@ -2244,8 +2261,10 @@
           d.setDate(baseDate.getDate() + g);
           const iso = formatDateISOClient(d);
           const weekStartIso = getMondayISO(iso);
-          const forcedDraft = iso >= "2026-08-10" && iso <= "2026-09-06";
-          const weekState = forcedDraft ? "bozza" : (weekStatusMap.get(weekStartIso) || "ufficiale");
+          const storedWeekState = weekStatusMap.get(weekStartIso) || "ufficiale";
+          const weekState = storedWeekState === "nascosta"
+            ? "nascosta"
+            : (window.NaviDraftPeriod?.contains(iso) ? "bozza" : "ufficiale");
           dateCalendario.push({
             col: colCounter,
             weekKey: sett.key,
@@ -4698,6 +4717,14 @@
       });
     }
 
+    window.addEventListener("navisuite-draft-period-updated", () => {
+      if (!globalData) return;
+      inizializzaCalendario();
+      buildTableHeader();
+      renderTable();
+      setTimeout(scrollToToday, 30);
+    });
+
     window.addEventListener("DOMContentLoaded", () => {
       loggedAgentProfile = readLoggedAgentProfile();
       if (!loggedAgentProfile) {
@@ -4819,6 +4846,17 @@
 #tbody td.my-change-request,#tbody td.peer-change-request{position:relative!important}
 #tbody tr.logged-agent-row td.my-change-request,
 #tbody tr.logged-agent-row td.peer-change-request{position:sticky!important;top:var(--logged-row-sticky-top,38px)!important}
+@media (max-width:950px){
+  #matrix-scroll-wrap #tbody tr.logged-agent-row td{
+    position:sticky!important;
+    top:calc(env(safe-area-inset-top,0px) + var(--logged-row-sticky-top,62px))!important;
+    z-index:46!important;
+  }
+  #matrix-scroll-wrap #tbody tr.logged-agent-row td.td-name{
+    left:0!important;
+    z-index:51!important;
+  }
+}
 #tbody td.my-change-request .cell-pill::after,#tbody td.peer-change-request .cell-pill::after{content:none!important;display:none!important}
 #tbody tr.peer-change-row td.td-name .agent-name-text::after{content:none!important}
 .change-request-tooltip{position:fixed;z-index:99999;max-width:330px;padding:10px 12px;border:1px solid #f59e0b;border-radius:10px;background:#10222c;color:#fff;box-shadow:0 14px 35px rgba(0,0,0,.45);font-size:12px;line-height:1.45}
@@ -4875,9 +4913,9 @@
    const manualTransition=norm(variation.tipo)==='MANUALE'&&sameTransition;
    return Boolean(sameRequest||manualTransition||odsRequestConfirmed);
  }
- function addCell(row,cal,cls,items,confirmed=false){const td=row?.querySelector(`td[data-col="${cal.col}"]`);if(!td)return;td.classList.add(cls);td.classList.toggle('confirmed-change-request',confirmed);td.dataset.changeRequest=JSON.stringify(items);td.title=items.map(x=>x.agentName?`${x.agentName} → ${x.agentTo} · ${x.colleagueName} → ${x.colleagueTo}`:`${x.owner}: ${x.from} → ${x.to}`).join('\n')}
+ function addCell(row,cal,cls,items,confirmed=false){const td=row?.querySelector(`td[data-col="${cal.col}"]`);if(!td)return;if(td.hasAttribute('title')&&!td.dataset.changeRequestPreviousTitle)td.dataset.changeRequestPreviousTitle=td.getAttribute('title')||'';td.removeAttribute('title');td.classList.add(cls);td.classList.toggle('confirmed-change-request',confirmed);td.dataset.changeRequest=JSON.stringify(items)}
  function apply(){
-   document.querySelectorAll('#tbody td.my-change-request,#tbody td.peer-change-request').forEach(td=>{td.classList.remove('my-change-request','peer-change-request','confirmed-change-request');delete td.dataset.changeRequest});
+   document.querySelectorAll('#tbody td.my-change-request,#tbody td.peer-change-request').forEach(td=>{td.classList.remove('my-change-request','peer-change-request','confirmed-change-request');delete td.dataset.changeRequest;if('changeRequestPreviousTitle'in td.dataset){if(td.dataset.changeRequestPreviousTitle)td.setAttribute('title',td.dataset.changeRequestPreviousTitle);else td.removeAttribute('title');delete td.dataset.changeRequestPreviousTitle}});
    document.querySelectorAll('#tbody tr.peer-change-row').forEach(r=>r.classList.remove('peer-change-row'));
    const p=profile();if(!p)return;
    requests.forEach(req=>{

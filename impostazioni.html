@@ -75,6 +75,14 @@
     </section>
     <section class="section admin-section" id="gestione-settimane" hidden>
       <div class="section-head"><div><h2>Pubblicazione settimane</h2><p>Scegli quali settimane sono ufficiali, in bozza oppure ancora nascoste. Le settimane vengono lette automaticamente da Foglio1.</p></div><span class="badge">Solo amministratori</span></div>
+      <div class="calendar-login" id="draft-period-box">
+        <div class="grid">
+          <div class="field"><label for="draft-start">Inizio bozza</label><input id="draft-start" type="date" value="2026-08-10"></div>
+          <div class="field"><label for="draft-end">Fine bozza</label><input id="draft-end" type="date" value="2026-09-06"></div>
+        </div>
+        <button class="btn primary" type="button" id="save-draft-period">Salva periodo bozza</button>
+      </div>
+      <div class="status" id="draft-period-status" aria-live="polite"></div>
       <div class="weeks-toolbar">
         <div class="weeks-legend"><span><i class="official"></i>Ufficiale</span><span><i class="draft"></i>Bozza</span><span><i class="hidden"></i>Nascosta</span></div>
         <button class="btn primary" type="button" id="save-weeks">Salva calendario</button>
@@ -87,7 +95,7 @@
       <div class="future" style="margin-top:20px"><div><strong>Aspetto</strong>Tema e leggibilità</div><div><strong>NaviTurni</strong>Vista e filtri predefiniti</div><div><strong>Altri canali</strong>WhatsApp e nuove notifiche</div></div>
     </section>
     <section class="section admin-section" id="gestione-utenti" hidden>
-      <div class="section-head"><div><h2>Gestione utenti</h2><p>Utenti che hanno completato almeno una volta la registrazione con il proprio PIN.</p></div><span class="badge">Solo amministratori</span></div>
+      <div class="section-head"><div><h2>Gestione utenti</h2><p>Agenti registrati e ultimo accesso rilevati direttamente da Firebase.</p></div><span class="badge">Firebase · Admin</span></div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Utente</th><th>Registrato il</th><th>Ultimo accesso</th><th>PIN</th></tr></thead>
@@ -103,6 +111,8 @@
     <a href="documenti.html" class="nav-item"><span class="nav-icon">▤</span><span>Doc</span></a>
     <a href="impostazioni.html" class="nav-item active" aria-current="page"><span class="nav-icon">⚙</span><span>Impost.</span></a>
   </nav>
+  <script src="admin-firebase-rest.js?v=34"></script>
+  <script src="draft-period.js?v=1"></script>
   <script src="cloud-data.js"></script>
   <script src="shared-menu.js"></script>
   <script>
@@ -381,7 +391,8 @@
     function renderUsers(users){
       if(!users.length){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Nessun utente registrato.</td></tr>';return;}
       const ordered=[...users].sort((a,b)=>accessTimestamp(b.lastAccess)-accessTimestamp(a.lastAccess)||String(a.name||'').localeCompare(String(b.name||''),'it'));
-      usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}</span></td><td>${safeText(user.registeredAt||'—')}</td><td>${safeText(user.lastAccess||'—')}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button><button class="delete-user-btn" type="button" data-delete-user="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Elimina</button></td></tr>`).join('');
+      const date=value=>{const time=accessTimestamp(value);return time?new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'medium'}).format(new Date(time)):'—';};
+      usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}${user.residence?` · ${safeText(user.residence)}`:''}</span></td><td>${safeText(date(user.registeredAt))}</td><td>${safeText(date(user.lastAccess))}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button><button class="delete-user-btn" type="button" data-delete-user="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Elimina</button></td></tr>`).join('');
     }
     function formatWeekDate(iso){
       const [year,month,day]=String(iso||'').split('-').map(Number);
@@ -428,13 +439,34 @@
       finally{saveWeeksButton.disabled=false;}
     });
 
+    const draftStart=document.getElementById('draft-start');
+    const draftEnd=document.getElementById('draft-end');
+    const draftStatus=document.getElementById('draft-period-status');
+    const saveDraftButton=document.getElementById('save-draft-period');
+    async function loadDraftPeriod(){
+      if(!isAdmin||!window.NaviDraftPeriod)return;
+      const period=await NaviDraftPeriod.refresh();
+      draftStart.value=period.start;draftEnd.value=period.end;
+      draftStatus.textContent=`Periodo attuale: ${formatWeekDate(period.start)} – ${formatWeekDate(period.end)}.`;
+    }
+    saveDraftButton.addEventListener('click',async()=>{
+      if(!draftStart.value||!draftEnd.value){draftStatus.textContent='Inserisci entrambe le date.';return;}
+      if(draftStart.value>draftEnd.value){draftStatus.textContent='La data iniziale non può essere successiva alla data finale.';return;}
+      saveDraftButton.disabled=true;draftStatus.textContent='Salvataggio del periodo bozza…';
+      try{
+        const period=await NaviDraftPeriod.save({start:draftStart.value,end:draftEnd.value});
+        draftStatus.textContent=`Periodo bozza salvato: ${formatWeekDate(period.start)} – ${formatWeekDate(period.end)}. Turni e Cambi si aggiorneranno automaticamente.`;
+      }catch(error){draftStatus.textContent=error.message||'Salvataggio non riuscito.';}
+      finally{saveDraftButton.disabled=false;}
+    });
+
     async function loadRegisteredUsers(){
       if(!isAdmin)return;
       adminSection.hidden=false;
-      if(!window.NaviCloud||!pinHash){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Sessione amministratore non disponibile. Accedi nuovamente.</td></tr>';return;}
+      if(!window.NaviAdminFirebase){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Firebase non disponibile. Ricarica la pagina.</td></tr>';return;}
       try{
-        const result=await NaviCloud.request('list_users',{agentId:String(profile.id),pinHash});
-        renderUsers(Array.isArray(result.users)?result.users:[]);
+        await NaviAdminFirebase.recordUserAccess(profile);
+        renderUsers(await NaviAdminFirebase.listRegisteredUsers());
       }catch(error){usersList.innerHTML=`<tr><td class="empty-row" colspan="4">${safeText(error.message||'Impossibile caricare gli utenti.')}</td></tr>`;}
     }
     usersList.addEventListener('click',async event=>{
@@ -447,13 +479,14 @@
       button.disabled=true;usersStatus.textContent=deleting?'Eliminazione utente in corso…':'Reset PIN in corso…';
       try{
         await NaviCloud.request(deleting?'delete_user':'reset_pin',{agentId:String(profile.id),pinHash,targetAgentId});
+        if(deleting)await NaviAdminFirebase.deleteRegisteredUser(targetAgentId);
         localStorage.removeItem(`navidiaria.pin.${targetAgentId}`);
         usersStatus.textContent=deleting?`Account di ${userName} eliminato.`:`PIN di ${userName} resettato.`;
         await loadRegisteredUsers();
       }catch(error){usersStatus.textContent=error.message||'Reset PIN non riuscito.';button.disabled=false;}
     });
     loadWeeks();
-    loadRegisteredUsers();
+    loadDraftPeriod();
     loadTelegramStatus();
     loadCalendarStatus();
   </script>

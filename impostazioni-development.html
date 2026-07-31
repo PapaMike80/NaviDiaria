@@ -51,6 +51,12 @@
     </section>
     <section class="section admin-section" id="gestione-settimane" hidden>
       <div class="section-head"><div><h2>Calendario turni</h2><p>Scegli quali settimane sono ufficiali, in bozza oppure ancora nascoste. Le settimane vengono lette automaticamente da Foglio1.</p></div><span class="badge">Solo amministratori</span></div>
+      <div class="grid" id="draft-period-box" style="margin-top:20px">
+        <div class="field"><label for="draft-start">Inizio bozza</label><input id="draft-start" type="date" value="2026-08-10"></div>
+        <div class="field"><label for="draft-end">Fine bozza</label><input id="draft-end" type="date" value="2026-09-06"></div>
+      </div>
+      <div class="actions"><button class="btn primary" type="button" id="save-draft-period">Salva periodo bozza</button></div>
+      <div class="status" id="draft-period-status" aria-live="polite"></div>
       <div class="weeks-toolbar">
         <div class="weeks-legend"><span><i class="official"></i>Ufficiale</span><span><i class="draft"></i>Bozza</span><span><i class="hidden"></i>Nascosta</span></div>
         <button class="btn primary" type="button" id="save-weeks">Salva calendario</button>
@@ -80,6 +86,8 @@ window.NaviCloud={request:async function(action,payload){
  const data=await response.json(); if(!data||data.ok===false) throw new Error(data&&data.error||'Errore cloud'); return data;
 }};
 </script>
+  <script src="admin-firebase-rest.js?v=34"></script>
+  <script src="draft-period.js?v=1"></script>
   <script src="shared-menu.js"></script>
   <script>
     const LOGIN_KEY="naviturni_logged_agent";
@@ -208,6 +216,27 @@ window.NaviCloud={request:async function(action,payload){
       finally{saveWeeksButton.disabled=false;}
     });
 
+    const draftStart=document.getElementById('draft-start');
+    const draftEnd=document.getElementById('draft-end');
+    const draftStatus=document.getElementById('draft-period-status');
+    const saveDraftButton=document.getElementById('save-draft-period');
+    async function loadDraftPeriod(){
+      if(!isAdmin||!window.NaviDraftPeriod)return;
+      const period=await NaviDraftPeriod.refresh();
+      draftStart.value=period.start;draftEnd.value=period.end;
+      draftStatus.textContent=`Periodo attuale: ${formatWeekDate(period.start)} – ${formatWeekDate(period.end)}.`;
+    }
+    saveDraftButton.addEventListener('click',async()=>{
+      if(!draftStart.value||!draftEnd.value){draftStatus.textContent='Inserisci entrambe le date.';return;}
+      if(draftStart.value>draftEnd.value){draftStatus.textContent='La data iniziale non può essere successiva alla data finale.';return;}
+      saveDraftButton.disabled=true;draftStatus.textContent='Salvataggio del periodo bozza…';
+      try{
+        const period=await NaviDraftPeriod.save({start:draftStart.value,end:draftEnd.value});
+        draftStatus.textContent=`Periodo bozza salvato: ${formatWeekDate(period.start)} – ${formatWeekDate(period.end)}. Turni e Cambi si aggiorneranno automaticamente.`;
+      }catch(error){draftStatus.textContent=error.message||'Salvataggio non riuscito.';}
+      finally{saveDraftButton.disabled=false;}
+    });
+
     async function loadRegisteredUsers(){
       if(!isAdmin)return;
       adminSection.hidden=false;
@@ -233,6 +262,7 @@ window.NaviCloud={request:async function(action,payload){
       }catch(error){usersStatus.textContent=error.message||'Reset PIN non riuscito.';button.disabled=false;}
     });
     loadWeeks();
+    loadDraftPeriod();
     loadRegisteredUsers();
     loadTelegramStatus();
   </script>

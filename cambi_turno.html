@@ -201,6 +201,12 @@
     th.bozza-start, td.bozza-start {
       border-left: 3px solid #f59e0b !important;
     }
+    .week-draft-label {
+      display:block; min-height:10px; margin-top:1px; text-align:center;
+      color:#ffd166; font-size:7px; line-height:9px; font-weight:900;
+      letter-spacing:.05em;
+    }
+    .week-draft-label.is-empty { visibility:hidden; }
     .date-head-draft {
       display:block;
       width:7px;
@@ -1472,11 +1478,30 @@
 #change-request-register .change-action-btn:hover{filter:brightness(1.15)}
 #change-request-register .change-action-send{border-color:#2dd4bf;color:#99f6e4;background:rgba(45,212,191,.12)}
 #change-request-register .change-action-delete{border-color:#ef4444;color:#fecaca;background:rgba(239,68,68,.12)}
+@media(max-width:700px){
+  #change-request-register{margin:12px 10px;padding:12px}
+  .change-register-wrap{overflow:visible}
+  .change-register-wrap table,.change-register-wrap tbody,.change-register-wrap tr,.change-register-wrap td{display:block;width:100%}
+  .change-register-wrap table{min-width:0}
+  .change-register-wrap thead{display:none}
+  .change-register-wrap tr{margin:0 0 12px;padding:12px;border:1px solid #28505a;border-radius:11px;background:#102a35}
+  .change-register-wrap tr:last-child{margin-bottom:0}
+  .change-register-wrap td{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;padding:7px 0;border:0;font-size:13px;overflow-wrap:anywhere}
+  .change-register-wrap td::before{content:attr(data-label);color:#8fb1bb;font-size:10px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+  .change-register-wrap td.change-summary-cell{display:block;padding:10px 0;border-top:1px solid #234452;border-bottom:1px solid #234452}
+  .change-register-wrap td.change-summary-cell::before{display:block;margin-bottom:8px}
+  .change-register-wrap .change-day-block{grid-template-columns:1fr;gap:3px}
+  .change-register-wrap .change-day-date{grid-row:auto;margin-bottom:3px;white-space:normal}
+  .change-register-wrap .change-agent-line{white-space:normal}
+  .change-register-wrap td.change-actions-cell{display:block;padding:10px 0 0}
+  #change-request-register .change-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #change-request-register .change-action-btn{min-height:42px;width:100%}
+}
 .change-send-modal{position:fixed;inset:0;z-index:5000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,8,12,.78);backdrop-filter:blur(5px)}
 .change-send-modal.open{display:flex}.change-send-dialog{width:min(520px,100%);border:1px solid #315866;border-radius:16px;background:#0c202a;color:#eefafa;box-shadow:0 25px 80px rgba(0,0,0,.55);padding:18px}
 .change-send-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.change-send-head h3{margin:0;color:#5eead4;font-size:18px}.change-send-close{border:0;background:transparent;color:#bdd1d6;font-size:26px;line-height:1;cursor:pointer}
-.change-send-summary{padding:10px;border-radius:10px;background:rgba(255,255,255,.045);font-size:13px;line-height:1.5;margin-bottom:14px;white-space:pre-wrap}.change-send-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}.change-send-buttons a{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:11px;text-decoration:none;font-weight:900}
-.change-send-mail{background:#2563eb;color:white}.change-send-whatsapp{background:#16a34a;color:white}@media(max-width:520px){.change-send-buttons{grid-template-columns:1fr}}
+.change-send-summary{padding:10px;border-radius:10px;background:rgba(255,255,255,.045);font-size:13px;line-height:1.5;margin-bottom:14px;white-space:pre-wrap}.change-send-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.change-send-buttons a,.change-send-buttons button{display:flex;align-items:center;justify-content:center;min-height:48px;border:0;border-radius:11px;text-decoration:none;font:900 13px inherit;cursor:pointer}
+.change-send-copy{background:#164153;color:#d5fffa}.change-send-mail{background:#2563eb;color:white}.change-send-whatsapp{background:#16a34a;color:white}@media(max-width:520px){.change-send-buttons{grid-template-columns:1fr}}
 </style>
 <style id="change-register-both-agents-style">
 .change-day-block{display:grid;grid-template-columns:minmax(82px,auto) minmax(0,1fr);gap:2px 12px;align-items:start}.change-day-date{grid-row:1 / span 2;color:#5eead4;font-weight:900;text-transform:capitalize;white-space:nowrap}.change-agent-line{display:block;line-height:1.45;white-space:nowrap}.change-agent-line+ .change-agent-line{margin-top:2px;color:#fdba74}.change-day-separator{border:0;border-top:1px solid rgba(255,255,255,.12);margin:8px 0}
@@ -1577,10 +1602,11 @@
   </footer>
 
   <script src="turni-shared.js"></script>
-  <script src="admin-firebase-rest.js?v=30"></script>
+  <script src="admin-firebase-rest.js?v=34"></script>
+  <script src="draft-period.js?v=1"></script>
   <script src="shared-data.js"></script>
   <script src="cloud-data.js"></script>
-  <script src="shared-menu.js?v=1.02"></script>
+  <script src="shared-menu.js?v=1.07"></script>
   <script type="module" src="firebase-data.js"></script>
   <script>
     let globalData = null;
@@ -1909,12 +1935,30 @@
 
     const dateCalendario = [];
     const settimaneInfo = [];
+    let weekStatusMap = new Map();
 
     const nomiGiorni = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
     const nomiGiorniCompleti = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
     const mesiNomi = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
       "novembre", "dicembre"
     ];
+
+    function normalizzaDataISO(value) {
+      return String(value || "").trim().slice(0, 10);
+    }
+
+    function getMondayISO(dateValue) {
+      const date = new Date(`${normalizzaDataISO(dateValue)}T12:00:00`);
+      const day = date.getDay();
+      date.setDate(date.getDate() + (day === 0 ? -6 : 1 - day));
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function applicaStatoSettimane(weeks) {
+      weekStatusMap = new Map((Array.isArray(weeks) ? weeks : [])
+        .filter(week => week?.start)
+        .map(week => [getMondayISO(week.start), String(week.state || "ufficiale").toLowerCase()]));
+    }
 
     const gradeInfo = {
       "grado-capitano": { label: "Capitano", color: "#facc15" },
@@ -1991,6 +2035,10 @@
           const d = new Date(baseDate);
           d.setDate(baseDate.getDate() + g);
           const iso = formatDateISOClient(d);
+          const storedWeekState = weekStatusMap.get(getMondayISO(iso)) || "ufficiale";
+          const weekState = storedWeekState === "nascosta"
+            ? "nascosta"
+            : (window.NaviDraftPeriod?.contains(iso) ? "bozza" : "ufficiale");
           dateCalendario.push({
             col: colCounter,
             weekKey: sett.key,
@@ -2001,7 +2049,8 @@
             labelEstesa: `${nomiGiorniCompleti[(d.getDay() + 6) % 7]} ${d.getDate()} ${mesiNomi[d.getMonth()]}`,
             realObj: d,
             iso,
-            isBozza: Boolean(globalData && globalData.bozza_dal && iso >= globalData.bozza_dal),
+            weekStatus: weekState,
+            isBozza: weekState === "bozza",
             odsCoverageNumber: odsCoverage && iso >= odsCoverage.from && iso <= odsCoverage.until
               ? odsCoverage.number
               : null,
@@ -2097,11 +2146,17 @@
         if (d.giornoSett === "Lun") clsArr.push("week-start");
         if (d.giornoSett === "Dom") clsArr.push("week-end");
         if (isTodayDate(d.realObj)) clsArr.push("today-col");
-                const cls = `class="${clsArr.join(" ")}"`;
+        if (d.isBozza) clsArr.push("bozza-col");
+        const currentIndex = dateCalendario.indexOf(d);
+        if (d.isBozza && dateCalendario[currentIndex - 1]?.isBozza !== true) clsArr.push("bozza-start");
+        const cls = `class="${clsArr.join(" ")}"`;
+        const weekDraftLabel = d.isBozza
+          ? '<span class="week-draft-label">BOZZA</span>'
+          : '<span class="week-draft-label is-empty" aria-hidden="true">BOZZA</span>';
         const markers = d.odsCoverageNumber
           ? `<span class="date-head-ods" aria-label="Coperto dall’ODS ${d.odsCoverageNumber}" title="Coperto dall’ODS ${d.odsCoverageNumber} fino al ${d.odsCoverageUntil.split('-').reverse().join('/')}"></span>`
           : "";
-        html += `<th ${cls} data-col="${d.col}" onclick="eseguiRicercaHeader(${d.col})"><span class="date-head-day">${d.giornoSett}</span><span class="date-head-num">${d.dayNum}</span>${markers ? `<span class="date-head-markers">${markers}</span>` : ''}</th>`;
+        html += `<th ${cls} data-col="${d.col}" onclick="eseguiRicercaHeader(${d.col})"><span class="date-head-day">${d.giornoSett}</span><span class="date-head-num">${d.dayNum}</span>${weekDraftLabel}${markers ? `<span class="date-head-markers">${markers}</span>` : ''}</th>`;
       });
       html += `</tr>`;
       container.innerHTML = html;
@@ -2658,6 +2713,8 @@
       if (cal.giornoSett === "Lun") classes.push("week-start");
       if (cal.giornoSett === "Dom") classes.push("week-end");
       if (isTodayDate(cal.realObj)) classes.push("today-col");
+      if (cal.isBozza) classes.push("bozza-col");
+      if (cal.isBozza && dateCalendario[index - 1]?.isBozza !== true) classes.push("bozza-start");
 
       return classes.join(" ");
     }
@@ -2866,6 +2923,8 @@
     function createRowDOM(agenteObj, ri, isPinned = false, residence = currentResidence, isTemporaryTransfer = false) {
       const tr = document.createElement("tr");
       tr.dataset.rowIndex = ri;
+      tr.dataset.agentId = String(agenteObj.id || '');
+      tr.dataset.agentName = String(agenteObj.agente || '');
       tr.dataset.residence = residence;
       tr.classList.add(getGradeClass(agenteObj.id, agenteObj.agente, agenteObj.qualifica));
       if (isPinned) tr.classList.add("pinned-row");
@@ -2927,6 +2986,8 @@
         if (cal.giornoSett === "Lun") tdClasses.push("week-start");
         if (cal.giornoSett === "Dom") tdClasses.push("week-end");
         if (isTodayDate(cal.realObj)) tdClasses.push("today-col");
+        if (cal.isBozza) tdClasses.push("bozza-col");
+        if (cal.isBozza && dateCalendario[(cal.col - 3) - 1]?.isBozza !== true) tdClasses.push("bozza-start");
 
           const crewStatus = getCrewStatusForDate(cal, turnoVal);
         const odsVariation = agenteObj.variazioni_ods?.[cal.iso] || null;
@@ -4125,8 +4186,29 @@
     // Se il Google Sheet non risponde, usa l'ultima copia salvata nel browser.
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw38IoMZJ50bun_AL-KjQ7jG4UbMPRKxjr22TXrzpZ_pIM2s9ZqOR0LYFXgC007Yc0PpQ/exec";
 
+    async function caricaStatoSettimane() {
+      const cacheKey = "naviturni_week_status_cache_v2";
+      try { applicaStatoSettimane(JSON.parse(localStorage.getItem(cacheKey) || "[]")); } catch (_) {}
+      try {
+        const response = await fetch(GOOGLE_SCRIPT_URL + "?weekStatus=" + Date.now(), {
+          method:"POST", cache:"no-store", headers:{"Content-Type":"text/plain;charset=utf-8"},
+          body:JSON.stringify({action:"week_status_public", cacheBust:Date.now()})
+        });
+        const result = await response.json();
+        if (!result || result.ok === false) throw new Error(result?.error || "Stato settimane non disponibile");
+        const weeks = Array.isArray(result.weeks) ? result.weeks : [];
+        applicaStatoSettimane(weeks);
+        try { localStorage.setItem(cacheKey, JSON.stringify(weeks)); } catch (_) {}
+        return true;
+      } catch (error) {
+        console.warn("Stato settimane non aggiornato; uso la copia locale.", error);
+        return false;
+      }
+    }
+
     async function caricaDatiDaGoogleSheet(force = false) {
       let localDataShown = false;
+      try { applicaStatoSettimane(JSON.parse(localStorage.getItem("naviturni_week_status_cache_v2") || "[]")); } catch (_) {}
       // La copia locale resta sempre disponibile, anche premendo Aggiorna.
       // In questo modo un problema momentaneo di rete non svuota la pagina.
       const saved = localStorage.getItem("turno_finali_data");
@@ -4220,6 +4302,13 @@
       });
     }
 
+    window.addEventListener("navisuite-draft-period-updated", () => {
+      if (!globalData) return;
+      inizializzaCalendario();
+      buildTableHeader();
+      renderTable();
+    });
+
     window.addEventListener("DOMContentLoaded", () => {
       loggedAgentProfile = readLoggedAgentProfile();
       if (!loggedAgentProfile) {
@@ -4251,6 +4340,12 @@
       });
       setupSynchronizedTableScrolls();
       caricaDatiDaGoogleSheet();
+      caricaStatoSettimane().then(() => {
+        if (!globalData) return;
+        inizializzaCalendario();
+        buildTableHeader();
+        renderTable();
+      });
     });
   </script>
 
@@ -4908,11 +5003,17 @@
     modal.innerHTML = `<div class="change-send-dialog">
       <div class="change-send-head"><h3>Invia richiesta</h3><button type="button" class="change-send-close" aria-label="Chiudi">×</button></div>
       <div id="change-send-summary" class="change-send-summary"></div>
-      <div class="change-send-buttons"><a id="change-send-mail" class="change-send-mail" href="#">✉ Invia Mail</a><a id="change-send-whatsapp" class="change-send-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a></div>
+      <div class="change-send-buttons"><button id="change-send-copy" class="change-send-copy" type="button">⧉ Copia testo</button><a id="change-send-mail" class="change-send-mail" href="#">✉ Invia Mail</a><a id="change-send-whatsapp" class="change-send-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a></div>
     </div>`;
     document.body.appendChild(modal);
     const close = () => modal.classList.remove('open');
     modal.querySelector('.change-send-close').addEventListener('click', close);
+    modal.querySelector('#change-send-copy').addEventListener('click', async event => {
+      const text = modal.querySelector('#change-send-summary').textContent || '';
+      try { await navigator.clipboard.writeText(text); }
+      catch (_) { const area=document.createElement('textarea');area.value=text;document.body.appendChild(area);area.select();document.execCommand('copy');area.remove(); }
+      const button=event.currentTarget,old=button.textContent;button.textContent='✓ Testo copiato';setTimeout(()=>button.textContent=old,1600);
+    });
     modal.addEventListener('click', event => { if (event.target === modal) close(); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
     return modal;
@@ -4979,8 +5080,10 @@
   function renderCloudChangeRequests() {
     ensureChangeRequestRegister();
     const body = document.getElementById('change-request-register-body');
+    window.NaviCambioRequests = [...cloudChangeRequests];
+    window.dispatchEvent(new CustomEvent('navisuite-change-requests-loaded', {detail:{requests:window.NaviCambioRequests}}));
     if (!cloudChangeRequests.length) { body.innerHTML='<p class="change-empty">Nessuna richiesta registrata.</p>'; return; }
-    body.innerHTML = `<div class="change-register-wrap"><table><thead><tr><th>Inviata</th><th>Collega</th><th>Cambio richiesto</th><th>Azioni</th></tr></thead><tbody>${cloudChangeRequests.map(item => `<tr><td>${new Date(item.sentAt).toLocaleDateString('it-IT')}</td><td>${escapeChangeHtml(item.colleagueName || '')}</td><td><strong>${prettyChange(item)}</strong></td><td><div class="change-actions"><button type="button" class="change-action-btn change-action-send" onclick="openChangeSendPopup('${escapeChangeHtml(item.id)}')">Invia</button><button type="button" class="change-action-btn change-action-delete" onclick="deleteCloudChangeRequest('${escapeChangeHtml(item.id)}')">Elimina</button></div></td></tr>`).join('')}</tbody></table></div>`;
+    body.innerHTML = `<div class="change-register-wrap"><table><thead><tr><th>Inviata</th><th>Cambio richiesto</th><th>Azioni</th></tr></thead><tbody>${cloudChangeRequests.map(item => `<tr><td data-label="Inviata">${new Date(item.sentAt).toLocaleDateString('it-IT')}</td><td data-label="Cambio richiesto" class="change-summary-cell"><strong>${prettyChange(item)}</strong></td><td data-label="Azioni" class="change-actions-cell"><div class="change-actions"><button type="button" class="change-action-btn change-action-send" onclick="openChangeSendPopup('${escapeChangeHtml(item.id)}')">Invia</button><button type="button" class="change-action-btn change-action-delete" onclick="deleteCloudChangeRequest('${escapeChangeHtml(item.id)}')">Elimina</button></div></td></tr>`).join('')}</tbody></table></div>`;
   }
 
   async function loadCloudChangeRequests() {
@@ -5017,6 +5120,7 @@
       cell.classList.remove('cambio-possibile');
       delete cell.dataset.cambioAgentId;
       delete cell.dataset.cambioCol;
+      delete cell.dataset.cambioDescription;
       cell.removeAttribute('title');
     });
     document.querySelectorAll('#tbody td.cambio-turno-selezionato').forEach(cell => cell.classList.remove('cambio-turno-selezionato'));
@@ -5392,9 +5496,10 @@
             cell.classList.add('cambio-possibile');
             cell.dataset.cambioAgentId = String(agent.id ?? '');
             cell.dataset.cambioCol = String(cal.col);
-            cell.title =
+            cell.dataset.cambioDescription =
               `Cambio con ${agent.agente}: tu prenderesti ${displayShift(effectiveRawShift(agent, cal))}, ` +
               `${agent.agente} prenderebbe ${displayShift(myRaw)}`;
+            cell.removeAttribute('title');
 
             rowHasSelectableChange = true;
             selectableChanges++;
@@ -5418,10 +5523,11 @@
             cell.classList.add('cambio-possibile');
             cell.dataset.cambioAgentId = String(agent.id ?? '');
             cell.dataset.cambioCol = String(otherCal.col);
-            cell.title =
+            cell.dataset.cambioDescription =
               `Cambio con ${agent.agente}: tu prenderesti ${cleanShift(agent, otherCal)} ` +
               `il ${otherCal.labelEstesa}; ${agent.agente} prenderebbe ${myShift} ` +
               `il ${cal.labelEstesa}`;
+            cell.removeAttribute('title');
 
             rowHasSelectableChange = true;
             selectableChanges++;
@@ -6261,5 +6367,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script src="cambi-change-arrows.js?v=4"></script>
 </body>
 </html>

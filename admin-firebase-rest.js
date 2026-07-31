@@ -159,6 +159,7 @@
       baristas:asArray(baristas.data),
       approvedChangeRequests:asArray(approvals.data),
       dismissedOdsApprovals:asArray(dismissedOds.data)
+      ,agentProfiles:(await databaseRequest("private/adminUpdates/agentProfiles")).data || {}
     };
   }
 
@@ -178,6 +179,29 @@
       body:JSON.stringify(item)
     });
     return { ...item, currentUid:auth.uid };
+  }
+
+  async function getDraftPeriod() {
+    const result = await databaseRequest("private/adminUpdates/draftPeriod");
+    const value = result.data || {};
+    return {
+      start:String(value.start || "2026-08-10"),
+      end:String(value.end || "2026-09-06"),
+      updatedAt:String(value.updatedAt || "")
+    };
+  }
+
+  async function saveDraftPeriod(period = {}) {
+    const auth = await ensureAuth();
+    const start = String(period.start || "").slice(0, 10);
+    const end = String(period.end || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+      throw new Error("Date del periodo bozza non valide");
+    }
+    if (start > end) throw new Error("La data iniziale non può essere successiva alla data finale");
+    const item = {start, end, updatedAt:new Date().toISOString(), ownerUid:auth.uid};
+    await databaseRequest("private/adminUpdates/draftPeriod", {method:"PUT", body:JSON.stringify(item)});
+    return item;
   }
 
   async function getAdminDocuments() {
@@ -217,6 +241,110 @@
     return true;
   }
 
+  function safeUserKey(agentId) {
+    return String(agentId || "").trim().replace(/[.#$\[\]\/]/g, "_");
+  }
+
+  async function recordUserAccess(profile = {}) {
+    const id = String(profile.id || profile.agentId || "").trim();
+    if (!id) return null;
+    const key = safeUserKey(id);
+    const now = new Date().toISOString();
+    let previous = null;
+    try { previous = (await databaseRequest(`private/adminUpdates/userRegistry/${key}`)).data; }
+    catch (_) { previous = null; }
+    const item = {
+      id,
+      name:String(profile.name || profile.agente || profile.cognome || previous?.name || id).trim(),
+      residence:String(profile.residence || profile.residenza || previous?.residence || "").trim(),
+      qualifica:String(profile.qualifica || previous?.qualifica || "").trim(),
+      role:String(profile.role || previous?.role || "").trim(),
+      registeredAt:String(previous?.registeredAt || now),
+      lastAccess:now
+    };
+    await databaseRequest(`private/adminUpdates/userRegistry/${key}`, {
+      method:"PUT",
+      body:JSON.stringify(item)
+    });
+    return item;
+  }
+
+  async function listRegisteredUsers() {
+    const result = await databaseRequest("private/adminUpdates/userRegistry");
+    return Object.values(result.data || {}).filter(Boolean);
+  }
+
+  async function deleteRegisteredUser(agentId) {
+    await databaseRequest(`private/adminUpdates/userRegistry/${safeUserKey(agentId)}`, { method:"DELETE" });
+    return true;
+  }
+
+  async function getAgentAdminData() {
+    const result = await databaseRequest("private/adminUpdates");
+    const value = result.data || {};
+    return {
+      users:Object.values(value.userRegistry || {}).filter(Boolean),
+      profiles:value.agentProfiles || {},
+      legacyUsersImportedAt:String(value.legacyUsersImportedAt || "")
+    };
+  }
+
+  async function importLegacyUsers(users = []) {
+    const current = await getAgentAdminData();
+    const byId = new Map(current.users.map(user => [String(user.id), user]));
+    const patch = { legacyUsersImportedAt:new Date().toISOString() };
+    (users || []).forEach(user => {
+      const id = String(user?.id || "").trim();
+      if (!id) return;
+      const previous = byId.get(id) || {};
+      const latest = String(previous.lastAccess || user.lastAccess || "");
+      patch[`userRegistry/${safeUserKey(id)}`] = {
+        ...previous,
+        id,
+        name:String(user.name || previous.name || id),
+        registeredAt:String(previous.registeredAt || user.registeredAt || new Date().toISOString()),
+        lastAccess:String(latest || previous.lastAccess || user.lastAccess || ""),
+        importedFromApps:true
+      };
+    });
+    await databaseRequest("private/adminUpdates", { method:"PATCH", body:JSON.stringify(patch) });
+    return getAgentAdminData();
+  }
+
+  async function saveAgentProfile(agentId, values = {}) {
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const item = {
+      id,
+      role:String(values.role || "").trim().toLowerCase(),
+      qualifica:String(values.qualifica || "").trim().toLowerCase(),
+      updatedAt:new Date().toISOString()
+    };
+    await databaseRequest(`private/adminUpdates/agentProfiles/${safeUserKey(id)}`, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+
+  async function touchUserPresence(profile = {}) {
+    const auth = await ensureAuth();
+    const id = String(profile.id || profile.agentId || "").trim();
+    if (!id) return null;
+    const item = { id, name:String(profile.name || profile.agente || profile.cognome || id), uid:auth.uid, lastSeen:new Date().toISOString() };
+    await databaseRequest(`private/adminUpdates/userPresence/${safeUserKey(id)}/${safeUserKey(auth.uid)}`, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+
+  async function listUserPresence(maxAgeMs = 120000) {
+    const result = await databaseRequest("private/adminUpdates/userPresence");
+    const limit = Date.now() - Number(maxAgeMs || 120000);
+    const latest = new Map();
+    Object.values(result.data || {}).forEach(devices => Object.values(devices || {}).forEach(item => {
+      if (!item?.id || Date.parse(item.lastSeen || "") < limit) return;
+      const previous = latest.get(String(item.id));
+      if (!previous || String(item.lastSeen) > String(previous.lastSeen)) latest.set(String(item.id), item);
+    }));
+    return [...latest.values()].sort((a,b)=>String(b.lastSeen||"").localeCompare(String(a.lastSeen||"")));
+  }
+
   window.NaviAdminFirebase = {
     ready,
     listChangeRequests,
@@ -224,10 +352,20 @@
     deleteChangeRequest,
     getAdminUpdates,
     saveAdminUpdates,
+    getDraftPeriod,
+    saveDraftPeriod,
     getAdminDocuments,
     getAdminDocumentFile,
     saveAdminDocument,
     deleteAdminDocument,
+    recordUserAccess,
+    listRegisteredUsers,
+    deleteRegisteredUser,
+    getAgentAdminData,
+    importLegacyUsers,
+    saveAgentProfile,
+    touchUserPresence,
+    listUserPresence,
     provider:"Firebase REST"
   };
 })();

@@ -7,7 +7,7 @@
  * - provare sempre prima la rete e usare la cache solo come fallback.
  */
 
-const CACHE_VERSION = 'navisuite-v54';
+const CACHE_VERSION = 'navisuite-v70';
 const CACHE_NAME = CACHE_VERSION;
 
 // File statici da pre-caricare durante l'installazione.
@@ -27,6 +27,7 @@ const STATIC_ASSETS = [
   'naviturni.html',
   'cambi_turno.html',
   'aggiornamenti.html',
+  'agenti.html',
   'documenti.html',
   'impostazioni.html',
   'Orario.html',
@@ -43,6 +44,8 @@ const STATIC_ASSETS = [
   'shared-data.js',
   'firebase-data.js',
   'admin-firebase-rest.js',
+  'draft-period.js',
+  'cambi-change-arrows.js',
   'aggiornamenti-data.js',
   'vendor/pdfjs/pdf.min.js',
   'vendor/pdfjs/pdf.worker.min.js',
