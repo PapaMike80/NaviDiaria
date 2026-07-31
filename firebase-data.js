@@ -94,7 +94,9 @@ async function getAdminUpdates() {
     manualVariations:Array.isArray(value.manualVariations) ? value.manualVariations : Object.values(value.manualVariations || {}),
     baristas:Array.isArray(value.baristas) ? value.baristas : Object.values(value.baristas || {}),
     approvedChangeRequests:Array.isArray(value.approvedChangeRequests) ? value.approvedChangeRequests : Object.values(value.approvedChangeRequests || {}),
-    dismissedOdsApprovals:Array.isArray(value.dismissedOdsApprovals) ? value.dismissedOdsApprovals : Object.values(value.dismissedOdsApprovals || {})
+    dismissedOdsApprovals:Array.isArray(value.dismissedOdsApprovals) ? value.dismissedOdsApprovals : Object.values(value.dismissedOdsApprovals || {}),
+    scheduleImports:Array.isArray(value.scheduleImports) ? value.scheduleImports : Object.values(value.scheduleImports || {})
+    ,agentProfiles:value.agentProfiles || {}
   };
 }
 
@@ -108,7 +110,8 @@ async function saveAdminUpdates(payload = {}) {
     manualVariations:Array.isArray(payload.manualVariations) ? payload.manualVariations : [],
     baristas:Array.isArray(payload.baristas) ? payload.baristas : [],
     approvedChangeRequests:Array.isArray(payload.approvedChangeRequests) ? payload.approvedChangeRequests : [],
-    dismissedOdsApprovals:Array.isArray(payload.dismissedOdsApprovals) ? payload.dismissedOdsApprovals : []
+    dismissedOdsApprovals:Array.isArray(payload.dismissedOdsApprovals) ? payload.dismissedOdsApprovals : [],
+    scheduleImports:Array.isArray(payload.scheduleImports) ? payload.scheduleImports : []
   };
   await update(target, item);
   return { ...item, currentUid:user.uid };

@@ -87,8 +87,8 @@
             <div class="actions"><button id="parse-new-bariste">Leggi e prepara turni</button><button id="save-new-bariste" class="primary" disabled>Salva righe confermate</button></div>
           </section>
           <section class="import-box full-upload">
-            <h3>Nuovo turno o bozza</h3>
-            <p>Carica il PDF inviato dall’Ufficio Movimento. Tipo e periodo vengono riconosciuti automaticamente dal nome del file.</p>
+            <h3>Importa nuove settimane</h3>
+            <p>Legge il turno o la bozza dell’Ufficio Movimento, aggiorna Firebase e conserva un’unica importazione eliminabile. Ogni settimana ha sempre 7 giornate; le celle vuote diventano RIP.</p>
             <input id="new-turn-file" type="file" accept=".pdf,application/pdf">
             <div class="document-upload-fields">
               <div class="field"><label for="new-turn-type">Tipo</label><select id="new-turn-type"><option value="turno">Turno</option><option value="bozza">Bozza</option></select></div>
@@ -96,7 +96,8 @@
               <div class="field"><label for="new-turn-end">Al</label><input id="new-turn-end" type="date"></div>
               <div class="field"><label for="new-turn-title">Titolo</label><input id="new-turn-title" placeholder="Titolo del documento"></div>
             </div>
-            <div class="actions"><button id="save-new-turn" class="primary" disabled>Carica nella pagina Documenti</button></div>
+            <div class="actions"><button id="parse-new-turn" disabled>Leggi e controlla PDF</button><button id="save-new-turn" class="primary" disabled>Salva settimane e documento</button></div>
+            <div id="turn-import-preview" class="preview" hidden></div>
             <div id="uploaded-documents" class="uploaded-documents"></div>
           </section>
         </div>
@@ -142,15 +143,15 @@
     <a href="agenti.html"><span>♙</span>Agenti</a>
   </nav>
   <script src="turni-shared.js"></script>
-  <script src="admin-firebase-rest.js?v=33"></script>
-  <script src="shared-data.js"></script>
+  <script src="admin-firebase-rest.js?v=35"></script>
+  <script src="shared-data.js?v=2"></script>
   <script src="vendor/pdfjs/pdf.min.js"></script>
   <script src="vendor/pdfjs/pdf.worker.min.js"></script>
   <script>
   (() => {
-    const state={odsVariations:[],manualVariations:[],baristas:[],approvedChangeRequests:[],dismissedOdsApprovals:[]};
+    const state={odsVariations:[],manualVariations:[],baristas:[],approvedChangeRequests:[],dismissedOdsApprovals:[],scheduleImports:[]};
     let schedule=null;
-    let pendingOds=[],pendingBaristas=[],adminDocuments=[],changeRequests=[];
+    let pendingOds=[],pendingBaristas=[],pendingTurnImport=null,adminDocuments=[],changeRequests=[];
     const $=id=>document.getElementById(id);
     const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const profile=()=>window.TurniShared?.readLoggedAgentProfile?.()||JSON.parse(localStorage.getItem('naviturni_logged_agent')||'null');
@@ -185,6 +186,12 @@
       const titolo=inizio&&fine?`${tipo==='bozza'?'Bozza turno':'Turno'} dal ${fmt(inizio)} al ${fmt(fine)}`:name.replace(/\.pdf.*$/i,'').trim();
       return {tipo,inizio,fine,titolo};
     };
+    function inferTurnPdfContent(pages,fileName){
+      const text=linesFromItems(pages).join(' ').replace(/\s+/g,' ');
+      const range=text.match(/\bDAL\s+\d{1,2}[-_/]\d{1,2}(?:[-_/]\d{2,4})?\s+AL\s+\d{1,2}[-_/]\d{1,2}[-_/]\d{2,4}/i)?.[0]||fileName;
+      const inferred=inferTurnDocument(`${/\bBOZZA\b/i.test(text)?'BOZZA ':''}${range}`);
+      return {...inferred,tipo:/\bBOZZA\b/i.test(text)?'bozza':'turno'};
+    }
     const fileAsDataUrl=file=>new Promise((resolve,reject)=>{
       const reader=new FileReader();
       reader.onload=()=>resolve(String(reader.result||''));
@@ -469,11 +476,13 @@
     function renderUploadedDocuments(){
       const box=$('uploaded-documents');if(!box)return;
       const rows=[...adminDocuments].sort((a,b)=>String(b.uploadedAt||'').localeCompare(String(a.uploadedAt||'')));
-      box.innerHTML=rows.length?rows.map(doc=>`<div class="uploaded-document"><div><strong>${esc(doc.titolo||doc.filename)}</strong><small>${esc(doc.tipo==='bozza'?'Bozza':'Turno')} · ${esc(doc.inizio||'')} → ${esc(doc.fine||'')} · ${esc(doc.filename||'')}</small></div><button class="danger" data-delete-document="${esc(doc.id)}">Elimina</button></div>`).join(''):'<div class="empty">Nessun turno o bozza caricato da Firebase.</div>';
+      box.innerHTML=rows.length?rows.map(doc=>{const imported=(state.scheduleImports||[]).find(item=>String(item.documentId||item.id)===String(doc.id)&&item.attiva!==false);return `<div class="uploaded-document"><div><strong>${esc(doc.titolo||doc.filename)}</strong><small>${esc(doc.tipo==='bozza'?'Bozza':'Turno')} · ${esc(doc.inizio||'')} → ${esc(doc.fine||'')} · ${esc(doc.filename||'')}${imported?` · ${imported.rows?.length||0} agenti applicati`:''}</small></div><button class="danger" data-delete-document="${esc(doc.id)}">Elimina${imported?' dati e PDF':''}</button></div>`}).join(''):'<div class="empty">Nessun turno o bozza caricato da Firebase.</div>';
       box.querySelectorAll('[data-delete-document]').forEach(button=>button.addEventListener('click',async()=>{
         const doc=adminDocuments.find(item=>String(item.id)===String(button.dataset.deleteDocument));
-        if(!doc||!confirm(`Eliminare ${doc.titolo||doc.filename} dalla pagina Documenti?`))return;
+        const imported=(state.scheduleImports||[]).find(item=>String(item.documentId||item.id)===String(doc?.id)&&item.attiva!==false);
+        if(!doc||!confirm(`Eliminare ${doc.titolo||doc.filename}${imported?' e tutti i turni importati da questo PDF':''}?`))return;
         setStatus('Eliminazione documento…');
+        if(imported){state.scheduleImports=state.scheduleImports.map(item=>String(item.id)===String(imported.id)?{...item,attiva:false,deletedAt:new Date().toISOString()}:item);await save()}
         await window.NaviAdminFirebase.deleteAdminDocument(doc.id);
         adminDocuments=adminDocuments.filter(item=>String(item.id)!==String(doc.id));
         renderUploadedDocuments();
@@ -501,7 +510,7 @@
       const pages=[];
       for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
         const page=await pdf.getPage(pageNo),content=await page.getTextContent();
-        pages.push(content.items.filter(item=>item.str?.trim()).map(item=>({text:item.str.trim(),x:item.transform[4],y:item.transform[5],page:pageNo})));
+        pages.push(content.items.filter(item=>item.str?.trim()).map(item=>({text:item.str.trim(),x:item.transform[4],y:item.transform[5],width:Number(item.width||0),height:Number(item.height||0),page:pageNo})));
       }
       return pages;
     }
@@ -570,6 +579,104 @@
       });
       return [...new Map(records.map(v=>[baristaKey(v),v])).values()].sort((a,b)=>a.data.localeCompare(b.data)||a.corsa.localeCompare(b.corsa));
     }
+    function normalizeImportedShift(value){
+      const raw=String(value??'').trim().toUpperCase().replace(/[‐‑–—]/g,'-');
+      if(!raw||/^(?:RIP(?:\.|-*)?|RIPOSO|-{2,}|={2,})$/.test(raw))return 'RIP';
+      if(/^(?:CONG?\.?|CON;|CONC\.?|C\.)$/.test(raw))return 'CON';
+      if(/^F\.?P\.?-*$/.test(raw))return 'F.P.';
+      return raw.replace(/\.{2,}$/g,'.').replace(/-+$/g,'');
+    }
+    function datesBetween(start,end){
+      const rows=[];if(!start||!end)return rows;
+      for(let d=new Date(`${start}T12:00:00`),last=new Date(`${end}T12:00:00`);d<=last;d.setDate(d.getDate()+1))rows.push(d.toISOString().slice(0,10));
+      return rows;
+    }
+    function groupedPdfLines(items){
+      const lines=[];
+      items.forEach(item=>{let line=lines.find(row=>Math.abs(row.y-item.y)<2.6);if(!line){line={y:item.y,items:[]};lines.push(line)}line.items.push(item)});
+      return lines.sort((a,b)=>b.y-a.y).map(line=>({...line,items:line.items.sort((a,b)=>a.x-b.x)}));
+    }
+    function pageDayCenters(items,expected){
+      const weekdays=/^(?:LUN|MAR|MER|GIO|VEN|SAB|DOM)(?:ED[IÌ])?(?:\s+\d{1,2})?$/i;
+      const candidates=items.filter(item=>weekdays.test(item.text.replace(/\./g,'').trim()));
+      const clusters=[];
+      candidates.forEach(item=>{let group=clusters.find(row=>Math.abs(row.y-item.y)<3);if(!group){group={y:item.y,items:[]};clusters.push(group)}group.items.push(item)});
+      const best=clusters.sort((a,b)=>Math.min(expected,b.items.length)-Math.min(expected,a.items.length))[0];
+      return (best?.items||[]).sort((a,b)=>a.x-b.x).slice(0,expected).map(item=>item.x+(item.width||0)/2);
+    }
+    function resolvePdfRowAgents(prefix){
+      const number=String(prefix||'').match(/^\s*(\d+)(?:\s*[-/]\s*(\d+))?/);
+      const list=agents().filter(agent=>String(agent.residence||'').toUpperCase()!=='BARISTE');
+      if(number){
+        const first=Number(number[1]),last=Number(number[2]||number[1]);
+        const byNumber=list.filter(agent=>Number(agent.id)>=first&&Number(agent.id)<=last);
+        if(byNumber.length)return byNumber;
+      }
+      const key=normalize(prefix),exact=resolveAgent(prefix);
+      if(exact)return [exact];
+      return list.filter(agent=>{
+        const surname=normalize(String(agent.agente||'').split(/\s+/)[0]);
+        return surname.length>3&&key.includes(surname);
+      });
+    }
+    function parseTurnPdf(pages,start,end,tipo,filename){
+      const dates=datesBetween(start,end);
+      if(!dates.length||dates.length%7!==0)throw new Error('Il periodo deve contenere settimane complete di 7 giorni');
+      const rows=new Map();let pendingAgents=[];
+      pages.forEach(items=>{
+        const centers=pageDayCenters(items,Math.min(14,dates.length));
+        if(centers.length<7)throw new Error('Non trovo le 7 colonne dei giorni in una pagina del PDF');
+        const spacing=centers.slice(1).reduce((sum,x,i)=>sum+(x-centers[i]),0)/Math.max(1,centers.length-1);
+        const lines=groupedPdfLines(items);
+        lines.forEach(line=>{
+          const cells=centers.map(center=>{
+            const item=line.items.filter(entry=>Math.abs((entry.x+(entry.width||0)/2)-center)<spacing*.40).sort((a,b)=>Math.abs(a.x-center)-Math.abs(b.x-center))[0];
+            return item?normalizeImportedShift(item.text):'RIP';
+          });
+          if(cells.some(value=>/^(?:LUN|MAR|MER|GIO|VEN|SAB|DOM)(?:\s+\d{1,2})?$/i.test(value)))return;
+          const populated=cells.filter(value=>value!=='RIP').length;
+          const prefix=line.items.filter(item=>item.x<centers[0]-spacing*.48).map(item=>item.text).join(' ').replace(/\s+/g,' ').trim();
+          const rowAgents=resolvePdfRowAgents(prefix);
+          if(rowAgents.length){
+            if(!populated){pendingAgents=rowAgents;return}
+            rowAgents.forEach(agent=>rows.set(String(agent.id),{id_agente:String(agent.id),agente:agent.agente,residenza:agent.residence,turni:cells}));
+            pendingAgents=[];
+          }else if(pendingAgents.length&&populated>=2){
+            pendingAgents.forEach(agent=>rows.set(String(agent.id),{id_agente:String(agent.id),agente:agent.agente,residenza:agent.residence,turni:cells}));
+            pendingAgents=[];
+          }
+        });
+      });
+      const parsed=[...rows.values()];
+      if(!parsed.length)throw new Error('Nessun agente riconosciuto nel PDF');
+      parsed.forEach(row=>{while(row.turni.length<dates.length)row.turni.push('RIP');row.turni=row.turni.slice(0,dates.length).map(normalizeImportedShift)});
+      return {id:`TURN_${Date.now()}`,tipo,filename,dates,rows:parsed,inizio:start,fine:end,importedAt:new Date().toISOString(),attiva:true};
+    }
+    function renderTurnImportPreview(){
+      const box=$('turn-import-preview'),batch=pendingTurnImport;box.hidden=!batch;if(!batch)return;
+      const labels=batch.dates.map(date=>new Date(`${date}T12:00:00`).toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'}));
+      box.innerHTML=`<div><strong>${batch.rows.length} agenti · ${batch.dates.length} giornate</strong> · celle vuote convertite in RIP</div><div class="table-wrap"><table class="pending-table"><thead><tr><th>Usa</th><th>Agente</th>${labels.map(label=>`<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${batch.rows.map((row,index)=>`<tr data-pending-turn="${index}"><td><input type="checkbox" data-field="use" checked></td><td><strong>${esc(row.agente)}</strong><small>${esc(row.residenza||'')}</small></td>${row.turni.map((shift,day)=>`<td><input data-turn-day="${day}" value="${esc(shift)}" aria-label="${esc(row.agente)} ${esc(labels[day])}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    }
+    function collectTurnImport(){
+      if(!pendingTurnImport)return null;
+      const rows=[...$('turn-import-preview').querySelectorAll('[data-pending-turn]')].filter(tr=>tr.querySelector('[data-field=use]').checked).map(tr=>{
+        const source=pendingTurnImport.rows[Number(tr.dataset.pendingTurn)];
+        return {...source,turni:[...tr.querySelectorAll('[data-turn-day]')].map(input=>normalizeImportedShift(input.value))};
+      });
+      return {...pendingTurnImport,rows};
+    }
+    async function parseTurnImport(){
+      const file=$('new-turn-file').files?.[0];if(!file)throw new Error('Seleziona prima un PDF');
+      setStatus(`Lettura turni da ${file.name}…`);
+      const pages=await loadPdfItems(file),content=inferTurnPdfContent(pages,file.name);
+      if(content.inizio)$('new-turn-start').value=content.inizio;if(content.fine)$('new-turn-end').value=content.fine;
+      $('new-turn-type').value=content.tipo;
+      if(content.titolo)$('new-turn-title').value=content.titolo;
+      const start=$('new-turn-start').value,end=$('new-turn-end').value;
+      pendingTurnImport=parseTurnPdf(pages,start,end,$('new-turn-type').value,file.name);
+      renderTurnImportPreview();$('save-new-turn').disabled=!pendingTurnImport.rows.length;
+      setStatus(`${pendingTurnImport.rows.length} agenti riconosciuti. Controlla tutte le celle prima di salvare.`,'ok');
+    }
     function renderPending(kind){
       const rows=kind==='ods'?pendingOds:pendingBaristas,result=$('import-result');
       result.hidden=false;
@@ -615,6 +722,7 @@
       state.baristas=saved.baristas||[];
       state.approvedChangeRequests=saved.approvedChangeRequests||[];
       state.dismissedOdsApprovals=saved.dismissedOdsApprovals||[];
+      state.scheduleImports=saved.scheduleImports||[];
       changeRequests=await firebase.listChangeRequests();
       adminDocuments=await firebase.getAdminDocuments();
       $('owner-info').textContent=`UID corrente: ${saved.currentUid}${saved.ownerUid?` · proprietario archivio: ${saved.ownerUid}`:' · archivio non ancora inizializzato'}`;
@@ -632,16 +740,18 @@
     });
     $('new-turn-file').addEventListener('change',event=>{
       const file=event.target.files?.[0];
-      if(!file){$('save-new-turn').disabled=true;return}
+      pendingTurnImport=null;$('turn-import-preview').hidden=true;$('save-new-turn').disabled=true;
+      if(!file){$('parse-new-turn').disabled=true;return}
       const inferred=inferTurnDocument(file.name);
       $('new-turn-type').value=inferred.tipo;
       $('new-turn-start').value=inferred.inizio;
       $('new-turn-end').value=inferred.fine;
       $('new-turn-title').value=inferred.titolo;
-      $('save-new-turn').disabled=false;
+      $('parse-new-turn').disabled=false;
     });
     $('parse-new-ods').addEventListener('click',()=>parseImport('ods').catch(error=>setStatus(`Errore importazione ODS: ${error.message}`,'bad')));
     $('parse-new-bariste').addEventListener('click',()=>parseImport('barista').catch(error=>setStatus(`Errore importazione turni: ${error.message}`,'bad')));
+    $('parse-new-turn').addEventListener('click',()=>parseTurnImport().catch(error=>setStatus(`Errore lettura turno: ${error.message}`,'bad')));
     $('save-new-ods').addEventListener('click',async()=>{
       const rows=collectPending('ods');if(!rows.length)return setStatus('Nessuna riga ODS valida da salvare.','bad');
       state.odsVariations=merge(state.odsVariations,rows,variationKey);
@@ -664,13 +774,17 @@
       setStatus(`Caricamento di ${file.name}…`);
       $('save-new-turn').disabled=true;
       try{
+        const batch=collectTurnImport();if(!batch?.rows?.length)throw new Error('Nessun agente selezionato da salvare');
         const id=`DOC_${Date.now()}_${normalize(file.name).slice(0,32)}`;
         const metadata={id,tipo:$('new-turn-type').value,titolo:$('new-turn-title').value.trim()||file.name,inizio,fine,filename:file.name,size:file.size,mimeType:file.type||'application/pdf'};
         await window.NaviAdminFirebase.saveAdminDocument(metadata,await fileAsDataUrl(file));
+        batch.id=`TURN_${Date.now()}_${normalize(file.name).slice(0,24)}`;batch.documentId=id;batch.titolo=metadata.titolo;batch.importedAt=new Date().toISOString();
+        state.scheduleImports.push(batch);
+        await save();
         adminDocuments=await window.NaviAdminFirebase.getAdminDocuments();
         renderUploadedDocuments();
-        $('new-turn-file').value='';
-        setStatus('✓ Documento caricato. È ora disponibile nella pagina Documenti.','ok');
+        $('new-turn-file').value='';pendingTurnImport=null;$('turn-import-preview').hidden=true;$('parse-new-turn').disabled=true;
+        setStatus(`✓ ${batch.rows.length} agenti aggiornati per ${batch.dates.length} giorni. Il PDF di prova può essere eliminato dalla riga qui sopra.`,'ok');
       }catch(error){
         setStatus(`Errore caricamento documento: ${error.message}`,'bad');
         $('save-new-turn').disabled=false;

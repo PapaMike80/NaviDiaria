@@ -140,14 +140,15 @@
   }
 
   async function getAdminUpdates() {
-    const [owner, updated, ods, manual, baristas, approvals, dismissedOds] = await Promise.all([
+    const [owner, updated, ods, manual, baristas, approvals, dismissedOds, scheduleImports] = await Promise.all([
       databaseRequest("private/adminUpdates/ownerUid"),
       databaseRequest("private/adminUpdates/updatedAt"),
       databaseRequest("private/adminUpdates/odsVariations"),
       databaseRequest("private/adminUpdates/manualVariations"),
       databaseRequest("private/adminUpdates/baristas"),
       databaseRequest("private/adminUpdates/approvedChangeRequests"),
-      databaseRequest("private/adminUpdates/dismissedOdsApprovals")
+      databaseRequest("private/adminUpdates/dismissedOdsApprovals"),
+      databaseRequest("private/adminUpdates/scheduleImports")
     ]);
     const asArray = input => Array.isArray(input) ? input.filter(Boolean) : Object.values(input || {});
     return {
@@ -159,6 +160,7 @@
       baristas:asArray(baristas.data),
       approvedChangeRequests:asArray(approvals.data),
       dismissedOdsApprovals:asArray(dismissedOds.data)
+      ,scheduleImports:asArray(scheduleImports.data)
       ,agentProfiles:(await databaseRequest("private/adminUpdates/agentProfiles")).data || {}
     };
   }
@@ -173,6 +175,7 @@
       baristas:Array.isArray(payload.baristas) ? payload.baristas : [],
       approvedChangeRequests:Array.isArray(payload.approvedChangeRequests) ? payload.approvedChangeRequests : [],
       dismissedOdsApprovals:Array.isArray(payload.dismissedOdsApprovals) ? payload.dismissedOdsApprovals : []
+      ,scheduleImports:Array.isArray(payload.scheduleImports) ? payload.scheduleImports : []
     };
     await databaseRequest("private/adminUpdates", {
       method:"PATCH",

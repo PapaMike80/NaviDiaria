@@ -37,6 +37,14 @@
       if (!byId.has(id)) byId.set(id, { id, name, qualifica:'barista', residence:'BARISTE', role:'barista' });
     });
 
+    const profileOverrides = data?.agentProfileOverrides || {};
+    byId.forEach((agent, id) => {
+      const override = profileOverrides[id] || Object.values(profileOverrides).find(item => String(item?.id) === String(id));
+      if (!override) return;
+      if (override.qualifica) agent.qualifica = override.qualifica;
+      if (override.role !== undefined) agent.role = override.role;
+    });
+
     return [...byId.values()].sort((a, b) => {
       const baristaA = String(a.role || a.qualifica || '').toLowerCase() === 'barista' ? 1 : 0;
       const baristaB = String(b.role || b.qualifica || '').toLowerCase() === 'barista' ? 1 : 0;
@@ -45,6 +53,7 @@
   }
 
   function save(data) {
+    normalizeScheduleShifts(data);
     localStorage.setItem(DATA_KEY, JSON.stringify(data));
     localStorage.setItem(TIME_KEY, String(Date.now()));
     localStorage.setItem(DIRECTORY_KEY, JSON.stringify(directoryFrom(data)));
@@ -58,6 +67,62 @@
     return [...map.values()];
   }
 
+  function normalizedImportedShift(value) {
+    const raw = String(value ?? '').trim().toUpperCase().replace(/[‐‑–—]/g, '-');
+    if (!raw || /^(?:RIP(?:\.|-*)?|RIPOSO|-{2,}|={2,})$/.test(raw)) return 'RIP';
+    if (/^(?:CONG?\.?|CON;|CONC\.?|C\.)$/.test(raw)) return 'CON';
+    if (/^F\.?P\.?-*$/.test(raw)) return 'F.P.';
+    return raw.replace(/\.{2,}$/g, '.').replace(/-+$/g, '');
+  }
+
+  function normalizeScheduleShifts(data) {
+    Object.values(data?.residenze || {}).forEach(list => (list || []).forEach(agent => {
+      Object.keys(agent.turni || {}).forEach(iso => { agent.turni[iso] = normalizedImportedShift(agent.turni[iso]); });
+      Object.values(agent.turni_settimanali || {}).forEach(week => {
+        if (Array.isArray(week)) week.forEach((shift,index) => { week[index] = normalizedImportedShift(shift); });
+      });
+    }));
+    return data;
+  }
+
+  function importedDate(iso, state) {
+    const date = new Date(`${iso}T12:00:00`);
+    const days = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+    const months = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+    return {
+      iso,
+      label:`${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`,
+      giorno:days[date.getDay()],
+      numero:date.getDate(),
+      mese:date.getMonth() + 1,
+      anno:date.getFullYear(),
+      stato:state === 'bozza' ? 'bozza' : 'ufficiale'
+    };
+  }
+
+  function applyScheduleImports(data, imports) {
+    const active = (imports || []).filter(item => item && item.attiva !== false)
+      .sort((a,b) => String(a.importedAt || '').localeCompare(String(b.importedAt || '')));
+    if (!active.length) return data;
+    const dateMap = new Map((data.date || []).map(item => [item.iso, item]));
+    const agents = Object.values(data.residenze || {}).flat();
+    active.forEach(batch => {
+      (batch.dates || []).forEach(iso => dateMap.set(iso, importedDate(iso, batch.tipo)));
+      (batch.rows || []).forEach(row => {
+        const target = agents.find(agent => String(agent.id || '') === String(row.id_agente || '')) ||
+          agents.find(agent => String(agent.agente || '').trim().toUpperCase() === String(row.agente || '').trim().toUpperCase());
+        if (!target) return;
+        if (!target.turni) target.turni = {};
+        (batch.dates || []).forEach((iso, index) => {
+          target.turni[iso] = normalizedImportedShift(row.turni?.[index]);
+        });
+      });
+    });
+    data.date = [...dateMap.values()].sort((a,b) => a.iso.localeCompare(b.iso));
+    data.scheduleImports = active;
+    return data;
+  }
+
   async function mergeAdminUpdates(data) {
     const provider = window.NaviFirebase?.getAdminUpdates
       ? window.NaviFirebase
@@ -66,6 +131,15 @@
     try {
       await provider.ready;
       const updates = await provider.getAdminUpdates();
+      applyScheduleImports(data, updates.scheduleImports);
+      const profileOverrides = updates.agentProfiles || {};
+      data.agentProfileOverrides = profileOverrides;
+      Object.values(data.residenze || {}).forEach(list => (list || []).forEach(agent => {
+        const override = profileOverrides[String(agent.id)] || Object.values(profileOverrides).find(item => String(item?.id) === String(agent.id));
+        if (!override) return;
+        if (override.qualifica) agent.qualifica = override.qualifica;
+        if (override.role !== undefined) agent.role = override.role;
+      }));
       const ods = [...(updates.odsVariations || []), ...(updates.manualVariations || [])];
       data.variazioni_ods = replaceByKey(
         data.variazioni_ods || [],
@@ -92,7 +166,7 @@
   function cached(allowStale = false) {
     const data = read(DATA_KEY);
     const age = Date.now() - Number(localStorage.getItem(TIME_KEY) || 0);
-    return data && (allowStale || age < MAX_AGE) ? data : null;
+    return data && (allowStale || age < MAX_AGE) ? normalizeScheduleShifts(data) : null;
   }
 
   async function fetchJson(url, timeoutMs = 10000) {

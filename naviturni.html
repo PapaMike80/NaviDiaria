@@ -1518,7 +1518,7 @@
   </style>
 
 <style id="naviturni-month-sticky-fix">
-  :root { --month-header-height: 27px; --date-header-height: 38px; }
+  :root { --month-header-height: 22px; --date-header-height: 38px; --turni-agent-column-width:126px; }
   #matrix-scroll-wrap .month-header th {
     position:sticky !important; top:0 !important; z-index:52 !important;
     height:var(--month-header-height); padding:4px 6px !important;
@@ -1529,6 +1529,23 @@
     box-shadow:0 1px 0 #28505a !important;
   }
   #matrix-scroll-wrap .month-header th:first-child { left:0 !important; z-index:56 !important; }
+  #matrix-scroll-wrap .month-header th:not(:first-child) {
+    padding:0 !important;
+    text-align:left !important;
+    overflow:visible !important;
+  }
+  #matrix-scroll-wrap .month-visible-label {
+    position:sticky;
+    left:calc(var(--turni-agent-column-width) + 8px);
+    display:inline-flex;
+    align-items:center;
+    height:var(--month-header-height);
+    padding:0 7px;
+    color:#99f6e4;
+    background:#0f2934;
+    white-space:nowrap;
+    pointer-events:none;
+  }
   #matrix-scroll-wrap .date-header th {
     position:sticky !important; top:var(--month-header-height) !important; z-index:48 !important;
   }
@@ -1565,11 +1582,12 @@
 </style>
 <style id="naviturni-mobile-header-fix">
   @media (max-width:950px) {
-    :root { --month-header-height:14px !important; --date-header-height:42px !important; }
+    :root { --month-header-height:18px !important; --date-header-height:42px !important; --turni-agent-column-width:126px !important; }
     body.turni-page { padding-top:env(safe-area-inset-top,0px) !important; padding-left:0 !important; }
     #matrix-scroll-wrap { margin-left:0 !important; left:0 !important; width:max-content !important; min-width:100% !important; }
-    #matrix-scroll-wrap .month-header th { top:env(safe-area-inset-top,0px) !important; height:14px !important; min-height:14px !important; max-height:14px !important; padding:0 4px !important; line-height:12px !important; font-size:7px !important; }
-    #matrix-scroll-wrap .date-header th { top:calc(env(safe-area-inset-top,0px) + 14px) !important; height:42px !important; min-height:42px !important; max-height:42px !important; padding:2px 1px !important; vertical-align:top !important; }
+    #matrix-scroll-wrap .month-header th { top:env(safe-area-inset-top,0px) !important; height:18px !important; min-height:18px !important; max-height:18px !important; padding:0 !important; line-height:16px !important; font-size:8px !important; }
+    #matrix-scroll-wrap .month-visible-label { height:18px !important; padding:0 5px; }
+    #matrix-scroll-wrap .date-header th { top:calc(env(safe-area-inset-top,0px) + 18px) !important; height:42px !important; min-height:42px !important; max-height:42px !important; padding:2px 1px !important; vertical-align:top !important; }
     #matrix-scroll-wrap .date-head-day { font-size:8px !important; line-height:9px !important; }
     #matrix-scroll-wrap .date-head-num { font-size:14px !important; line-height:15px !important; }
     #matrix-scroll-wrap .date-head-markers { height:11px !important; min-height:11px !important; margin:1px auto 0 !important; font-size:7px !important; line-height:9px !important; }
@@ -1677,12 +1695,12 @@
   </footer>
 
   <script src="turni-shared.js"></script>
-  <script src="admin-firebase-rest.js?v=34"></script>
+  <script src="admin-firebase-rest.js?v=35"></script>
   <script src="draft-period.js?v=1"></script>
-  <script src="shared-data.js"></script>
+  <script src="shared-data.js?v=2"></script>
   <script src="cloud-data.js"></script>
   <script src="shared-menu.js"></script>
-  <script type="module" src="firebase-data.js"></script>
+  <script type="module" src="firebase-data.js?v=2"></script>
   <script>
     let globalData = null;
     let currentResidence = "";
@@ -2262,9 +2280,10 @@
           const iso = formatDateISOClient(d);
           const weekStartIso = getMondayISO(iso);
           const storedWeekState = weekStatusMap.get(weekStartIso) || "ufficiale";
+          const importedState = String(sett.dateStates?.[g] || "ufficiale").toLowerCase();
           const weekState = storedWeekState === "nascosta"
             ? "nascosta"
-            : (window.NaviDraftPeriod?.contains(iso) ? "bozza" : "ufficiale");
+            : (window.NaviDraftPeriod?.contains(iso) || importedState === "bozza" ? "bozza" : "ufficiale");
           dateCalendario.push({
             col: colCounter,
             weekKey: sett.key,
@@ -2378,7 +2397,7 @@
         if (last && last.key === key) last.count++;
         else groups.push({ key, count:1, label:`${mesiNomi[cal.realObj.getMonth()]} ${cal.realObj.getFullYear()}` });
       });
-      return `<tr class="month-header"><th>Periodo</th>${groups.map(group => `<th colspan="${group.count}">${group.label}</th>`).join("")}</tr>`;
+      return `<tr class="month-header"><th>Periodo</th>${groups.map(group => `<th colspan="${group.count}" data-month="${group.key}"><span class="month-visible-label">${group.label}</span></th>`).join("")}</tr>`;
     }
 
     function buildTableHeader() {
@@ -4401,7 +4420,8 @@
           month: inizio.getMonth(),
           year: inizio.getFullYear(),
           count: blocco.length,
-          dateIso: blocco.map(x => x.iso)
+          dateIso: blocco.map(x => x.iso),
+          dateStates: blocco.map(x => String(x.stato || "ufficiale").toLowerCase())
         });
       }
 
