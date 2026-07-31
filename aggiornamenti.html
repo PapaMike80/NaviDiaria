@@ -367,8 +367,10 @@
         const latest=rows=>rows.reduce((max,v)=>String(v.data)>max?String(v.data):max,'');
         return latest(b[1]).localeCompare(latest(a[1]));
       });
-      const otherRows=state.manualVariations.map((v,i)=>({...v,_kind:'MANUALE',_index:i}))
+      const allManualRows=state.manualVariations.map((v,i)=>({...v,_kind:'MANUALE',_index:i}))
         .filter(v=>v.attiva!==false).sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+      const approvedRows=allManualRows.filter(v=>String(v.requestId||''));
+      const otherRows=allManualRows.filter(v=>!String(v.requestId||''));
       const baristaRows=state.baristas.map((v,i)=>({...v,_kind:'BARISTA',_index:i})).filter(v=>v.attiva!==false);
       let html='';
       grouped.forEach(([ods,rows],groupIndex)=>{
@@ -379,6 +381,14 @@
         html+=`<tr class="ods-group-row" data-toggle-row="${groupId}"><td colspan="2"><div class="ods-group-title"><button class="ods-group-toggle" data-toggle-ods="${groupId}" type="button" aria-expanded="false" aria-label="Mostra variazioni">▸</button><strong>ODS ${esc(odsLabel(ods))}</strong><span class="ods-group-count">${rows.length} variazioni</span></div></td><td colspan="3">${esc(period)}</td><td><button class="danger" data-delete-ods="${esc(ods)}">Elimina ODS</button></td></tr>`;
         html+=rows.map(v=>`<tr class="ods-child" data-ods-group="${groupId}" hidden><td>↳</td><td>${esc(v.data)}</td><td>${esc(v.agente)}</td><td>${esc(v.turno_originale)} → <strong>${esc(v.turno_nuovo)}</strong></td><td>${esc(v.note||'')}</td><td><button class="danger" data-delete-kind="ODS" data-delete-index="${v._index}">Elimina</button></td></tr>`).join('');
       });
+      if(approvedRows.length){
+        const dates=approvedRows.map(v=>v.data).filter(Boolean).sort();
+        const period=dates.length?(dates[0]===dates.at(-1)?dates[0]:`${dates[0]} → ${dates.at(-1)}`):'';
+        const requests=new Set(approvedRows.map(v=>String(v.requestId)).filter(Boolean)).size;
+        const groupId='cambi-approvati-group';
+        html+=`<tr class="ods-group-row" data-toggle-row="${groupId}"><td colspan="2"><div class="ods-group-title"><button class="ods-group-toggle" data-toggle-ods="${groupId}" type="button" aria-expanded="false" aria-label="Mostra cambi approvati">▸</button><strong>CAMBI APPROVATI</strong><span class="ods-group-count">${requests} ${requests===1?'cambio':'cambi'} · ${approvedRows.length} variazioni</span></div></td><td colspan="3">${esc(period)}</td><td>—</td></tr>`;
+        html+=approvedRows.sort((a,b)=>String(a.data).localeCompare(String(b.data))||String(a.requestId).localeCompare(String(b.requestId))||String(a.agente).localeCompare(String(b.agente),'it')).map(v=>`<tr class="ods-child" data-ods-group="${groupId}" hidden><td>↳</td><td>${esc(v.data)}</td><td>${esc(v.agente)}</td><td>${esc(v.turno_originale)} → <strong>${esc(v.turno_nuovo)}</strong></td><td>${esc(v.note||'')}</td><td><span class="owner">Gestisci sopra</span></td></tr>`).join('');
+      }
       if(otherRows.length){
         const dates=otherRows.map(v=>v.data).filter(Boolean).sort();
         const period=dates.length?(dates[0]===dates.at(-1)?dates[0]:`${dates[0]} → ${dates.at(-1)}`):'';
