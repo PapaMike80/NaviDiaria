@@ -7,7 +7,7 @@
  * - provare sempre prima la rete e usare la cache solo come fallback.
  */
 
-const CACHE_VERSION = 'navisuite-v83';
+const CACHE_VERSION = 'navisuite-v84';
 const CACHE_NAME = CACHE_VERSION;
 
 // File statici da pre-caricare durante l'installazione.
@@ -35,6 +35,7 @@ const STATIC_ASSETS = [
   'portal.css',
   'styles.css',
   'navidiaria-weekly.css',
+  'navidiaria-monthly.css',
   'navi-layout.css',
   'navi-shared.css',
   'naviturni-theme.css',
@@ -54,6 +55,7 @@ const STATIC_ASSETS = [
   'portal.js',
   'app.js',
   'navidiaria-weekly.js',
+  'navidiaria-monthly.js',
   'shared-menu.js',
   'documenti.js',
   'orari-tabella.js',
