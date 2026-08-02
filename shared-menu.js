@@ -1,5 +1,5 @@
 (function(){
-  const APP_VERSION='v1.35';
+  const APP_VERSION='v1.36';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   if('serviceWorker' in navigator){
     if(!window.__naviSwRegistrationPromise){
@@ -364,4 +364,56 @@
 
   window.refreshOdsVariationStatus=refreshOdsVariationStatus;
   window.addEventListener('DOMContentLoaded',refreshOdsVariationStatus);
+
+  function installMobileNavAutoHide(){
+    const nav=document.querySelector('.mobile-liquid-nav');
+    if(!nav){
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installMobileNavAutoHide,{once:true});
+      return;
+    }
+
+    const lastPositions=new WeakMap();
+    let directionDistance=0;
+    let lastDirection=0;
+
+    const scrollingElement=target=>{
+      if(target===window||target===document||target===document.documentElement||target===document.body)return document.scrollingElement||document.documentElement;
+      return target instanceof Element?target:null;
+    };
+
+    const showNav=()=>document.body.classList.remove('mobile-nav-hidden');
+    const hideNav=()=>{
+      if(window.innerWidth<=800&&!document.querySelector('.liquid-modal-overlay.open')){
+        document.body.classList.add('mobile-nav-hidden');
+      }
+    };
+
+    const handleScroll=event=>{
+      if(window.innerWidth>800){showNav();return;}
+      const source=scrollingElement(event.target);
+      if(!source)return;
+      const current=Math.max(0,source.scrollTop||0);
+      const previous=lastPositions.has(source)?lastPositions.get(source):current;
+      const delta=current-previous;
+      lastPositions.set(source,current);
+      if(Math.abs(delta)<1)return;
+
+      const direction=delta>0?1:-1;
+      if(direction!==lastDirection){directionDistance=0;lastDirection=direction;}
+      directionDistance+=Math.abs(delta);
+
+      if(current<18){showNav();return;}
+      if(direction<0&&directionDistance>=6)showNav();
+      else if(direction>0&&directionDistance>=14)hideNav();
+    };
+
+    document.addEventListener('scroll',handleScroll,{capture:true,passive:true});
+    window.addEventListener('scroll',handleScroll,{passive:true});
+    window.addEventListener('resize',()=>{if(window.innerWidth>800)showNav();},{passive:true});
+    document.addEventListener('click',event=>{
+      if(event.target.closest('.liquid-modal-overlay,.mobile-liquid-nav,.turni-menu-button'))showNav();
+    });
+  }
+
+  installMobileNavAutoHide();
 })();
