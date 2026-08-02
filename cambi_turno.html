@@ -6456,6 +6456,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 </style>
 <style id="cambi-logged-agent-cell-fix">
+  #matrix-scroll-wrap .date-header > th:first-child {
+    top:var(--month-header-height,22px) !important;
+  }
+
   /* La cella dell'agente collegato resta agganciata in entrambe le direzioni. */
   #matrix-scroll-wrap #tbody tr.logged-agent-row td.td-name {
     position:sticky !important;
@@ -6469,12 +6473,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   @media (max-width:950px) {
+    body.turni-page::before {
+      content:"";
+      position:fixed;
+      inset:0 0 auto 0;
+      z-index:51;
+      height:env(safe-area-inset-top,0px);
+      background:#071923;
+      pointer-events:none;
+    }
+
+    #matrix-scroll-wrap .date-header > th:first-child {
+      top:calc(env(safe-area-inset-top,0px) + 18px) !important;
+      z-index:55 !important;
+    }
+
     #matrix-scroll-wrap #tbody tr.logged-agent-row td {
       position:sticky !important;
-      top:calc(env(safe-area-inset-top,0px) + var(--logged-row-sticky-top,60px)) !important;
+      top:calc(env(safe-area-inset-top,0px) + 60px) !important;
       z-index:46 !important;
     }
     #matrix-scroll-wrap #tbody tr.logged-agent-row td.td-name {
+      top:calc(env(safe-area-inset-top,0px) + 60px) !important;
       left:0 !important;
       z-index:47 !important;
       background:#164754 !important;
