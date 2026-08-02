@@ -160,6 +160,7 @@ function render(){
   $('emptyState').style.display=list.length?'none':'block';
   const carryRow=$('entriesBody').querySelector('.previous-month-row');if(carryRow&&carryEntries.length){carryRow.dataset.week=isoWeek(carryEntries[0].date);carryRow.dataset.date=carryEntries[0].date}
   $('entriesBody').querySelectorAll('tr').forEach(row=>{const editable=row.querySelector('[data-entry-id]'),entry=editable&&entries.find(item=>String(item.id)===editable.dataset.entryId);if(entry){row.dataset.week=isoWeek(entry.date);row.dataset.date=entry.date}else if(row.classList.contains('week-summary-table')){row.dataset.week=row.previousElementSibling?.dataset.week||'';row.classList.add('registry-week-link');row.title='Torna a questa settimana nel Consultivo'}});
+  document.dispatchEvent(new CustomEvent('navidiaria:render'));
 }
 function escapeHtml(s){return s.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function hoursToClock(hours){const mins=Math.round((Number(hours)||0)*60);return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`}
