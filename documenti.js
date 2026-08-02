@@ -6,7 +6,7 @@ const CONFIG = {
   branch: 'main',
   folders: ['turni', 'ods'],
   metadataFile: 'documenti.json',
-  version: 'v1.06'
+  version: 'v1.07'
 };
 
 const state = {
@@ -31,6 +31,7 @@ const elements = {
 };
 
 let viewerRenderToken = 0;
+const documentContentCache = new Map();
 
 function setText(id, text) {
   const element = document.getElementById(id);
@@ -357,19 +358,36 @@ function documentActions(documentItem) {
 }
 
 async function documentUrl(documentItem) {
-  if (documentItem?.source !== 'firebase') return documentItem?.file || '';
-  return window.NaviAdminFirebase.getAdminDocumentFile(documentItem.id);
+  const cacheKey = String(documentItem?.id || '');
+  if (cacheKey && documentContentCache.has(cacheKey)) return documentContentCache.get(cacheKey);
+  const url = documentItem?.source !== 'firebase'
+    ? (documentItem?.file || '')
+    : await window.NaviAdminFirebase.getAdminDocumentFile(documentItem.id);
+  if (cacheKey && url) documentContentCache.set(cacheKey, url);
+  return url;
+}
+
+function dataUrlBlob(dataUrl) {
+  const match = String(dataUrl).match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
+  if (!match) return null;
+  const mimeType = match[1] || 'application/pdf';
+  const decoded = match[2]
+    ? atob(match[3])
+    : decodeURIComponent(match[3]);
+  const bytes = new Uint8Array(decoded.length);
+  for (let index = 0; index < decoded.length; index += 1) bytes[index] = decoded.charCodeAt(index);
+  return new Blob([bytes], { type: mimeType });
 }
 
 async function openDocument(documentId) {
   const documentItem = state.documents.find(item => String(item.id) === String(documentId));
   if (!documentItem || !elements.viewer || !elements.viewerPages) return;
 
-  const url = await documentUrl(documentItem);
+  const cachedUrl = documentContentCache.get(String(documentItem.id));
+  const url = cachedUrl || await documentUrl(documentItem);
   if (!url) throw new Error('Contenuto del documento non disponibile');
   elements.viewerTitle.textContent = documentItem.titolo || documentItem.filename || 'Documento';
-  elements.viewerDownload.href = url;
-  elements.viewerDownload.download = documentItem.filename || 'documento.pdf';
+  elements.viewerDownload.dataset.documentId = String(documentItem.id);
   elements.viewer.hidden = false;
   document.body.classList.add('document-viewer-open');
   elements.viewerClose?.focus();
@@ -446,12 +464,29 @@ async function downloadDocument(documentId) {
   if (!documentItem) return;
   const url = await documentUrl(documentItem);
   if (!url) throw new Error('Contenuto del documento non disponibile');
+
+  // Un collegamento diretto a un PDF/data URL viene aperto a tutto schermo da
+  // Safari iOS, anche in presenza dell'attributo download. Convertendolo prima
+  // in un Blob il browser scarica il file senza abbandonare NaviSuite.
+  let sourceBlob = dataUrlBlob(url);
+  if (!sourceBlob) {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Download non disponibile (${response.status})`);
+    sourceBlob = await response.blob();
+  }
+  const blob = sourceBlob.type === 'application/pdf'
+    ? sourceBlob
+    : new Blob([sourceBlob], { type: 'application/pdf' });
+  const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = url;
-  link.download = documentItem.filename || 'documento.pdf';
+  const rawFilename = documentItem.filename || documentItem.titolo || 'documento.pdf';
+  link.href = objectUrl;
+  link.download = /\.pdf$/i.test(rawFilename) ? rawFilename : `${rawFilename}.pdf`;
+  link.hidden = true;
   document.body.appendChild(link);
   link.click();
   link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
 }
 
 function closeDocument() {
@@ -466,6 +501,7 @@ function closeDocument() {
     elements.viewerFrame.src = 'about:blank';
     elements.viewerFrame.style.display = 'none';
   }
+  if (elements.viewerDownload) delete elements.viewerDownload.dataset.documentId;
   document.body.classList.remove('document-viewer-open');
 }
 
@@ -522,9 +558,20 @@ function renderDocuments() {
     }));
   });
   document.querySelectorAll('[data-download-document]').forEach(button => {
-    button.addEventListener('click', () => downloadDocument(button.dataset.downloadDocument).catch(error => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      downloadDocument(button.dataset.downloadDocument).catch(error => {
       if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco a scaricare il documento: ${error.message}`}
-    }));
+      });
+    });
+  });
+  document.querySelectorAll('[data-document-id]').forEach(card => {
+    card.addEventListener('click', event => {
+      if (event.target.closest('.document-actions')) return;
+      openDocument(card.dataset.documentId).catch(error => {
+        if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco ad aprire il documento: ${error.message}`}
+      });
+    });
   });
 }
 
@@ -580,6 +627,21 @@ if (elements.refreshButton) {
 }
 
 elements.viewerClose?.addEventListener('click', closeDocument);
+elements.viewerDownload?.addEventListener('click', async () => {
+  const documentId = elements.viewerDownload.dataset.documentId;
+  if (!documentId) return;
+  elements.viewerDownload.disabled = true;
+  const oldLabel = elements.viewerDownload.textContent;
+  elements.viewerDownload.textContent = 'Preparazione…';
+  try {
+    await downloadDocument(documentId);
+  } catch (error) {
+    if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco a scaricare il documento: ${error.message}`}
+  } finally {
+    elements.viewerDownload.disabled = false;
+    elements.viewerDownload.textContent = oldLabel;
+  }
+});
 elements.viewer?.addEventListener('click', event => {
   if (event.target === elements.viewer) closeDocument();
 });
