@@ -98,6 +98,8 @@
       z-index: 1000;
       display: grid;
       grid-template-rows: auto 1fr;
+      min-width: 0;
+      min-height: 0;
       padding: 14px;
       background: rgba(2, 13, 18, .94);
       backdrop-filter: blur(8px);
@@ -128,7 +130,50 @@
       flex: 0 0 auto;
     }
 
+    .document-pages {
+      min-width: 0;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px;
+      border: 1px solid #28515d;
+      border-radius: 0 0 12px 12px;
+      background: #5d6367;
+      scroll-behavior: smooth;
+    }
+
+    .document-page {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      margin: 0 auto 12px;
+    }
+
+    .document-page:last-child { margin-bottom: 0; }
+
+    .document-page canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      background: white;
+      box-shadow: 0 3px 16px rgba(0, 0, 0, .35);
+    }
+
+    .document-loading,
+    .document-error {
+      display: grid;
+      min-height: 45vh;
+      place-items: center;
+      padding: 24px;
+      color: white;
+      font-weight: 700;
+      text-align: center;
+    }
+
     #documentFrame {
+      display: none;
       width: 100%;
       height: 100%;
       border: 1px solid #28515d;
@@ -139,6 +184,8 @@
     body.document-viewer-open {
       overflow: hidden;
     }
+
+    body.document-viewer-open .mobile-liquid-nav { display: none !important; }
 
     .archive-notice {
       margin: 0 0 22px;
@@ -188,12 +235,35 @@
       }
 
       .document-viewer {
-        padding: 0;
+        padding:
+          env(safe-area-inset-top, 0px)
+          0
+          env(safe-area-inset-bottom, 0px);
       }
 
       .viewer-toolbar {
+        min-height: 58px;
+        padding: 8px 10px;
         border-radius: 0;
       }
+
+      .viewer-toolbar strong { font-size: 14px; }
+
+      .viewer-toolbar .document-action {
+        min-width: 0;
+        padding: 8px 9px;
+        font-size: 11px;
+      }
+
+      .document-pages {
+        padding: 6px 0 18px;
+        border-right: 0;
+        border-bottom: 0;
+        border-left: 0;
+        border-radius: 0;
+      }
+
+      .document-page { margin-bottom: 7px; }
 
       #documentFrame {
         border-radius: 0;
@@ -273,12 +343,14 @@
       <a id="viewerDownload" class="document-action download" href="#" download>↓ Scarica</a>
       <button id="viewerClose" class="document-action" type="button">✕ Chiudi</button>
     </div>
-    <iframe id="documentFrame" title="Documento PDF"></iframe>
+    <div id="documentPages" class="document-pages" tabindex="0" aria-label="Pagine del documento"></div>
+    <iframe id="documentFrame" title="Documento PDF di riserva"></iframe>
   </section>
 
   <script src="shared-menu.js"></script>
   <script src="admin-firebase-rest.js?v=33"></script>
-  <script src="documenti.js?v=1.05"></script>
+  <script src="vendor/pdfjs/pdf.min.js"></script>
+  <script src="documenti.js?v=1.06"></script>
 
   <!-- Navigazione Mobile Liquid Glass -->
   <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">

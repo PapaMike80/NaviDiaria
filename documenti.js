@@ -6,7 +6,7 @@ const CONFIG = {
   branch: 'main',
   folders: ['turni', 'ods'],
   metadataFile: 'documenti.json',
-  version: 'v1.05'
+  version: 'v1.06'
 };
 
 const state = {
@@ -23,11 +23,14 @@ const elements = {
   notice: document.getElementById('notice'),
   emptyState: document.getElementById('emptyState'),
   viewer: document.getElementById('documentViewer'),
+  viewerPages: document.getElementById('documentPages'),
   viewerFrame: document.getElementById('documentFrame'),
   viewerTitle: document.getElementById('viewerTitle'),
   viewerDownload: document.getElementById('viewerDownload'),
   viewerClose: document.getElementById('viewerClose')
 };
+
+let viewerRenderToken = 0;
 
 function setText(id, text) {
   const element = document.getElementById(id);
@@ -360,17 +363,82 @@ async function documentUrl(documentItem) {
 
 async function openDocument(documentId) {
   const documentItem = state.documents.find(item => String(item.id) === String(documentId));
-  if (!documentItem || !elements.viewer || !elements.viewerFrame) return;
+  if (!documentItem || !elements.viewer || !elements.viewerPages) return;
 
   const url = await documentUrl(documentItem);
   if (!url) throw new Error('Contenuto del documento non disponibile');
   elements.viewerTitle.textContent = documentItem.titolo || documentItem.filename || 'Documento';
   elements.viewerDownload.href = url;
   elements.viewerDownload.download = documentItem.filename || 'documento.pdf';
-  elements.viewerFrame.src = url;
   elements.viewer.hidden = false;
   document.body.classList.add('document-viewer-open');
   elements.viewerClose?.focus();
+  await renderPdfDocument(url);
+}
+
+async function renderPdfDocument(url) {
+  const pages = elements.viewerPages;
+  const pdfjs = window.pdfjsLib;
+  const token = ++viewerRenderToken;
+  if (!pages) return;
+
+  pages.scrollTop = 0;
+  pages.innerHTML = '<div class="document-loading">Caricamento documento…</div>';
+  if (!pdfjs?.getDocument) {
+    showPdfFallback(url, 'Lettore PDF non disponibile.');
+    return;
+  }
+
+  pdfjs.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
+
+  try {
+    const loadingTask = pdfjs.getDocument(url);
+    const pdf = await loadingTask.promise;
+    if (token !== viewerRenderToken) return;
+
+    pages.replaceChildren();
+    const availableWidth = Math.max(280, pages.clientWidth - (window.innerWidth <= 720 ? 0 : 24));
+    const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      if (token !== viewerRenderToken) return;
+      const page = await pdf.getPage(pageNumber);
+      const naturalViewport = page.getViewport({ scale: 1 });
+      const cssScale = availableWidth / naturalViewport.width;
+      const cssViewport = page.getViewport({ scale: cssScale });
+      const renderViewport = page.getViewport({ scale: cssScale * outputScale });
+      const holder = document.createElement('div');
+      const canvas = document.createElement('canvas');
+
+      holder.className = 'document-page';
+      holder.setAttribute('aria-label', `Pagina ${pageNumber} di ${pdf.numPages}`);
+      canvas.width = Math.floor(renderViewport.width);
+      canvas.height = Math.floor(renderViewport.height);
+      canvas.style.width = `${Math.floor(cssViewport.width)}px`;
+      canvas.style.height = `${Math.floor(cssViewport.height)}px`;
+      holder.appendChild(canvas);
+      pages.appendChild(holder);
+
+      await page.render({
+        canvasContext: canvas.getContext('2d', { alpha: false }),
+        viewport: renderViewport
+      }).promise;
+    }
+  } catch (error) {
+    if (token !== viewerRenderToken) return;
+    showPdfFallback(url, `Non riesco a visualizzare il PDF (${error.message}).`);
+  }
+}
+
+function showPdfFallback(url, message) {
+  if (elements.viewerPages) {
+    elements.viewerPages.innerHTML = `<div class="document-error">${escapeHtml(message)}<br>Uso il visualizzatore di riserva.</div>`;
+    elements.viewerPages.style.display = 'none';
+  }
+  if (elements.viewerFrame) {
+    elements.viewerFrame.style.display = 'block';
+    elements.viewerFrame.src = `${url}#view=FitH`;
+  }
 }
 
 async function downloadDocument(documentId) {
@@ -388,8 +456,16 @@ async function downloadDocument(documentId) {
 
 function closeDocument() {
   if (!elements.viewer) return;
+  viewerRenderToken += 1;
   elements.viewer.hidden = true;
-  if (elements.viewerFrame) elements.viewerFrame.src = 'about:blank';
+  if (elements.viewerPages) {
+    elements.viewerPages.replaceChildren();
+    elements.viewerPages.style.display = '';
+  }
+  if (elements.viewerFrame) {
+    elements.viewerFrame.src = 'about:blank';
+    elements.viewerFrame.style.display = 'none';
+  }
   document.body.classList.remove('document-viewer-open');
 }
 
