@@ -50,7 +50,7 @@
         <a class="nav-link" href="#registro"><span>≡</span> Registro mese</a>
         <a class="nav-link" href="#consultivo"><span>≈</span> Consultivo settimane</a>
         <a id="competencyNav" class="nav-link" href="#competenze"><span>◇</span> Competenze</a>
-        <a id="adminNav" class="nav-link" href="#adminPanel" hidden><span>♙</span> Gestione PIN</a>
+        <a id="adminNav" class="nav-link" href="#adminPanel" hidden style="display:none!important"><span>♙</span> Gestione PIN</a>
       </nav>
       <div class="sidebar-user-actions">
         <strong id="sidebarAgentName" class="sidebar-agent-name">Agente</strong>
@@ -166,7 +166,7 @@
             <label class="check-label"><input id="entryRefuel" type="checkbox"><span id="refuelLabel">Rifornimento (+30 min)</span></label>
             <label class="check-label"><input id="entryMeal" type="checkbox"><span>Buono pasto usato</span></label>
             <label>Note<input id="entryNote" type="text" placeholder="Facoltative"></label>
-            <label class="check-label ccnl-hidden-field"><input id="entryTravel" type="checkbox" tabindex="-1"><span>Trasferta CCNL</span></label>
+            <label class="check-label"><input id="entryTravel" type="checkbox"><span>Trasferta · diaria 50%</span></label>
             <div class="form-actions"><button id="restoreFromShift" class="secondary-button" type="button">↻ Ripristina da turno</button><button id="cancelEdit" class="secondary-button" type="button" hidden>Annulla</button><button id="submitEntry" class="primary-button" type="submit">Aggiungi giornata</button></div>
           </form>
         </section>
@@ -192,7 +192,7 @@
           </div>
         </section>
 
-        <section id="adminPanel" class="panel admin-pin-panel" hidden>
+        <section id="adminPanel" class="panel admin-pin-panel" hidden style="display:none!important">
           <div class="panel-heading"><div class="section-title-toggle" data-collapse-target="adminPinList" role="button" tabindex="0"><p class="eyebrow">AMMINISTRAZIONE</p><h3>PIN registrati</h3></div><div class="heading-actions"><button id="refreshPinList" class="secondary-button" type="button">Aggiorna</button><button class="section-collapse" data-collapse-target="adminPinList" type="button" aria-expanded="true">⌃</button></div></div>
           <div id="adminPinList" class="admin-pin-list collapsible-section"></div>
         </section>
@@ -414,6 +414,12 @@
       const h = minutes / 60;
       hoursField.value = formatMinutes(minutes);
 
+      if (travel.checked && travel.dataset.manual === 'true') {
+        type.value = 'mission';
+        setResult(50, 'Trasferta selezionata manualmente: diaria 50%.', true, 'Trasferta 50%');
+        return;
+      }
+
       if (!option || !option.value) {
         type.value = 'none';
         setResult(null, 'Seleziona un servizio per calcolare automaticamente la diaria.', false, 'Servizio non selezionato');
@@ -448,6 +454,11 @@
 
     shift.addEventListener('input', calculateCcnl);
     shift.addEventListener('change', calculateCcnl);
+    travel.addEventListener('change', event => {
+      if (!event.isTrusted) return;
+      travel.dataset.manual = travel.checked ? 'true' : 'false';
+      if (travel.checked) calculateCcnl();
+    });
     new MutationObserver(calculateCcnl).observe(shift, { childList: true, subtree: true, attributes: true });
     byId('restoreFromShift')?.addEventListener('click', () => setTimeout(calculateCcnl, 0));
     byId('entryForm')?.addEventListener('submit', calculateCcnl, true);
