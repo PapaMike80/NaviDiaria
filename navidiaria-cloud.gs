@@ -18,6 +18,7 @@ const NAVIDIARIA_CLOUD_CONFIG = {
   adminAgentId: "91",
   adminAgentIds: ["91", "92"],
   movementAgentId: "MOVIMENTO",
+  initialPinHash: "229813e5b7c9b61fb1faf10da6acc4abae6f1bef0fd806e8a0dedf3dfca1058b",
   maxPayloadChars: 45000,
   maxPdfBytes: 10 * 1024 * 1024
 };
@@ -43,6 +44,9 @@ function doPost(e) {
       if (action === "week_status_public") return jsonOutput(listNaviWeekStatus_());
 
       const user = authenticateNavidiaria_(sheets.users, request.agentId, request.pinHash);
+      if (user.mustChangePin && action !== "change_pin") {
+        throw new Error("Prima di continuare devi scegliere un PIN personale.");
+      }
       if (action === "load_diaria") return jsonOutput(loadNavidiaria_(sheets.data, user));
       if (action === "save_diaria") return jsonOutput(saveNavidiaria_(sheets.data, user, request.entries));
       if (action === "list_users") return jsonOutput(listNavidiariaUsers_(sheets.users, user));
@@ -216,12 +220,24 @@ function authNavidiaria_(sheets, request) {
   const found = findNavidiariaRow_(sheets.users, agentId);
   const now = new Date();
   if (!found) {
-    sheets.users.appendRow([agentId, directoryAgent.name, pinHash, now, now]);
+    if (pinHash !== NAVIDIARIA_CLOUD_CONFIG.initialPinHash) throw new Error("Primo accesso: usa il PIN iniziale 1957.");
+    sheets.users.appendRow([agentId, directoryAgent.name, NAVIDIARIA_CLOUD_CONFIG.initialPinHash, now, now]);
     updateNaviDirectoryRegistration_(sheets.directory, agentId, true, formatNavidiariaDate_(now), formatNavidiariaDate_(now));
-    return { ok: true, registered: false, firstAccess: true, agent: directoryAgent };
+    return { ok: true, registered: true, firstAccess: true, mustChangePin: true, agent: directoryAgent };
   }
 
   const savedHash = String(found.values[2] || "");
+  if (!savedHash) {
+    if (pinHash !== NAVIDIARIA_CLOUD_CONFIG.initialPinHash) throw new Error("Primo accesso: usa il PIN iniziale 1957.");
+    sheets.users.getRange(found.row, 2, 1, 4).setValues([[
+      directoryAgent.name,
+      NAVIDIARIA_CLOUD_CONFIG.initialPinHash,
+      found.values[3] || now,
+      now
+    ]]);
+    updateNaviDirectoryRegistration_(sheets.directory, agentId, true, formatNavidiariaDate_(found.values[3] || now), formatNavidiariaDate_(now));
+    return { ok: true, registered: true, firstAccess: true, mustChangePin: true, agent: directoryAgent };
+  }
   if (savedHash && savedHash !== pinHash) throw new Error("PIN non corretto.");
   sheets.users.getRange(found.row, 2, 1, 4).setValues([[
     directoryAgent.name,
@@ -230,7 +246,7 @@ function authNavidiaria_(sheets, request) {
     now
   ]]);
   updateNaviDirectoryRegistration_(sheets.directory, agentId, true, formatNavidiariaDate_(found.values[3] || now), formatNavidiariaDate_(now));
-  return { ok: true, registered: true, firstAccess: !savedHash, agent: directoryAgent };
+  return { ok: true, registered: true, firstAccess: false, mustChangePin: savedHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash, agent: directoryAgent };
 }
 
 function authenticateNavidiaria_(usersSheet, agentIdValue, pinHashValue) {
@@ -238,7 +254,7 @@ function authenticateNavidiaria_(usersSheet, agentIdValue, pinHashValue) {
   const pinHash = cleanNavidiariaHash_(pinHashValue);
   const found = findNavidiariaRow_(usersSheet, agentId);
   if (!found || !found.values[2] || String(found.values[2]) !== pinHash) throw new Error("Sessione non valida: accedi nuovamente.");
-  return { id: agentId, name: String(found.values[1] || "") };
+  return { id: agentId, name: String(found.values[1] || ""), mustChangePin: pinHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash };
 }
 
 function loadNavidiaria_(dataSheet, user) {
@@ -375,6 +391,7 @@ function resetNavidiariaPin_(usersSheet, user, targetAgentIdValue) {
 function changeNavidiariaPin_(usersSheet, user, newPinHashValue) {
   const newPinHash = cleanNavidiariaHash_(newPinHashValue);
   if (!newPinHash) throw new Error("Nuovo PIN non valido.");
+  if (newPinHash === NAVIDIARIA_CLOUD_CONFIG.initialPinHash) throw new Error("Scegli un PIN diverso da quello iniziale.");
   const found = findNavidiariaRow_(usersSheet, user.id);
   if (!found) throw new Error("Utente non registrato.");
   usersSheet.getRange(found.row, 3).setValue(newPinHash);

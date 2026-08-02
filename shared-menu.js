@@ -1,5 +1,5 @@
 (function(){
-  const APP_VERSION='v1.37';
+  const APP_VERSION='v1.38';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   if('serviceWorker' in navigator){
     if(!window.__naviSwRegistrationPromise){
@@ -366,10 +366,24 @@
   window.addEventListener('DOMContentLoaded',refreshOdsVariationStatus);
 
   function installCompleteMobileMenu(){
-    const nav=document.querySelector('.mobile-liquid-nav');
+    let nav=document.querySelector('.mobile-liquid-nav');
+    if(!nav&&document.body.classList.contains('turni-page')){
+      nav=document.createElement('nav');
+      nav.className='mobile-liquid-nav';
+      nav.setAttribute('aria-label','Navigazione principale mobile');
+      nav.innerHTML='<a href="naviturni.html" class="nav-item"><span class="nav-icon">▦</span><span>Turni</span></a><a href="cambi_turno.html" class="nav-item"><span class="nav-icon">⇄</span><span>Cambio</span></a><a href="documenti.html" class="nav-item"><span class="nav-icon">▤</span><span>Doc</span></a>';
+      document.body.appendChild(nav);
+    }
     if(!nav)return;
 
     let trigger=document.getElementById('mobile-filter-btn')||document.getElementById('mobile-altre-btn')||document.getElementById('mobile-app-menu-btn');
+    if(!isBaristaSession&&!nav.querySelector('a[href="navidiaria.html"]')){
+      const diaria=document.createElement('a');
+      diaria.href='navidiaria.html';
+      diaria.className=`nav-item${page==='diaria'?' active':''}`;
+      diaria.innerHTML='<span class="nav-icon">≈</span><span>Diaria</span>';
+      nav.insertBefore(diaria,trigger||null);
+    }
     if(!trigger){
       // Nelle pagine che usavano Impostazioni come quarta voce, quella
       // posizione diventa il nuovo Menu completo.
@@ -411,7 +425,7 @@
     const links=[];
     if(!isBaristaSession){
       links.push('<a href="index.html"><span>⌂</span>Home</a>');
-      if(isAdminAgent(sessionAgent))links.push('<a href="navidiaria.html"><span>≈</span>NaviDiaria</a>');
+      links.push('<a href="navidiaria.html"><span>≈</span>NaviDiaria</a>');
       links.push('<a href="Orario.html"><span>◴</span>Orario</a>');
       links.push('<a href="impostazioni.html"><span>⚙</span>Impostazioni</a>');
     }

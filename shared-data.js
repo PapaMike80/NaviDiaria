@@ -7,24 +7,60 @@
   let pending = null;
   let lastSource = 'local';
 
+  function normalizeAgentName(value) {
+    return String(value || '').trim().toLocaleUpperCase('it').normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
+  }
+
+  function stableAgentUid(value) {
+    const normalized = normalizeAgentName(value).replace(/\s+/g, '_');
+    return normalized ? `AG_${normalized}` : '';
+  }
+
+  function normalizeScheduleAgents(data) {
+    const seen = new Map();
+    Object.entries(data?.residenze || {}).forEach(([residence, list]) => {
+      const unique = [];
+      (list || []).forEach(agent => {
+        const uid = String(agent.agent_uid || stableAgentUid(agent.agente));
+        if (!uid) return;
+        agent.agent_uid = uid;
+        const existing = seen.get(uid);
+        if (existing) {
+          existing.turni = { ...(existing.turni || {}), ...(agent.turni || {}) };
+          existing.turni_settimanali = { ...(existing.turni_settimanali || {}), ...(agent.turni_settimanali || {}) };
+          if (!existing.qualifica && agent.qualifica) existing.qualifica = agent.qualifica;
+          if (!existing.role && agent.role) existing.role = agent.role;
+          return;
+        }
+        seen.set(uid, agent);
+        unique.push(agent);
+      });
+      data.residenze[residence] = unique;
+    });
+    return data;
+  }
+
   function read(key) {
     try { return JSON.parse(localStorage.getItem(key) || 'null'); }
     catch { return null; }
   }
 
   function directoryFrom(data) {
+    normalizeScheduleAgents(data);
     const byId = new Map();
     Object.entries(data?.residenze || {}).forEach(([residence, list]) => {
       (list || []).forEach(agent => {
         const qualifica = String(agent.qualifica || 'marinaio').trim();
         const item = {
           id:String(agent.id || ''),
+          agent_uid:String(agent.agent_uid || stableAgentUid(agent.agente)),
           name:String(agent.agente || '').trim(),
           qualifica,
           residence,
           role:String(agent.role || '').trim().toLowerCase() || (qualifica.toLowerCase() === 'barista' ? 'barista' : '')
         };
-        if (item.id && item.name) byId.set(item.id, item);
+        if (item.agent_uid && item.name) byId.set(item.agent_uid, item);
       });
     });
 
@@ -34,12 +70,13 @@
       if (!name) return;
       const generated = `BARISTA_${name.toLocaleUpperCase('it').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '')}`;
       const id = String(record.id || generated);
-      if (!byId.has(id)) byId.set(id, { id, name, qualifica:'barista', residence:'BARISTE', role:'barista' });
+      const agent_uid = stableAgentUid(name);
+      if (!byId.has(agent_uid)) byId.set(agent_uid, { id, agent_uid, name, qualifica:'barista', residence:'BARISTE', role:'barista' });
     });
 
     const profileOverrides = data?.agentProfileOverrides || {};
-    byId.forEach((agent, id) => {
-      const override = profileOverrides[id] || Object.values(profileOverrides).find(item => String(item?.id) === String(id));
+    byId.forEach(agent => {
+      const override = profileOverrides[agent.id] || Object.values(profileOverrides).find(item => String(item?.id) === String(agent.id));
       if (!override) return;
       if (override.qualifica) agent.qualifica = override.qualifica;
       if (override.role !== undefined) agent.role = override.role;
@@ -53,6 +90,7 @@
   }
 
   function save(data) {
+    normalizeScheduleAgents(data);
     normalizeScheduleShifts(data);
     localStorage.setItem(DATA_KEY, JSON.stringify(data));
     localStorage.setItem(TIME_KEY, String(Date.now()));
@@ -101,16 +139,23 @@
   }
 
   function applyScheduleImports(data, imports) {
+    normalizeScheduleAgents(data);
     const active = (imports || []).filter(item => item && item.attiva !== false)
       .sort((a,b) => String(a.importedAt || '').localeCompare(String(b.importedAt || '')));
     if (!active.length) return data;
     const dateMap = new Map((data.date || []).map(item => [item.iso, item]));
     const agents = Object.values(data.residenze || {}).flat();
+    const legacyDesenzanoJune2026 = {
+      65:'TIBILETTI F.',66:'BITTURINI D.',67:'GASPARINI F.',68:'BURDO A.',69:'BETTINI M.',70:'GRUMELLI M.',71:'GIACCI GL.',72:'AVANZINI A.',73:'GHIZZI E.',74:'ZENEGAGLIA D.',75:'COSTAMAGNA S.',76:'PROSPERO L.',77:'SCANNAPIECO A.',78:'CEFARIELLO G.',79:'SQUARZONI P.',80:'LA BELLA V.',81:'CAMPOSTRINI E.',82:'CHIMINELLI M.',83:'BARBIERI G.',84:'TANZI E.',85:'VALOTTI G.',86:'MONACO S.',87:'PEROTTI F.',88:'CAMPAGNARO R.',89:'FRANZONI F.',90:'DOLCERA L.',91:'PEDRONI M.',92:'STUMPO D.',93:'BARTOLI F.',94:'LONARDI N.',95:'SCALA L.',96:'BUTTURINI C.',97:'GARDANI R.',98:'BERSANELLI S.',99:'SCARMIGLIATI A.',100:'CACEFFO M.',101:'SPILLER M.',102:'BERGAMINI D.',103:'PAIOLA D.'
+    };
     active.forEach(batch => {
       (batch.dates || []).forEach(iso => dateMap.set(iso, importedDate(iso, batch.tipo)));
       (batch.rows || []).forEach(row => {
-        const target = agents.find(agent => String(agent.id || '') === String(row.id_agente || '')) ||
-          agents.find(agent => String(agent.agente || '').trim().toUpperCase() === String(row.agente || '').trim().toUpperCase());
+        const legacyBatch = !row.agent_uid && String(batch.inizio || '') === '2026-06-22' && String(batch.fine || '') === '2026-07-26';
+        const legacyName = legacyBatch ? legacyDesenzanoJune2026[Number(row.id_agente)] : '';
+        const wantedUid = String(row.agent_uid || stableAgentUid(legacyName || row.agente));
+        const target = agents.find(agent => String(agent.agent_uid || stableAgentUid(agent.agente)) === wantedUid) ||
+          (!wantedUid ? agents.find(agent => String(agent.id || '') === String(row.id_agente || '')) : null);
         if (!target) return;
         if (!target.turni) target.turni = {};
         (batch.dates || []).forEach((iso, index) => {
@@ -166,7 +211,7 @@
   function cached(allowStale = false) {
     const data = read(DATA_KEY);
     const age = Date.now() - Number(localStorage.getItem(TIME_KEY) || 0);
-    return data && (allowStale || age < MAX_AGE) ? normalizeScheduleShifts(data) : null;
+    return data && (allowStale || age < MAX_AGE) ? normalizeScheduleAgents(normalizeScheduleShifts(data)) : null;
   }
 
   async function fetchJson(url, timeoutMs = 10000) {
@@ -189,7 +234,13 @@
   async function load(url, { force = false } = {}) {
     if (!force) {
       const data = cached();
-      if (data) { lastSource = 'local'; return data; }
+      if (data) {
+        // Il calendario base può restare in cache, ma ODS, variazioni manuali
+        // e importazioni cambiano indipendentemente su Firebase. Rileggerli è
+        // molto più leggero che riscaricare ogni volta l'intero calendario.
+        lastSource = 'local+firebase';
+        return mergeAdminUpdates(data).then(save);
+      }
     }
     if (pending) return pending;
     pending = fetchJson(FIREBASE_SCHEDULE_URL, 8000)

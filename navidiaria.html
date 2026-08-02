@@ -18,8 +18,8 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="naviturni-theme.css">
   <link rel="stylesheet" href="shared-menu.css">
-  <link rel="stylesheet" href="navidiaria-weekly.css">
-  <link rel="stylesheet" href="navidiaria-monthly.css">
+  <link rel="stylesheet" href="navidiaria-weekly.css?v=104">
+  <link rel="stylesheet" href="navidiaria-monthly.css?v=102">
   <style>
     .ccnl-result-line{grid-column:1/-1;margin:0;padding:0;font-weight:700;line-height:1.45}
     .ccnl-result-line small{display:block;font-weight:500;opacity:.72;margin-top:3px}
@@ -36,7 +36,7 @@
     @media(max-width:640px){.day-browser-heading{align-items:center}.day-browser-date{min-width:0;font-size:.95rem}.day-nav-button,.day-edit-button{width:34px;height:34px}}
   </style>
 </head>
-<body class="diaria-page" data-default-residence="Desenzano">
+<body class="diaria-page turni-page" data-default-residence="Desenzano">
   <div class="app-shell">
     <aside class="sidebar app-sidebar">
       <a class="brand" href="index.html"><span class="brand-mark">N</span><span>NaviDiaria</span></a>
@@ -49,7 +49,7 @@
         <span class="sidebar-menu-label">DIARIA</span>
         <a class="nav-link" href="#registro"><span>≡</span> Registro mese</a>
         <a class="nav-link" href="#consultivo"><span>≈</span> Consultivo settimane</a>
-        <a id="competencyNav" class="nav-link" href="#competenze"><span>◇</span> Competenze</a>
+        <a id="competencyNav" class="nav-link" href="#competenze" hidden><span>◇</span> Competenze</a>
         <a id="adminNav" class="nav-link" href="#adminPanel" hidden style="display:none!important"><span>♙</span> Gestione PIN</a>
       </nav>
       <div class="sidebar-user-actions">
@@ -112,13 +112,13 @@
         <section id="weeklyCalendar" class="weekly-calendar panel" aria-label="Calendario settimanale" hidden>
           <div class="weekly-toolbar">
             <div>
-              <p class="eyebrow">LA MIA SETTIMANA</p>
+              <p class="eyebrow">SETTIMANE DEL MESE</p>
               <h2 id="weeklyRange">—</h2>
             </div>
             <div class="weekly-nav">
-              <button id="weeklyPrevious" type="button" aria-label="Settimana precedente">‹</button>
+              <button id="weeklyPrevious" type="button" aria-label="Mese precedente">‹</button>
               <button id="weeklyToday" type="button">Oggi</button>
-              <button id="weeklyNext" type="button" aria-label="Settimana successiva">›</button>
+              <button id="weeklyNext" type="button" aria-label="Mese successivo">›</button>
             </div>
           </div>
           <div id="weeklyDays" class="weekly-days"></div>
@@ -184,7 +184,7 @@
           </div>
         </section>
 
-        <section id="competenze" class="panel competencies">
+        <section id="competenze" class="panel competencies" hidden>
           <button id="toggleCompetencies" class="panel-heading competency-toggle" type="button" aria-expanded="false"><div><p class="eyebrow">CONFIGURAZIONE</p><h3>Competenze e servizi</h3></div><span><small>Modifica ore, diaria e buoni</small><b id="competencyChevron">⌄</b></span></button>
           <div id="competencyBody" class="competency-body" hidden>
             <div id="shiftCards" class="shift-grid"></div>
@@ -226,14 +226,20 @@
       <button id="resetOwnPin" class="reset-pin-button" type="button">Resetta il mio PIN</button>
     </form>
   </div>
+  <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
+    <a href="naviturni.html" class="nav-item"><span class="nav-icon">▦</span><span>Turni</span></a>
+    <a href="cambi_turno.html" class="nav-item"><span class="nav-icon">⇄</span><span>Cambio</span></a>
+    <a href="documenti.html" class="nav-item"><span class="nav-icon">▤</span><span>Doc</span></a>
+    <a href="navidiaria.html" class="nav-item active"><span class="nav-icon">≈</span><span>Diaria</span></a>
+  </nav>
   <div id="toast" class="toast" role="status"></div>
   <script src="admin-firebase-rest.js?v=33"></script>
   <script src="shared-data.js"></script>
   <script src="cloud-data.js"></script>
   <script src="shared-menu.js"></script>
-  <script src="app.js"></script>
-  <script src="navidiaria-weekly.js"></script>
-  <script src="navidiaria-monthly.js"></script>
+  <script src="app.js?v=95"></script>
+  <script src="navidiaria-weekly.js?v=104"></script>
+  <script src="navidiaria-monthly.js?v=102"></script>
   <script>
   (() => {
     const byId = id => document.getElementById(id);

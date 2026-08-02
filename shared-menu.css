@@ -64,7 +64,7 @@ body.turni-page .mobile-liquid-nav { display: none; }
 	body.turni-page .mobile-liquid-nav .nav-item {
 		display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
 		text-decoration: none; color: var(--ink-dim, #9fb8c2); font-family: 'DM Sans', sans-serif;
-		font-size: 10px; font-weight: 600; width: 58px; height: 58px; border-radius: 50%;
+		font-size: 9px; font-weight: 600; flex: 1 1 0; min-width: 0; max-width: 62px; height: 58px; border-radius: 50%;
 		transition: all 0.25s ease;
 	}
 

@@ -41,7 +41,7 @@
       .preview{max-height:280px;overflow:auto}
       .owner{font-size:9px;overflow-wrap:anywhere}
       .admin-mobile-nav{position:fixed;left:50%;bottom:14px;z-index:1000;display:flex;align-items:center;justify-content:space-evenly;width:calc(100% - 24px);max-width:520px;height:70px;transform:translateX(-50%);border:1px solid rgba(126,243,226,.18);border-radius:38px;background:rgba(7,23,32,.9);box-shadow:0 16px 34px rgba(0,0,0,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-      .admin-mobile-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:64px;height:58px;border-radius:29px;color:#9fb8c2;text-decoration:none;font-size:10px;font-weight:800}
+      .admin-mobile-nav a{display:flex;flex:1 1 0;min-width:0;max-width:64px;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:58px;border-radius:29px;color:#9fb8c2;text-decoration:none;font-size:9px;font-weight:800}
       .admin-mobile-nav a span{font-size:20px;line-height:1}.admin-mobile-nav a.active{color:var(--accent);background:rgba(45,212,191,.12)}
     }
     @media(max-width:420px){main{padding-inline:9px}.card{padding:12px}.hero h1{font-size:23px}.admin-mobile-nav{width:calc(100% - 16px)}}
@@ -100,6 +100,13 @@
             <div id="turn-import-preview" class="preview" hidden></div>
             <div id="uploaded-documents" class="uploaded-documents"></div>
           </section>
+          <section class="import-box full-upload">
+            <h3>Foglio Google dei turni</h3>
+            <p>Usa un identificativo stabile per agente. Scarica il CSV attuale, importalo in Google Fogli e incolla qui il collegamento del foglio pubblicato come CSV.</p>
+            <div class="field"><label for="turn-sheet-url">Collegamento Foglio Google</label><input id="turn-sheet-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0"></div>
+            <div class="actions"><button id="download-turn-sheet" type="button">Scarica CSV attuale</button><button id="parse-turn-sheet" type="button">Leggi e confronta</button><button id="save-turn-sheet" class="primary" type="button" disabled>Applica a Firebase</button></div>
+            <div id="turn-sheet-preview" class="preview" hidden></div>
+          </section>
         </div>
         <div id="import-result" class="preview" hidden></div>
       </article>
@@ -139,19 +146,20 @@
     <a href="naviturni.html"><span>▦</span>Turni</a>
     <a href="cambi_turno.html"><span>⇄</span>Cambi</a>
     <a href="documenti.html"><span>▤</span>Doc</a>
+    <a href="navidiaria.html"><span>≈</span>Diaria</a>
     <a class="active" href="aggiornamenti.html"><span>↻</span>Aggiorna</a>
     <a href="agenti.html"><span>♙</span>Agenti</a>
   </nav>
   <script src="turni-shared.js"></script>
   <script src="admin-firebase-rest.js?v=35"></script>
-  <script src="shared-data.js?v=2"></script>
+  <script src="shared-data.js?v=3"></script>
   <script src="vendor/pdfjs/pdf.min.js"></script>
   <script src="vendor/pdfjs/pdf.worker.min.js"></script>
   <script>
   (() => {
     const state={odsVariations:[],manualVariations:[],baristas:[],approvedChangeRequests:[],dismissedOdsApprovals:[],scheduleImports:[]};
     let schedule=null;
-    let pendingOds=[],pendingBaristas=[],pendingTurnImport=null,adminDocuments=[],changeRequests=[];
+    let pendingOds=[],pendingBaristas=[],pendingTurnImport=null,pendingSheetImport=null,adminDocuments=[],changeRequests=[];
     const $=id=>document.getElementById(id);
     const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const profile=()=>window.TurniShared?.readLoggedAgentProfile?.()||JSON.parse(localStorage.getItem('naviturni_logged_agent')||'null');
@@ -199,6 +207,9 @@
       reader.readAsDataURL(file);
     });
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/gi,'').toUpperCase();
+    const stableAgentUid=value=>{const key=String(value||'').trim().toLocaleUpperCase('it').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'');return key?`AG_${key}`:''};
+    const editDistance=(a,b)=>{a=String(a);b=String(b);const row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let previous=row[0];row[0]=i;for(let j=1;j<=b.length;j++){const saved=row[j];row[j]=Math.min(row[j]+1,row[j-1]+1,previous+(a[i-1]===b[j-1]?0:1));previous=saved}}return row[b.length]};
+    const LEGACY_DESENZANO_2026={65:'TIBILETTI F.',66:'BITTURINI D.',67:'GASPARINI F.',68:'BURDO A.',69:'BETTINI M.',70:'GRUMELLI M.',71:'GIACCI GL.',72:'AVANZINI A.',73:'GHIZZI E.',74:'ZENEGAGLIA D.',75:'COSTAMAGNA S.',76:'PROSPERO L.',77:'SCANNAPIECO A.',78:'CEFARIELLO G.',79:'SQUARZONI P.',80:'LA BELLA V.',81:'CAMPOSTRINI E.',82:'CHIMINELLI M.',83:'BARBIERI G.',84:'TANZI E.',85:'VALOTTI G.',86:'MONACO S.',87:'PEROTTI F.',88:'CAMPAGNARO R.',89:'FRANZONI F.',90:'DOLCERA L.',91:'PEDRONI M.',92:'STUMPO D.',93:'BARTOLI F.',94:'LONARDI N.',95:'SCALA L.',96:'BUTTURINI C.',97:'GARDANI R.',98:'BERSANELLI S.',99:'SCARMIGLIATI A.',100:'CACEFFO M.',101:'SPILLER M.',102:'BERGAMINI D.',103:'PAIOLA D.'};
     const isoDate=value=>{
       const raw=String(value||'').trim();
       if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return raw;
@@ -222,12 +233,25 @@
     }
 
     function agents(){
-      return Object.entries(schedule?.residenze||{}).flatMap(([residence,list])=>(list||[]).map(agent=>({...agent,residence})));
+      const unique=new Map();
+      Object.entries(schedule?.residenze||{}).flatMap(([residence,list])=>(list||[]).map(agent=>({...agent,residence,agent_uid:agent.agent_uid||stableAgentUid(agent.agente)}))).forEach(agent=>{if(!unique.has(agent.agent_uid))unique.set(agent.agent_uid,agent)});
+      return [...unique.values()];
     }
     function resolveAgent(name){
       const target=normalize(name),list=agents().filter(a=>String(a.residence).toUpperCase()!=='BARISTE');
-      return list.find(a=>normalize(a.agente)===target)||list.find(a=>normalize(a.agente).startsWith(target)||target.startsWith(normalize(a.agente).split(/[A-Z](?=$)/)[0]));
+      const exact=list.find(a=>normalize(a.agente)===target)||list.find(a=>normalize(a.agente).startsWith(target)||target.startsWith(normalize(a.agente)));
+      if(exact)return exact;
+      const surname=target.replace(/^\d+/,'').match(/^[A-Z]+/)?.[0]||target;
+      const candidates=list.map(agent=>({agent,surname:normalize(String(agent.agente||'').split(/\s+/)[0])})).filter(item=>item.surname.length>3);
+      return candidates.find(item=>item.surname===surname)?.agent||candidates.filter(item=>Math.abs(item.surname.length-surname.length)<=1&&editDistance(item.surname,surname)<=1).map(item=>item.agent)[0];
     }
+    function repairLegacyScheduleImports(){let changed=false;state.scheduleImports=state.scheduleImports.map(batch=>{if(String(batch.inizio)!=='2026-06-22'||String(batch.fine)!=='2026-07-26')return batch;const rows=(batch.rows||[]).map(row=>{if(row.agent_uid)return row;const expected=LEGACY_DESENZANO_2026[Number(row.id_agente)];if(!expected)return row;const agent=resolveAgent(expected);if(!agent)return row;changed=true;return {...row,id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:String(agent.agente),residenza:String(agent.residence||row.residenza||'')}});return {...batch,identityVersion:2,rows}});return changed}
+    function csvCell(value){const text=String(value??'');return /[",\r\n;]/.test(text)?`"${text.replace(/"/g,'""')}"`:text}
+    function parseCsvMatrix(text){const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<String(text).length;i++){const char=text[i],next=text[i+1];if(char==='"'){if(quoted&&next==='"'){cell+='"';i++}else quoted=!quoted}else if(!quoted&&(char===','||char===';')){row.push(cell.trim());cell=''}else if(!quoted&&(char==='\n'||char==='\r')){if(char==='\r'&&next==='\n')i++;row.push(cell.trim());cell='';if(row.some(Boolean))rows.push(row);row=[]}else cell+=char}row.push(cell.trim());if(row.some(Boolean))rows.push(row);return rows}
+    function googleSheetCsvUrl(value){const raw=String(value||'').trim(),id=raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];if(!id)throw new Error('Collegamento del Foglio Google non riconosciuto');const gid=raw.match(/[?#&]gid=(\d+)/)?.[1]||'0';return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`}
+    function exportScheduleCsv(){const dates=(schedule?.date||[]).map(item=>item.iso).filter(Boolean).sort(),header=['agent_uid','agente','residenza',...dates],lines=[header.map(csvCell).join(',')];agents().filter(agent=>String(agent.residence).toUpperCase()!=='BARISTE').sort((a,b)=>String(a.agente).localeCompare(String(b.agente),'it')).forEach(agent=>{lines.push([agent.agent_uid||stableAgentUid(agent.agente),agent.agente,agent.residence,...dates.map(date=>agent.turni?.[date]||'RIP')].map(csvCell).join(','))});const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='NaviSuite-turni-foglio-google.csv';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}
+    function sheetBatchFromCsv(text,url){const matrix=parseCsvMatrix(text);if(matrix.length<2)throw new Error('Il foglio non contiene righe turno');const header=matrix.shift(),normalized=header.map(normalize),uidIndex=normalized.indexOf('AGENTUID'),nameIndex=normalized.indexOf('AGENTE'),residenceIndex=normalized.indexOf('RESIDENZA'),dateColumns=header.map((value,index)=>({date:isoDate(value),index})).filter(item=>item.date);if(nameIndex<0||!dateColumns.length)throw new Error('Servono le colonne agent_uid, agente, residenza e almeno una data');const rows=[];matrix.forEach(values=>{const suppliedUid=uidIndex>=0?String(values[uidIndex]||'').trim():'',name=String(values[nameIndex]||'').trim(),agent=agents().find(item=>String(item.agent_uid)===suppliedUid)||resolveAgent(name);if(!agent)return;rows.push({id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:String(agent.agente),residenza:String(agent.residence||values[residenceIndex]||''),turni:dateColumns.map(column=>normalizeImportedShift(values[column.index]))})});if(!rows.length)throw new Error('Nessun agente del foglio corrisponde all’archivio NaviSuite');const dates=dateColumns.map(item=>item.date);return {id:`SHEET_${Date.now()}`,tipo:'turno',filename:'Foglio Google',dates,rows,inizio:dates[0],fine:dates.at(-1),source:'google_sheet',sheetUrl:url,identityVersion:2,importedAt:new Date().toISOString(),attiva:true}}
+    function renderSheetPreview(){const box=$('turn-sheet-preview'),batch=pendingSheetImport;box.hidden=!batch;if(!batch)return;box.innerHTML=`<strong>${batch.rows.length} agenti · ${batch.dates.length} giornate</strong><p>${esc(batch.inizio)} → ${esc(batch.fine)}. Le righe sono associate tramite agent_uid, non tramite posizione.</p>`}
     function selectedAgent(){return agents().find(a=>String(a.id)===String($('agent').value));}
     function latestShift(agent,date){
       if(!agent||!date)return '—';
@@ -607,24 +631,26 @@
     function resolvePdfRowAgents(prefix){
       const number=String(prefix||'').match(/^\s*(\d+)(?:\s*[-/]\s*(\d+))?/);
       const list=agents().filter(agent=>String(agent.residence||'').toUpperCase()!=='BARISTE');
-      if(number){
-        const first=Number(number[1]),last=Number(number[2]||number[1]);
-        const byNumber=list.filter(agent=>Number(agent.id)>=first&&Number(agent.id)<=last);
-        if(byNumber.length)return byNumber;
-      }
-      const key=normalize(prefix),exact=resolveAgent(prefix);
+      const withoutNumber=String(prefix||'').replace(/^\s*\d+(?:\s*[-/]\s*\d+)?\s*/,'').trim();
+      const key=normalize(withoutNumber),exact=resolveAgent(withoutNumber);
       if(exact)return [exact];
-      return list.filter(agent=>{
+      const byName=list.filter(agent=>{
         const surname=normalize(String(agent.agente||'').split(/\s+/)[0]);
         return surname.length>3&&key.includes(surname);
       });
+      if(byName.length)return byName;
+      if(number&&!/[A-ZÀ-ÖØ-Ý]{4}/i.test(withoutNumber)){
+        const first=Number(number[1]),last=Number(number[2]||number[1]);
+        return list.filter(agent=>Number(agent.id)>=first&&Number(agent.id)<=last);
+      }
+      return [];
     }
     function parseTurnPdf(pages,start,end,tipo,filename){
       const dates=datesBetween(start,end);
       if(!dates.length||dates.length%7!==0)throw new Error('Il periodo deve contenere settimane complete di 7 giorni');
       const rows=new Map();let pendingAgents=[];
       pages.forEach(items=>{
-        const centers=pageDayCenters(items,Math.min(14,dates.length));
+        const centers=pageDayCenters(items,dates.length);
         if(centers.length<7)throw new Error('Non trovo le 7 colonne dei giorni in una pagina del PDF');
         const spacing=centers.slice(1).reduce((sum,x,i)=>sum+(x-centers[i]),0)/Math.max(1,centers.length-1);
         const lines=groupedPdfLines(items);
@@ -639,10 +665,10 @@
           const rowAgents=resolvePdfRowAgents(prefix);
           if(rowAgents.length){
             if(!populated){pendingAgents=rowAgents;return}
-            rowAgents.forEach(agent=>rows.set(String(agent.id),{id_agente:String(agent.id),agente:agent.agente,residenza:agent.residence,turni:cells}));
+            rowAgents.forEach(agent=>rows.set(String(agent.agent_uid||stableAgentUid(agent.agente)),{id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:agent.agente,residenza:agent.residence,turni:cells}));
             pendingAgents=[];
           }else if(pendingAgents.length&&populated>=2){
-            pendingAgents.forEach(agent=>rows.set(String(agent.id),{id_agente:String(agent.id),agente:agent.agente,residenza:agent.residence,turni:cells}));
+            pendingAgents.forEach(agent=>rows.set(String(agent.agent_uid||stableAgentUid(agent.agente)),{id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:agent.agente,residenza:agent.residence,turni:cells}));
             pendingAgents=[];
           }
         });
@@ -723,6 +749,8 @@
       state.approvedChangeRequests=saved.approvedChangeRequests||[];
       state.dismissedOdsApprovals=saved.dismissedOdsApprovals||[];
       state.scheduleImports=saved.scheduleImports||[];
+      const repairedLegacyTurn=repairLegacyScheduleImports();
+      if(repairedLegacyTurn){await firebase.saveAdminUpdates(state);window.NaviSharedData?.clear?.()}
       changeRequests=await firebase.listChangeRequests();
       adminDocuments=await firebase.getAdminDocuments();
       $('owner-info').textContent=`UID corrente: ${saved.currentUid}${saved.ownerUid?` · proprietario archivio: ${saved.ownerUid}`:' · archivio non ancora inizializzato'}`;
@@ -731,7 +759,9 @@
       $('date').value='2026-08-14';updateCurrent();renderHistory();
       renderChangeApprovals();
       renderUploadedDocuments();
-      setStatus('Connesso a Firebase. Puoi importare i documenti o registrare una variazione.','ok');
+      const linkedSheet=state.scheduleImports.filter(item=>item.source==='google_sheet'&&item.attiva!==false).sort((a,b)=>String(b.importedAt).localeCompare(String(a.importedAt)))[0];
+      $('turn-sheet-url').value=linkedSheet?.sheetUrl||localStorage.getItem('navisuite.turnSheetUrl')||'';
+      setStatus(repairedLegacyTurn?'✓ Turno 22 giugno–26 luglio riparato per nome agente e salvato su Firebase.':'Connesso a Firebase. Puoi importare i documenti o registrare una variazione.','ok');
     }
     $('agent').addEventListener('change',updateCurrent);$('date').addEventListener('change',updateCurrent);
     $('new-ods-file').addEventListener('change',event=>{
@@ -752,6 +782,18 @@
     $('parse-new-ods').addEventListener('click',()=>parseImport('ods').catch(error=>setStatus(`Errore importazione ODS: ${error.message}`,'bad')));
     $('parse-new-bariste').addEventListener('click',()=>parseImport('barista').catch(error=>setStatus(`Errore importazione turni: ${error.message}`,'bad')));
     $('parse-new-turn').addEventListener('click',()=>parseTurnImport().catch(error=>setStatus(`Errore lettura turno: ${error.message}`,'bad')));
+    $('download-turn-sheet').addEventListener('click',exportScheduleCsv);
+    $('parse-turn-sheet').addEventListener('click',async()=>{
+      const url=$('turn-sheet-url').value.trim();if(!url)return setStatus('Inserisci il collegamento del Foglio Google.','bad');
+      setStatus('Lettura del Foglio Google…');$('save-turn-sheet').disabled=true;
+      try{const response=await fetch(googleSheetCsvUrl(url),{cache:'no-store'});if(!response.ok)throw new Error(`Google Fogli HTTP ${response.status}`);pendingSheetImport=sheetBatchFromCsv(await response.text(),url);localStorage.setItem('navisuite.turnSheetUrl',url);renderSheetPreview();$('save-turn-sheet').disabled=false;setStatus(`✓ ${pendingSheetImport.rows.length} agenti riconosciuti. Controlla l’anteprima e applica a Firebase.`,'ok')}catch(error){pendingSheetImport=null;renderSheetPreview();setStatus(`Errore Foglio Google: ${error.message}. Verifica che sia pubblicato come CSV.`,'bad')}
+    });
+    $('save-turn-sheet').addEventListener('click',async()=>{
+      if(!pendingSheetImport)return;
+      if(!confirm(`Applicare a Firebase ${pendingSheetImport.rows.length} agenti dal ${pendingSheetImport.inizio} al ${pendingSheetImport.fine}?`))return;
+      const previous=[...state.scheduleImports];state.scheduleImports=state.scheduleImports.map(item=>item.source==='google_sheet'&&item.attiva!==false?{...item,attiva:false,replacedAt:new Date().toISOString()}:item).concat(pendingSheetImport);
+      try{await save();schedule=await window.NaviSharedData.load('',{force:true});$('save-turn-sheet').disabled=true;setStatus('✓ Foglio Google applicato a Firebase. I turni sono stati aggiornati.','ok')}catch(error){state.scheduleImports=previous;setStatus(`Errore applicazione Foglio Google: ${error.message}`,'bad')}
+    });
     $('save-new-ods').addEventListener('click',async()=>{
       const rows=collectPending('ods');if(!rows.length)return setStatus('Nessuna riga ODS valida da salvare.','bad');
       state.odsVariations=merge(state.odsVariations,rows,variationKey);

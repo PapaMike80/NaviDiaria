@@ -4,9 +4,18 @@ const TURNI_SESSION = 'naviturni_logged_agent';
 const MOVEMENT_AGENT = { id:'MOVIMENTO', name:'Ufficio Movimento', qualifica:'ufficio', residence:'UFFICIO MOVIMENTO', role:'admin' };
 let agents = [];
 let pendingFirstLogin = null;
+let presenceTimer = null;
+
+function startPresence(agent) {
+  if (!window.NaviAdminFirebase?.touchUserPresence || !agent) return;
+  const signal = () => window.NaviAdminFirebase.touchUserPresence(agent).catch(() => {});
+  signal();
+  if (presenceTimer) clearInterval(presenceTimer);
+  presenceTimer = setInterval(signal, 45000);
+}
 
 const $ = id => document.getElementById(id);
-const isAdminAgent = agent => ['92', 'MOVIMENTO'].includes(String(agent?.id || '')) || String(agent?.role || '').toLowerCase() === 'admin';
+const isAdminAgent = agent => ['91', '92', 'MOVIMENTO'].includes(String(agent?.id || '')) || String(agent?.role || '').toLowerCase() === 'admin';
 const isBaristaAgent = agent => String(agent?.role || '').toLowerCase() === 'barista' || String(agent?.qualifica || '').toLowerCase() === 'barista';
 const formatName = name => String(name || '').trim().split(/\s+/).map(part => part.length > 1 ? part[0] + part.slice(1).toLocaleLowerCase('it') : part).join(' ');
 
@@ -48,6 +57,7 @@ function selectedAgent() {
 }
 
 function showChoice(agent) {
+  startPresence(agent);
   $('loginForm').hidden = true;
   $('firstPinForm').hidden = true;
   $('appChoice').hidden = false;
@@ -58,6 +68,8 @@ function showChoice(agent) {
   const orario = document.querySelector('.app-card.orario');
   const orariTabella = document.querySelector('.app-card.orari-tabella');
   const settings = document.querySelector('.app-card.settings');
+  const updates = document.querySelector('.app-card.updates');
+  const agentAdmin = document.querySelector('.app-card.agents');
   if (diaria) diaria.hidden = !isAdminAgent(agent);
   if (docs) docs.hidden = isBaristaAgent(agent);
   if (trova) trova.hidden = isBaristaAgent(agent);
@@ -65,6 +77,8 @@ function showChoice(agent) {
   if (orario) orario.hidden = isBaristaAgent(agent);
   if (orariTabella) orariTabella.hidden = isBaristaAgent(agent);
   if (settings) settings.hidden = isBaristaAgent(agent);
+  if (updates) updates.hidden = !isAdminAgent(agent);
+  if (agentAdmin) agentAdmin.hidden = !isAdminAgent(agent);
 }
 
 async function loadAgents() {
@@ -86,6 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const active = JSON.parse(localStorage.getItem(DIARIA_SESSION) || 'null') || JSON.parse(localStorage.getItem(TURNI_SESSION) || 'null');
   if (active) {
     showChoice(active);
+    window.NaviAdminFirebase?.recordUserAccess?.(active).catch(() => {});
     NaviSharedData.load(DIRECTORY_URL, { force:true }).catch(() => {});
     return;
   }
@@ -112,6 +127,7 @@ $('loginForm').addEventListener('submit', async event => {
     // TODO: RIMUOVERE IN PRODUZIONE - BYPASS LOCALE
     localStorage.setItem(DIARIA_SESSION, JSON.stringify(agent));
     localStorage.setItem(TURNI_SESSION, JSON.stringify({ id:agent.id, name:agent.name, residence:agent.residence, qualifica:agent.qualifica, role:agent.role || '' }));
+    window.NaviAdminFirebase?.recordUserAccess?.(agent).catch(() => {});
     $('loginMessage').textContent = 'BYPASS LOCALE ATTIVO: accesso eseguito senza verifica PIN.';
     showChoice(agent);
     return;
@@ -123,7 +139,7 @@ $('loginForm').addEventListener('submit', async event => {
   try {
     const digest = await hashPin(pin);
     const auth = await NaviCloud.request('auth', { agentId:agent.id, pinHash:digest });
-    if (auth.mustChangePin) {
+    if (auth.mustChangePin || pin === '1957') {
       pendingFirstLogin = { agent, pinHash:digest };
       $('loginForm').hidden = true;
       $('firstPinForm').hidden = false;
@@ -133,6 +149,7 @@ $('loginForm').addEventListener('submit', async event => {
     localStorage.setItem(`navidiaria.pin.${agent.id}`, digest);
     localStorage.setItem(DIARIA_SESSION, JSON.stringify(agent));
     localStorage.setItem(TURNI_SESSION, JSON.stringify({ id:agent.id, name:agent.name, residence:agent.residence, qualifica:agent.qualifica, role:agent.role || '' }));
+    window.NaviAdminFirebase?.recordUserAccess?.(agent).catch(() => {});
     $('loginMessage').textContent = '';
     showChoice(agent);
     NaviSharedData.load(DIRECTORY_URL, { force:true }).catch(() => {});
@@ -156,6 +173,10 @@ $('firstPinForm').addEventListener('submit', async event => {
     $('firstPinMessage').textContent = 'I PIN non coincidono.';
     return;
   }
+  if (nextPin === '1957') {
+    $('firstPinMessage').textContent = 'Scegli un PIN diverso da quello iniziale 1957.';
+    return;
+  }
   button.disabled = true;
   $('firstPinMessage').textContent = 'Salvataggio online…';
   try {
@@ -165,6 +186,7 @@ $('firstPinForm').addEventListener('submit', async event => {
     localStorage.setItem(`navidiaria.pin.${agent.id}`, newPinHash);
     localStorage.setItem(DIARIA_SESSION, JSON.stringify(agent));
     localStorage.setItem(TURNI_SESSION, JSON.stringify({ id:agent.id, name:agent.name, residence:agent.residence, qualifica:agent.qualifica, role:agent.role || '' }));
+    window.NaviAdminFirebase?.recordUserAccess?.(agent).catch(() => {});
     pendingFirstLogin = null;
     $('firstPinMessage').textContent = '';
     showChoice(agent);
