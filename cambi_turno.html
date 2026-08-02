@@ -6326,9 +6326,9 @@
     <span class="nav-icon">▤</span>
     <span>Doc</span>
   </a>
-  <button type="button" class="nav-item" id="mobile-altre-btn" aria-label="Altre residenze">
-    <span class="nav-icon">⎈</span>
-    <span>Altre</span>
+  <button type="button" class="nav-item" id="mobile-altre-btn" aria-label="Apri menu e filtri">
+    <span class="nav-icon">☰</span>
+    <span>Menu</span>
   </button>
 </nav>
 
@@ -6360,12 +6360,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const altreBtn = document.getElementById('mobile-altre-btn');
 
   if (altreBtn) {
-    altreBtn.classList.toggle('active', Boolean(window.cambioShowOtherResidences));
     altreBtn.addEventListener('click', () => {
-      if (typeof window.toggleOtherResidences === 'function') {
-        window.toggleOtherResidences();
-        altreBtn.classList.toggle('active', Boolean(window.cambioShowOtherResidences));
-      }
+      modal?.classList.add('open');
     });
   }
 

@@ -1,5 +1,5 @@
 (function(){
-  const APP_VERSION='v1.36';
+  const APP_VERSION='v1.37';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   if('serviceWorker' in navigator){
     if(!window.__naviSwRegistrationPromise){
@@ -364,6 +364,107 @@
 
   window.refreshOdsVariationStatus=refreshOdsVariationStatus;
   window.addEventListener('DOMContentLoaded',refreshOdsVariationStatus);
+
+  function installCompleteMobileMenu(){
+    const nav=document.querySelector('.mobile-liquid-nav');
+    if(!nav)return;
+
+    let trigger=document.getElementById('mobile-filter-btn')||document.getElementById('mobile-altre-btn')||document.getElementById('mobile-app-menu-btn');
+    if(!trigger){
+      // Nelle pagine che usavano Impostazioni come quarta voce, quella
+      // posizione diventa il nuovo Menu completo.
+      nav.querySelector('a[href="impostazioni.html"]')?.remove();
+      trigger=document.createElement('button');
+      trigger.type='button';
+      trigger.className='nav-item';
+      trigger.id='mobile-app-menu-btn';
+      trigger.setAttribute('aria-label','Apri menu');
+      trigger.innerHTML='<span class="nav-icon">☰</span><span>Menu</span>';
+      nav.appendChild(trigger);
+    }else{
+      trigger.setAttribute('aria-label','Apri menu e filtri');
+      const label=trigger.querySelector('span:last-child');
+      if(label)label.textContent='Menu';
+      const icon=trigger.querySelector('.nav-icon');
+      if(icon)icon.textContent='☰';
+    }
+
+    let modal=document.getElementById('mobile-filter-modal');
+    if(!modal){
+      modal=document.createElement('div');
+      modal.id='mobile-filter-modal';
+      modal.className='liquid-modal-overlay';
+      modal.hidden=true;
+      modal.innerHTML=`<div class="liquid-modal-content"><div class="liquid-modal-header"><strong>Menu NaviSuite</strong><button type="button" id="close-filter-modal" aria-label="Chiudi">✕</button></div><div class="liquid-modal-body"></div></div>`;
+      document.body.appendChild(modal);
+    }
+
+    const body=modal.querySelector('.liquid-modal-body');
+    if(!body||body.querySelector('.mobile-complete-menu'))return;
+
+    // I vecchi comandi che aprivano il laterale non servono più su mobile:
+    // tutte le stesse funzioni sono disponibili direttamente qui.
+    modal.querySelectorAll('#modal-sidebar-toggle,#modal-sidebar-mini-toggle').forEach(node=>node.remove());
+
+    const section=document.createElement('div');
+    section.className='filter-section mobile-complete-menu';
+    const links=[];
+    if(!isBaristaSession){
+      links.push('<a href="index.html"><span>⌂</span>Home</a>');
+      if(isAdminAgent(sessionAgent))links.push('<a href="navidiaria.html"><span>≈</span>NaviDiaria</a>');
+      links.push('<a href="Orario.html"><span>◴</span>Orario</a>');
+      links.push('<a href="impostazioni.html"><span>⚙</span>Impostazioni</a>');
+    }
+    if(isAdminAgent(sessionAgent)){
+      links.push('<a href="aggiornamenti.html" class="admin-mobile-action"><span>↻</span>Aggiornamenti</a>');
+      links.push('<a href="agenti.html" class="admin-mobile-action"><span>♙</span>Agenti</a>');
+    }
+
+    const supportsPast=page==='turni'||page==='trova';
+    section.innerHTML=`
+      <span class="filter-section-title">AZIONI</span>
+      <div class="mobile-menu-actions">
+        <button type="button" data-mobile-refresh><span>↻</span><b>Aggiorna</b></button>
+        ${supportsPast?'<button type="button" data-mobile-past><span>◷</span><b>Mostra passato</b></button>':''}
+        ${links.join('')}
+        <a href="navidiaria.html?pin=1"><span>⌁</span>Cambia PIN</a>
+        <button type="button" class="mobile-menu-logout" data-mobile-logout><span>⇥</span><b>Esci</b></button>
+      </div>`;
+    body.appendChild(section);
+
+    const openModal=()=>{
+      modal.removeAttribute('hidden');
+      modal.classList.add('open');
+      document.body.classList.remove('mobile-nav-hidden');
+    };
+    const closeModal=()=>modal.classList.remove('open');
+    trigger.addEventListener('click',openModal);
+    modal.querySelector('#close-filter-modal')?.addEventListener('click',closeModal);
+    modal.addEventListener('click',event=>{if(event.target===modal)closeModal();});
+
+    section.querySelector('[data-mobile-refresh]')?.addEventListener('click',()=>{
+      closeModal();
+      if(typeof window.ricaricaDati==='function'){window.ricaricaDati();return;}
+      if(typeof window.loadDocuments==='function'){window.loadDocuments();return;}
+      location.reload();
+    });
+
+    section.querySelector('[data-mobile-past]')?.addEventListener('click',()=>{
+      if(typeof window.togglePastColumns==='function')window.togglePastColumns();
+      const source=document.getElementById('togglePastBtn');
+      const label=section.querySelector('[data-mobile-past] b');
+      if(label)label.textContent=source?.textContent?.replace(/^[^A-Za-zÀ-ÿ]+/,'').trim()||'Mostra passato';
+    });
+    section.querySelector('[data-mobile-logout]')?.addEventListener('click',()=>{
+      if(typeof window.logoutAgent==='function'){window.logoutAgent();return;}
+      localStorage.removeItem('navidiaria.activeAgent');
+      localStorage.removeItem('naviturni_logged_agent');
+      location.href='index.html';
+    });
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installCompleteMobileMenu,{once:true});
+  else installCompleteMobileMenu();
 
   function installMobileNavAutoHide(){
     const nav=document.querySelector('.mobile-liquid-nav');
