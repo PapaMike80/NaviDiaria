@@ -5051,5 +5051,19 @@
     box-shadow:0 0 0 2px #facc15,0 0 8px rgba(250,204,21,.42) !important;
   }
 </style>
+<style id="naviturni-safe-area-table-mask">
+  @media (max-width:950px) {
+    /* Nasconde le righe che scorrono dietro la barra di sistema dell'iPhone. */
+    body.turni-page::before {
+      content:"";
+      position:fixed;
+      inset:0 0 auto 0;
+      z-index:51;
+      height:env(safe-area-inset-top,0px);
+      background:#071923;
+      pointer-events:none;
+    }
+  }
+</style>
 </body>
 </html>

@@ -10,7 +10,7 @@
     gtag('config', 'G-R59ZS3YB4Q');
   </script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NaviDiaria">
@@ -6453,6 +6453,32 @@ document.addEventListener('DOMContentLoaded', () => {
     #matrix-scroll-wrap td:first-child { left:0 !important; }
     #matrix-scroll-wrap .month-header th:first-child,
     #matrix-scroll-wrap .date-header th:first-child { width:126px !important; min-width:126px !important; max-width:126px !important; }
+  }
+</style>
+<style id="cambi-logged-agent-cell-fix">
+  /* La cella dell'agente collegato resta agganciata in entrambe le direzioni. */
+  #matrix-scroll-wrap #tbody tr.logged-agent-row td.td-name {
+    position:sticky !important;
+    top:var(--logged-row-sticky-top,78px) !important;
+    left:0 !important;
+    z-index:47 !important;
+    opacity:1 !important;
+    background:#164754 !important;
+    background-image:none !important;
+    isolation:isolate;
+  }
+
+  @media (max-width:950px) {
+    #matrix-scroll-wrap #tbody tr.logged-agent-row td {
+      position:sticky !important;
+      top:calc(env(safe-area-inset-top,0px) + var(--logged-row-sticky-top,60px)) !important;
+      z-index:46 !important;
+    }
+    #matrix-scroll-wrap #tbody tr.logged-agent-row td.td-name {
+      left:0 !important;
+      z-index:47 !important;
+      background:#164754 !important;
+    }
   }
 </style>
 </body>
