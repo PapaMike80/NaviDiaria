@@ -6460,12 +6460,23 @@ document.addEventListener('DOMContentLoaded', () => {
     top:var(--month-header-height,22px) !important;
   }
 
-  /* La cella dell'agente collegato resta agganciata in entrambe le direzioni. */
-  #matrix-scroll-wrap #tbody tr.logged-agent-row td.td-name {
+  /* Safari deve bloccare la riga come unità: le singole celle non sono sticky verticalmente. */
+  #matrix-scroll-wrap #tbody tr.logged-agent-row {
     position:sticky !important;
-    top:var(--logged-row-sticky-top,78px) !important;
+    top:78px !important;
+    z-index:46 !important;
+    transform:translateZ(0);
+  }
+  #matrix-scroll-wrap #tbody tr.logged-agent-row > td {
+    position:relative !important;
+    top:auto !important;
+    z-index:auto !important;
+  }
+  #matrix-scroll-wrap #tbody tr.logged-agent-row > td.td-name {
+    position:sticky !important;
+    top:auto !important;
     left:0 !important;
-    z-index:47 !important;
+    z-index:2 !important;
     opacity:1 !important;
     background:#164754 !important;
     background-image:none !important;
@@ -6473,33 +6484,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   @media (max-width:950px) {
-    body.turni-page::before {
-      content:"";
-      position:fixed;
-      inset:0 0 auto 0;
-      z-index:51;
-      height:env(safe-area-inset-top,0px);
-      background:#071923;
-      pointer-events:none;
-    }
-
     #matrix-scroll-wrap .date-header > th:first-child {
       top:calc(env(safe-area-inset-top,0px) + 18px) !important;
       z-index:55 !important;
     }
 
-    #matrix-scroll-wrap #tbody tr.logged-agent-row td {
-      position:sticky !important;
+    #matrix-scroll-wrap #tbody tr.logged-agent-row {
       top:calc(env(safe-area-inset-top,0px) + 60px) !important;
       z-index:46 !important;
     }
-    #matrix-scroll-wrap #tbody tr.logged-agent-row td.td-name {
-      top:calc(env(safe-area-inset-top,0px) + 60px) !important;
+    #matrix-scroll-wrap #tbody tr.logged-agent-row > td {
+      position:relative !important;
+      top:auto !important;
+    }
+    #matrix-scroll-wrap #tbody tr.logged-agent-row > td.td-name {
+      position:sticky !important;
+      top:auto !important;
       left:0 !important;
-      z-index:47 !important;
+      z-index:2 !important;
       background:#164754 !important;
+    }
+
+    .ios-safe-area-mask {
+      display:block;
+      position:fixed;
+      inset:0 0 auto 0;
+      z-index:999;
+      height:env(safe-area-inset-top,0px);
+      background:#071923;
+      pointer-events:none;
     }
   }
 </style>
+<div class="ios-safe-area-mask" aria-hidden="true"></div>
 </body>
 </html>
