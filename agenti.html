@@ -46,7 +46,8 @@
       return Date.parse(raw)||0;
     };
     const fmt=value=>{const timestamp=time(value);return timestamp?new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'medium'}).format(new Date(timestamp)):'Mai';};
-    const roleOptions=['','agente','admin','barista'];
+    const roleOptions=['','agente','superuser','admin','barista'];
+    const roleLabels={'':'Agente standard',agente:'Agente standard',superuser:'Super user · prova NaviDiaria',admin:'Amministratore',barista:'Barista'};
     const gradeDefaults=['marinaio','motorista','comandante','capitano','ufficio','barista'];
     let directory=[],registry=[],profiles={},presence=[];
     const overrideFor=id=>profiles[String(id)]||Object.values(profiles).find(item=>String(item?.id)===String(id))||{};
@@ -55,7 +56,7 @@
       const override=overrideFor(agent.id),role=override.role??agent.role??'',grade=override.qualifica||agent.qualifica||'marinaio';
       const roles=[...new Set([...roleOptions,role].filter((v,i,a)=>a.indexOf(v)===i))],grades=[...new Set([...gradeDefaults,...directory.map(item=>String(item.qualifica||'').toLowerCase()),grade].filter(Boolean))];
       const actions=`<div class="agent-actions"><button class="save-agent" type="button">Salva ruolo/grado</button>${user?`<button class="reset-pin" type="button">Reset PIN</button><button class="delete-registration" type="button">Elimina</button>`:''}</div>`;
-      return `<article class="agent-row${online?' latest':''}" style="--grade-color:${gradeColor(grade)}" data-agent-id="${esc(agent.id)}"><div class="agent-name"><strong>${online?'<i class="online-dot"></i>':''}${esc(agent.name)}</strong><small>ID ${esc(agent.id)} · ${esc(agent.residence||'Residenza non indicata')}</small><span class="grade-badge">${esc(grade)}</span></div><div class="access"><span>${online?'Presenza rilevata':'Ultimo accesso'}</span><strong class="${online?'online-time':''}">${esc(fmt(online?user?.onlineAt:user?.lastAccess))}</strong>${user?.registeredAt?`<small>Registrato: ${esc(fmt(user.registeredAt))}</small>`:''}</div><label>Ruolo<select data-role>${roles.map(item=>`<option value="${esc(item)}"${item===role?' selected':''}>${esc(item||'Agente standard')}</option>`).join('')}</select></label><label>Grado<select data-grade>${grades.map(item=>`<option value="${esc(item)}"${item===grade?' selected':''}>${esc(item)}</option>`).join('')}</select></label>${actions}</article>`;
+      return `<article class="agent-row${online?' latest':''}" style="--grade-color:${gradeColor(grade)}" data-agent-id="${esc(agent.id)}"><div class="agent-name"><strong>${online?'<i class="online-dot"></i>':''}${esc(agent.name)}</strong><small>ID ${esc(agent.id)} · ${esc(agent.residence||'Residenza non indicata')}</small><span class="grade-badge">${esc(grade)}</span></div><div class="access"><span>${online?'Presenza rilevata':'Ultimo accesso'}</span><strong class="${online?'online-time':''}">${esc(fmt(online?user?.onlineAt:user?.lastAccess))}</strong>${user?.registeredAt?`<small>Registrato: ${esc(fmt(user.registeredAt))}</small>`:''}</div><label>Ruolo<select data-role>${roles.map(item=>`<option value="${esc(item)}"${item===role?' selected':''}>${esc(roleLabels[item]||item)}</option>`).join('')}</select></label><label>Grado<select data-grade>${grades.map(item=>`<option value="${esc(item)}"${item===grade?' selected':''}>${esc(item)}</option>`).join('')}</select></label>${actions}</article>`;
     }
     function render(){
       const registeredIds=new Set(registry.map(item=>String(item.id))),byId=new Map(directory.map(item=>[String(item.id),item]));

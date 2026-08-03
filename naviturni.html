@@ -1902,9 +1902,9 @@
       label.title = loggedAgentProfile ? "Rimetti l'agente in cima" : "Accesso non effettuato";
       if (changeButton) changeButton.style.display = loggedAgentProfile ? "inline-flex" : "none";
       if (diariaNavLink) {
-        const isAdmin = ["92", "MOVIMENTO"].includes(String(loggedAgentProfile?.id || "")) ||
-          String(loggedAgentProfile?.role || "").toLowerCase() === "admin";
-        diariaNavLink.hidden = !isAdmin;
+        const role = String(loggedAgentProfile?.role || "").toLowerCase();
+        const canUseDiaria = ["92", "MOVIMENTO"].includes(String(loggedAgentProfile?.id || "")) || role === "admin" || ["superuser","super_user","super-user"].includes(role);
+        diariaNavLink.hidden = !canUseDiaria;
       }
       if (archiveNavLink) archiveNavLink.hidden = isBaristaProfile();
       restrictBaristaInterface();

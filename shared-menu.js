@@ -1,5 +1,5 @@
 (function(){
-  const APP_VERSION='v1.38';
+  const APP_VERSION='v1.39';
   const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
   if('serviceWorker' in navigator){
     if(!window.__naviSwRegistrationPromise){
@@ -13,6 +13,7 @@
   const tabNames={turni:'NaviTurniTab',trova:'NaviTrovaTurnoTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab',settings:'NaviImpostazioniTab',orario:'NaviOrarioTab','orario-data':'NaviOrarioTab'};
   let sessionAgent=null;try{sessionAgent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null')}catch{}
   const isAdminAgent=agent=>['91','92','MOVIMENTO'].includes(String(agent?.id||''))||String(agent?.role||'').toLowerCase()==='admin';
+  const isDiariaTester=agent=>isAdminAgent(agent)||['superuser','super_user','super-user'].includes(String(agent?.role||'').toLowerCase());
   const isBaristaAgent=agent=>String(agent?.role||'').toLowerCase()==='barista'||String(agent?.qualifica||'').toLowerCase()==='barista';
   const isBaristaSession=isBaristaAgent(sessionAgent);
   const isPinChangePage=page==='diaria'&&new URLSearchParams(location.search).has('pin');
@@ -21,6 +22,7 @@
     location.replace('index.html');
     return;
   }
+  if(page==='diaria'&&!isPinChangePage&&!isDiariaTester(sessionAgent)){location.replace('index.html');return}
   // Registra su Firebase l'accesso alle pagine interne senza conservare il PIN.
   window.NaviAdminFirebase?.recordUserAccess?.(sessionAgent).catch(() => {});
   if(window.NaviAdminFirebase?.touchUserPresence){
@@ -101,6 +103,7 @@
 
   const brandHref=isBaristaSession?(page==='turni'?'#turni-operativi':'naviturni.html'):'index.html';
   sidebar.innerHTML=`<a class="shared-sidebar-brand" href="${brandHref}"><span class="shared-brand-mark">N</span><strong>${brandTitle}</strong></a><nav>${common}${specific}</nav>${user}${status}${version}`;
+  if(!isDiariaTester(sessionAgent))sidebar.querySelectorAll('a[href="navidiaria.html"],#diariaNavLink').forEach(link=>link.hidden=true);
 
   const settingsAgent=sidebar.querySelector('#settingsSidebarAgent');
   if(settingsAgent) settingsAgent.textContent=String(sessionAgent?.name||sessionAgent?.cognome||'AGENTE').toLocaleUpperCase('it');
@@ -377,7 +380,7 @@
     if(!nav)return;
 
     let trigger=document.getElementById('mobile-filter-btn')||document.getElementById('mobile-altre-btn')||document.getElementById('mobile-app-menu-btn');
-    if(!isBaristaSession&&!nav.querySelector('a[href="navidiaria.html"]')){
+    if(isDiariaTester(sessionAgent)&&!isBaristaSession&&!nav.querySelector('a[href="navidiaria.html"]')){
       const diaria=document.createElement('a');
       diaria.href='navidiaria.html';
       diaria.className=`nav-item${page==='diaria'?' active':''}`;
@@ -425,7 +428,7 @@
     const links=[];
     if(!isBaristaSession){
       links.push('<a href="index.html"><span>⌂</span>Home</a>');
-      links.push('<a href="navidiaria.html"><span>≈</span>NaviDiaria</a>');
+      if(isDiariaTester(sessionAgent))links.push('<a href="navidiaria.html"><span>≈</span>NaviDiaria</a>');
       links.push('<a href="Orario.html"><span>◴</span>Orario</a>');
       links.push('<a href="impostazioni.html"><span>⚙</span>Impostazioni</a>');
     }

@@ -16,7 +16,12 @@ function startPresence(agent) {
 
 const $ = id => document.getElementById(id);
 const isAdminAgent = agent => ['91', '92', 'MOVIMENTO'].includes(String(agent?.id || '')) || String(agent?.role || '').toLowerCase() === 'admin';
+const isDiariaTester = agent => isAdminAgent(agent) || ['superuser','super_user','super-user'].includes(String(agent?.role || '').toLowerCase());
 const isBaristaAgent = agent => String(agent?.role || '').toLowerCase() === 'barista' || String(agent?.qualifica || '').toLowerCase() === 'barista';
+let agentProfiles = {};
+const profileFor = id => agentProfiles[String(id)] || Object.values(agentProfiles).find(item => String(item?.id) === String(id)) || {};
+const applyAgentProfile = agent => ({...agent,...profileFor(agent?.id),id:agent?.id,name:agent?.name,residence:agent?.residence});
+async function loadAgentProfiles(){try{await window.NaviAdminFirebase?.ready;const data=await window.NaviAdminFirebase?.getAgentAdminData?.();agentProfiles=data?.profiles||{};}catch(error){console.warn('Ruoli Firebase non disponibili',error)}return agentProfiles}
 const formatName = name => String(name || '').trim().split(/\s+/).map(part => part.length > 1 ? part[0] + part.slice(1).toLocaleLowerCase('it') : part).join(' ');
 
 document.addEventListener('click', event => {
@@ -70,7 +75,7 @@ function showChoice(agent) {
   const settings = document.querySelector('.app-card.settings');
   const updates = document.querySelector('.app-card.updates');
   const agentAdmin = document.querySelector('.app-card.agents');
-  if (diaria) diaria.hidden = !isAdminAgent(agent);
+  if (diaria) diaria.hidden = !isDiariaTester(agent);
   if (docs) docs.hidden = isBaristaAgent(agent);
   if (trova) trova.hidden = isBaristaAgent(agent);
   // Orario visibile solo agli admin (nascosto alle bariste)
@@ -89,6 +94,8 @@ async function loadAgents() {
     // In assenza di rete resta disponibile l'ultima copia valida.
   }
   agents = NaviSharedData.directory() || [];
+  await loadAgentProfiles();
+  agents = agents.map(applyAgentProfile);
   const ordered = agents
     .filter(agent => String(agent.id) !== MOVEMENT_AGENT.id)
     .sort((a, b) => Number(isBaristaAgent(a)) - Number(isBaristaAgent(b)) || a.name.localeCompare(b.name, 'it'));
@@ -97,8 +104,9 @@ async function loadAgents() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const active = JSON.parse(localStorage.getItem(DIARIA_SESSION) || 'null') || JSON.parse(localStorage.getItem(TURNI_SESSION) || 'null');
+  let active = JSON.parse(localStorage.getItem(DIARIA_SESSION) || 'null') || JSON.parse(localStorage.getItem(TURNI_SESSION) || 'null');
   if (active) {
+    await loadAgentProfiles();active=applyAgentProfile(active);localStorage.setItem(DIARIA_SESSION,JSON.stringify(active));localStorage.setItem(TURNI_SESSION,JSON.stringify(active));
     showChoice(active);
     window.NaviAdminFirebase?.recordUserAccess?.(active).catch(() => {});
     NaviSharedData.load(DIRECTORY_URL, { force:true }).catch(() => {});
