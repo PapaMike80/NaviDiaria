@@ -18,8 +18,8 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="naviturni-theme.css">
   <link rel="stylesheet" href="shared-menu.css">
-  <link rel="stylesheet" href="navidiaria-weekly.css?v=104">
-  <link rel="stylesheet" href="navidiaria-monthly.css?v=102">
+  <link rel="stylesheet" href="navidiaria-weekly.css?v=106">
+  <link rel="stylesheet" href="navidiaria-monthly.css?v=106">
   <style>
     .ccnl-result-line{grid-column:1/-1;margin:0;padding:0;font-weight:700;line-height:1.45}
     .ccnl-result-line small{display:block;font-weight:500;opacity:.72;margin-top:3px}
@@ -103,7 +103,17 @@
         <section id="monthlySheet" class="monthly-sheet panel" aria-label="Distinta mensile">
           <div class="monthly-sheet-toolbar">
             <div><p class="eyebrow">DISTINTA MENSILE</p><h2 id="monthlySheetTitle">—</h2></div>
-            <div class="weekly-nav"><button id="monthlyPrevious" type="button" aria-label="Mese precedente">‹</button><button id="monthlyToday" type="button">Oggi</button><button id="monthlyNext" type="button" aria-label="Mese successivo">›</button></div>
+            <div class="weekly-nav monthly-nav" aria-label="Navigazione e sincronizzazione distinta">
+              <button id="monthlySync" class="monthly-sync-button" type="button" aria-label="Sincronizza i dati della diaria">
+                <span aria-hidden="true">↻</span><b>Sincronizza</b>
+              </button>
+              <button id="monthlySave" class="monthly-save-button" type="button" aria-label="Nessuna modifica da salvare" disabled>
+                <span aria-hidden="true">✓</span><b>Salva</b>
+              </button>
+              <button id="monthlyPrevious" class="monthly-month-button" type="button" aria-label="Mese precedente">‹</button>
+              <button id="monthlyToday" class="monthly-today-button" type="button">Oggi</button>
+              <button id="monthlyNext" class="monthly-month-button" type="button" aria-label="Mese successivo">›</button>
+            </div>
           </div>
           <div id="monthlySheetGrid" class="monthly-sheet-grid"></div>
           <p class="monthly-sheet-help">Tocca una colonna per modificare la giornata. Scorri orizzontalmente per vedere tutto il mese.</p>
@@ -233,13 +243,13 @@
     <a href="navidiaria.html" class="nav-item active"><span class="nav-icon">≈</span><span>Diaria</span></a>
   </nav>
   <div id="toast" class="toast" role="status"></div>
-  <script src="admin-firebase-rest.js?v=33"></script>
+  <script src="admin-firebase-rest.js?v=34"></script>
   <script src="shared-data.js"></script>
   <script src="cloud-data.js"></script>
   <script src="shared-menu.js"></script>
-  <script src="app.js?v=95"></script>
-  <script src="navidiaria-weekly.js?v=104"></script>
-  <script src="navidiaria-monthly.js?v=102"></script>
+  <script src="app.js?v=99"></script>
+  <script src="navidiaria-weekly.js?v=106"></script>
+  <script src="navidiaria-monthly.js?v=104"></script>
   <script>
   (() => {
     const byId = id => document.getElementById(id);

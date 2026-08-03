@@ -380,6 +380,36 @@
     return item;
   }
 
+  async function loadDiaria(agentId) {
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const result = await databaseRequest(`private/adminUpdates/diaria/${safeUserKey(id)}`);
+    const value = result.data || {};
+    return {
+      agentId:id,
+      entries:Array.isArray(value.entries) ? value.entries.filter(Boolean) : [],
+      updatedAt:String(value.updatedAt || ""),
+      updatedBy:String(value.updatedBy || "")
+    };
+  }
+
+  async function saveDiaria(agentId, entries = []) {
+    const auth = await ensureAuth();
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const item = {
+      agentId:id,
+      entries:Array.isArray(entries) ? entries.filter(Boolean) : [],
+      updatedAt:new Date().toISOString(),
+      updatedBy:auth.uid
+    };
+    await databaseRequest(`private/adminUpdates/diaria/${safeUserKey(id)}`, {
+      method:"PUT",
+      body:JSON.stringify(item)
+    });
+    return item;
+  }
+
   window.NaviAdminFirebase = {
     ready,
     listChangeRequests,
@@ -403,6 +433,8 @@
     listUserPresence,
     getQuizCorrections,
     saveQuizCorrections,
+    loadDiaria,
+    saveDiaria,
     provider:"Firebase REST"
   };
 })();

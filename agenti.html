@@ -23,7 +23,7 @@
     <header class="hero"><div class="eyebrow">NAVISUITE ADMIN</div><h1>Gestione agenti</h1><p>Anagrafica completa, registrazioni e ultimo accesso.</p></header>
     <div id="status" class="status">Caricamento dati da Firebase…</div>
     <section class="section"><div class="section-head"><div><h2>Connessi adesso</h2><p>Utenti attivi su NaviSuite negli ultimi due minuti.</p></div><span id="online-count" class="count">0</span></div><div id="latest-user" class="agent-list"><div class="empty">Caricamento…</div></div></section>
-    <section class="section"><div class="section-head"><div><h2>Agenti registrati</h2><p>Hanno effettuato almeno un accesso; lo storico precedente viene importato una sola volta da Apps Script.</p></div><span id="registered-count" class="count">0</span></div><div id="registered-users" class="agent-list"></div></section>
+    <section class="section"><div class="section-head"><div><h2>Agenti registrati</h2><p>Ordinati dall’accesso più recente; chi non ha ancora uno storico compare in fondo.</p></div><span id="registered-count" class="count">0</span></div><div id="registered-users" class="agent-list"></div></section>
     <section class="section"><div class="section-head"><div><h2>Altri agenti</h2><p>Presenti nell’anagrafica turni ma non ancora registrati.</p></div><span id="other-count" class="count">0</span></div><div id="other-users" class="agent-list"></div></section>
   </main>
   <nav class="mobile-nav" aria-label="Navigazione mobile"><a href="naviturni.html"><span>▦</span>Turni</a><a href="cambi_turno.html"><span>⇄</span>Cambi</a><a href="navidiaria.html"><span>≈</span>Diaria</a><a href="aggiornamenti.html"><span>↻</span>Aggiorna</a><a class="active" href="agenti.html"><span>♙</span>Agenti</a></nav>
@@ -37,8 +37,15 @@
     const isAdmin=['91','92','MOVIMENTO'].includes(String(profile?.id||''))||String(profile?.role||'').toLowerCase()==='admin';
     if(!profile||!isAdmin){location.replace('index.html');return;}
     const $=id=>document.getElementById(id),esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const time=value=>{const raw=String(value||'').trim(),it=raw.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:\s+(?:alle\s*)?(\d{1,2})[:.](\d{2})(?::(\d{2}))?)?/i);if(it)return new Date(Number(it[3].length===2?`20${it[3]}`:it[3]),Number(it[2])-1,Number(it[1]),Number(it[4]||0),Number(it[5]||0),Number(it[6]||0)).getTime();return Date.parse(raw)||0;};
-    const fmt=value=>time(value)?new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'medium'}).format(new Date(value)):'Mai';
+    const time=value=>{
+      const raw=String(value||'').trim();
+      if(!raw)return 0;
+      if(/^\d{4}-\d{2}-\d{2}(?:T|\s|$)/.test(raw))return Date.parse(raw)||0;
+      const it=raw.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:\s+(?:alle\s*)?(\d{1,2})[:.](\d{2})(?::(\d{2}))?)?$/i);
+      if(it)return new Date(Number(it[3].length===2?`20${it[3]}`:it[3]),Number(it[2])-1,Number(it[1]),Number(it[4]||0),Number(it[5]||0),Number(it[6]||0)).getTime();
+      return Date.parse(raw)||0;
+    };
+    const fmt=value=>{const timestamp=time(value);return timestamp?new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'medium'}).format(new Date(timestamp)):'Mai';};
     const roleOptions=['','agente','admin','barista'];
     const gradeDefaults=['marinaio','motorista','comandante','capitano','ufficio','barista'];
     let directory=[],registry=[],profiles={},presence=[];
@@ -53,7 +60,12 @@
     function render(){
       const registeredIds=new Set(registry.map(item=>String(item.id))),byId=new Map(directory.map(item=>[String(item.id),item]));
       registry.forEach(user=>{if(!byId.has(String(user.id)))byId.set(String(user.id),{id:String(user.id),name:user.name||user.id,residence:user.residence||'',qualifica:user.qualifica||'',role:user.role||''})});
-      const registered=registry.map(user=>({user,agent:byId.get(String(user.id))})).sort((a,b)=>time(b.user.lastAccess)-time(a.user.lastAccess));
+      const registered=registry.map(user=>({user,agent:byId.get(String(user.id))})).sort((a,b)=>{
+        const accessA=time(a.user.lastAccess),accessB=time(b.user.lastAccess);
+        if(accessA!==accessB)return accessB-accessA;
+        if(Boolean(accessA)!==Boolean(accessB))return accessA?-1:1;
+        return String(a.agent?.name||a.user.name||'').localeCompare(String(b.agent?.name||b.user.name||''),'it');
+      });
       const others=[...byId.values()].filter(agent=>!registeredIds.has(String(agent.id))).sort((a,b)=>a.name.localeCompare(b.name,'it'));
       const online=presence.map(item=>{const agent=byId.get(String(item.id))||{id:item.id,name:item.name||item.id,residence:'',qualifica:'marinaio',role:''};const user=registry.find(entry=>String(entry.id)===String(item.id))||{id:item.id,name:item.name};return {agent,user:{...user,onlineAt:item.lastSeen}};});
       $('latest-user').innerHTML=online.length?online.map(item=>card(item.agent,item.user,true)).join(''):'<div class="empty">Nessun utente connesso in questo momento.</div>';

@@ -90,7 +90,7 @@ function variationsForAgent(data){const activeName=comparableAgentName(activeAge
 async function getScheduledAssignment(date){const data=await NaviSharedData.load(TURNS_URL),variations=variationsForAgent(data);let agent=null;Object.values(data.residenze||{}).some(list=>{agent=(list||[]).find(a=>String(a.id)===String(activeAgent?.id));return !!agent});const baseRaw=agent?.turni?.[date];if(!baseRaw)throw new Error('Nessun turno assegnato per questa data');const base=scheduleAssignment(baseRaw),variationRaw=variations.get(date),assignment=variationRaw?scheduleAssignment(variationRaw):base;return {...assignment,travel:base.travel||assignment.travel}}
 async function getScheduledShift(date){return (await getScheduledAssignment(date)).shift}
 async function restoreFormFromSchedule(){const button=$('restoreFromShift');button.disabled=true;try{const assignment=await getScheduledAssignment($('entryDate').value);$('entryShift').value=assignment.shift;$('entryTravel').checked=assignment.travel;applyCompetenceDefaults();notify(`Ripristinato il turno ${assignment.shift}${assignment.travel?' · trasferta':''}`)}catch(error){notify(error.message)}finally{button.disabled=false}}
-function isAdmin(){return [ADMIN_AGENT_ID,'MOVIMENTO'].includes(String(activeAgent?.id||''))}
+function isAdmin(){return ['91',ADMIN_AGENT_ID,'MOVIMENTO'].includes(String(activeAgent?.id||''))||String(activeAgent?.role||'').toLowerCase()==='admin'}
 function renderTodaySummary(){
   const entry=entries.find(e=>e.date===todayIso()),dateLabel=new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(todayIso()+'T12:00:00')).replace(/^./,c=>c.toUpperCase());
   if(!entry){$('openToday').hidden=false;$('todaySummary').innerHTML=`<div class="today-date"><span>OGGI</span><strong>${dateLabel}</strong></div><div class="today-empty"><span>Nessun turno registrato</span></div>`;return}
@@ -121,20 +121,61 @@ function previousMonthCarryRow(){
   const dateFmt=date=>new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'short'}).format(new Date(date+'T12:00:00')),range=`${dateFmt(previous[0].date)} – ${dateFmt(previous.at(-1).date)}`;
   const diaria=Object.entries(allowanceRates).map(([rate,count])=>`${count}×${rate}%`).join(' · ')||'—';return `<tr class="previous-month-row"><td><small>RIPORTATO DA ${previousMonthLabel.toUpperCase()}</small><strong>${range}</strong></td><td><span class="shift-with-hours"><span class="carry-badge">RIPORTO</span><small>${minutesToText(work)}</small></span></td><td>${dataPill(minutesToText(extra),'pill-overtime')}</td><td>${dataPill(minutesToText(bank),'pill-bank')}</td><td>${dataPill(bpSummary(mealsUsed,mealsCredit),'pill-bp')}</td><td>${dataPill(embarks||'—','pill-embark')}</td><td>${dataPill(diaria,'pill-allowance')}</td><td>${dataPill(travels||'—','pill-travel')}</td><td></td></tr>`;
 }
-function persist(){localStorage.setItem(STORAGE,JSON.stringify(entries));localStorage.setItem(CLOUD_DIRTY_KEY,'1');render();queueCloudSave()}
+function persist(){localStorage.setItem(STORAGE,JSON.stringify(entries));markCloudDirty();render()}
 function notify(message){$('toast').textContent=message;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1800)}
-let cloudSaveTimer=null,cloudAuthenticated=false;
+let cloudAuthenticated=false;
+let cloudUiResetTimer=null;
+function setCloudUi(label,state=''){
+  const sidebar=$('syncStatus'),button=$('monthlySync');
+  if(sidebar)sidebar.textContent=label;
+  if(!button)return;
+  clearTimeout(cloudUiResetTimer);
+  button.classList.remove('is-syncing','is-saved','is-error');
+  if(state)button.classList.add(`is-${state}`);
+  button.disabled=state==='syncing';
+  const text=button.querySelector('b');
+  if(text)text.textContent=state==='syncing'?'Sincronizzo…':state==='saved'?'Sincronizzato':state==='error'?'Riprova':'Sincronizza';
+  button.setAttribute('aria-label',label);
+  if(state==='saved')cloudUiResetTimer=setTimeout(()=>setCloudUi('Online'),2200);
+}
+function setSaveUi(state='idle'){
+  const button=$('monthlySave');if(!button)return;
+  button.classList.remove('is-dirty','is-saving','is-saved','is-error');
+  if(state!=='idle')button.classList.add(`is-${state}`);
+  const dirty=state==='dirty'||state==='error';
+  button.disabled=state==='saving'||state==='saved'||!dirty;
+  const labels={idle:'Nessuna modifica da salvare',dirty:'Salva le modifiche su Firebase',saving:'Salvataggio su Firebase…',saved:'Modifiche salvate su Firebase',error:'Salvataggio non riuscito. Riprova'};
+  const buttonLabels={idle:'Salva',dirty:'Salva',saving:'Salvataggio…',saved:'Salvato',error:'Riprova'};
+  const text=button.querySelector('b');if(text)text.textContent=buttonLabels[state]||buttonLabels.idle;
+  button.setAttribute('aria-label',labels[state]||labels.idle);
+}
+function markCloudDirty(){localStorage.setItem(CLOUD_DIRTY_KEY,'1');setSaveUi('dirty')}
 function cloudCredentials(){return {agentId:String(activeAgent?.id||''),pinHash:localStorage.getItem(`navidiaria.pin.${activeAgent?.id}`)||''}}
 async function authenticateCloud(){const credentials=cloudCredentials();if(!credentials.agentId||!credentials.pinHash)throw new Error('Accedi nuovamente per attivare il salvataggio online');await NaviCloud.request('auth',credentials);cloudAuthenticated=true;return credentials}
 function mergeCloudEntries(localEntries,remoteEntries,preferLocal){const merged=new Map();(remoteEntries||[]).forEach(entry=>merged.set(entry.date||entry.id,entry));(localEntries||[]).forEach(entry=>{const key=entry.date||entry.id;if(preferLocal||!merged.has(key))merged.set(key,entry)});return [...merged.values()].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))}
-async function saveEntriesToCloud(){if(!activeAgent)return;const snapshot=JSON.stringify(entries);try{const credentials=cloudAuthenticated?cloudCredentials():await authenticateCloud();$('syncStatus').textContent='Salvataggio online…';await NaviCloud.request('save_diaria',{...credentials,entries:JSON.parse(snapshot)});if(JSON.stringify(entries)===snapshot)localStorage.removeItem(CLOUD_DIRTY_KEY);else queueCloudSave();$('syncStatus').textContent='Online'}catch(error){console.warn(error);$('syncStatus').textContent='Locale · da sincronizzare'}}
-function queueCloudSave(){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(saveEntriesToCloud,700)}
-async function syncEntriesWithCloud(){const credentials=await authenticateCloud(),remote=await NaviCloud.request('load_diaria',credentials),dirty=localStorage.getItem(CLOUD_DIRTY_KEY)==='1';const merged=mergeCloudEntries(entries,remote.entries,dirty);const changedLocal=JSON.stringify(merged)!==JSON.stringify(entries),changedRemote=JSON.stringify(merged)!==JSON.stringify(remote.entries||[]);entries=merged;localStorage.setItem(STORAGE,JSON.stringify(entries));if(changedLocal)render();if(changedRemote||dirty||(!remote.version&&entries.length)){localStorage.setItem(CLOUD_DIRTY_KEY,'1');await saveEntriesToCloud()}else{$('syncStatus').textContent='Online'}return true}
+async function saveEntriesToCloud(){if(!activeAgent)return;const snapshot=JSON.stringify(entries);try{if(!window.NaviAdminFirebase?.saveDiaria)throw new Error('Modulo Firebase non disponibile');setSaveUi('saving');$('syncStatus').textContent='Salvataggio su Firebase…';await NaviAdminFirebase.saveDiaria(String(activeAgent.id),JSON.parse(snapshot));if(JSON.stringify(entries)===snapshot){localStorage.removeItem(CLOUD_DIRTY_KEY);setSaveUi('saved');setTimeout(()=>setSaveUi(localStorage.getItem(CLOUD_DIRTY_KEY)==='1'?'dirty':'idle'),1800)}else markCloudDirty();$('syncStatus').textContent='Salvato su Firebase'}catch(error){console.warn(error);setSaveUi('error');$('syncStatus').textContent='Modifiche locali · salvataggio non riuscito';throw error}}
+async function syncEntriesWithCloud(){if(!window.NaviAdminFirebase?.loadDiaria)throw new Error('Modulo Firebase non disponibile');const remote=await NaviAdminFirebase.loadDiaria(String(activeAgent.id)),dirty=localStorage.getItem(CLOUD_DIRTY_KEY)==='1';if(dirty){setSaveUi('dirty');$('syncStatus').textContent='Modifiche locali da salvare';return false}if(remote.entries.length||remote.updatedAt){entries=remote.entries.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));localStorage.setItem(STORAGE,JSON.stringify(entries));render();$('syncStatus').textContent='Caricato da Firebase'}else if(entries.length){markCloudDirty();$('syncStatus').textContent='Dati locali pronti per Firebase'}else{$('syncStatus').textContent='Firebase aggiornato'}return true}
+async function syncDiariaNow(){
+  const button=$('monthlySync');if(!activeAgent||button?.disabled)return;
+  if(localStorage.getItem(CLOUD_DIRTY_KEY)==='1'){
+    setSaveUi('dirty');notify('Salva prima le modifiche evidenziate');$('monthlySave')?.focus();return;
+  }
+  setCloudUi('Sincronizzazione diaria e turni…','syncing');
+  try{
+    await syncEntriesWithCloud();
+    await syncCurrentAgent(true);
+    await saveEntriesToCloud();
+    setCloudUi('Diaria e turni sincronizzati','saved');
+    notify('Dati sincronizzati su tutti i dispositivi');
+  }catch(error){
+    console.error(error);setCloudUi('Sincronizzazione non riuscita','error');notify('Sincronizzazione non riuscita');
+  }
+}
 async function syncCurrentAgent(force=false){
   if(!activeAgent)return;
   const button=$('syncShifts');button.disabled=true;$('syncStatus').textContent='Aggiornamento…';
   try{
-    const data=await NaviSharedData.load(TURNS_URL,{force});let agent=null;
+    const previousEntries=JSON.stringify(entries),data=await NaviSharedData.load(TURNS_URL,{force});let agent=null;
     Object.values(data.residenze||{}).some(list=>{agent=(list||[]).find(a=>String(a.id)===String(activeAgent.id));return !!agent});
     if(!agent)throw new Error('Agente non trovato');const variations=variationsForAgent(data);let added=0,updated=0;
     activeAgent={...activeAgent,name:agent.agente||activeAgent.name,qualifica:agent.qualifica||'marinaio'};localStorage.setItem(SESSION_KEY,JSON.stringify(activeAgent));updateWelcome();
@@ -143,7 +184,7 @@ async function syncCurrentAgent(force=false){
       if(existing){if(!existing.manualOverride){const changed=existing.shift!==shift||!!existing.travel!==travel;if(changed)updated++;if(existing.imported){const competence=shiftFor(shift);existing.embark=!!competence.embark;existing.mealUsed=!!competence.meal;existing.allowanceRate=competence.allowance?competence.allowanceRate:null}existing.shift=shift;existing.travel=travel;existing.manualFrom=null;existing.manualTo=null;existing.manualModified=false;existing.variationFrom=variationFrom;existing.variationTo=variationFrom?shift:null}else{if(travel)existing.travel=true;existing.manualFrom=existing.manualFrom||shift;existing.manualTo=existing.shift;existing.manualModified=existing.manualFrom!==existing.manualTo;existing.variationFrom=variationFrom;existing.variationTo=variationFrom?shift:null}}
       else{const competence=shiftFor(shift);entries.push({id:`naviturni-${date}`,date,shift,travel,variationFrom,variationTo:variationFrom?shift:null,delay:0,bank:0,embark:!!competence.embark,mealUsed:!!competence.meal,allowanceRate:competence.allowance?competence.allowanceRate:null,note:'',imported:true});added++}
     });
-    localStorage.setItem(`navidiaria.lastSync.${activeAgent.id}`,new Date().toISOString());persist();$('syncStatus').textContent=NaviSharedData.source()==='network'?'Aggiornato':'Locale';notify(`${added} turni importati${updated?`, ${updated} aggiornati`:''}`);
+    localStorage.setItem(`navidiaria.lastSync.${activeAgent.id}`,new Date().toISOString());if(JSON.stringify(entries)!==previousEntries)persist();else render();$('syncStatus').textContent=NaviSharedData.source()==='network'?'Aggiornato':'Locale';notify(`${added} turni importati${updated?`, ${updated} aggiornati`:''}`);
   }catch(error){console.error(error);$('syncStatus').textContent='Sincronizzazione non riuscita';notify('Impossibile leggere NaviTurni')}
   finally{button.disabled=false}
 }
@@ -177,7 +218,7 @@ function startEdit(id){const entry=entries.find(e=>e.id===id);if(!entry)return;e
 function saveInlineEntry(entry,field,value,restoreSchedule=false){
   if(field==='shift'){const original=entry.manualFrom||entry.shift;entry.shift=value;entry.manualFrom=restoreSchedule?null:original;entry.manualTo=restoreSchedule?null:value;entry.manualModified=!restoreSchedule&&original!==value;entry.manualOverride=!restoreSchedule&&original!==value;const competence=shiftFor(value);entry.embark=!!competence.embark;entry.mealUsed=!!competence.meal;entry.allowanceRate=competence.allowance?competence.allowanceRate:null}
   else if(field==='delay')entry.delay=Math.max(0,Number(value)||0);else if(field==='bank')entry.bank=Number(value)||0;else if(field==='travel')entry.travel=value==='true';else if(field==='mealUsed')entry.mealUsed=value==='true';else if(field==='embark')entry.embark=value==='true';else if(field==='allowanceRate')entry.allowanceRate=value===''?null:Number(value);
-  entry.imported=false;localStorage.setItem(STORAGE,JSON.stringify(entries));localStorage.setItem(CLOUD_DIRTY_KEY,'1');render();queueCloudSave();notify('Giornata aggiornata')
+  entry.imported=false;localStorage.setItem(STORAGE,JSON.stringify(entries));markCloudDirty();render();notify('Modifica pronta da salvare')
 }
 function startInlineEdit(cell){
   const entry=entries.find(item=>item.id===cell.dataset.entryId),field=cell.dataset.inline;if(!entry||cell.querySelector('input,select'))return;
@@ -243,6 +284,8 @@ $('previousMonth').addEventListener('click',()=>moveMonth(-1));$('nextMonth').ad
 $('totalSummaryBody').addEventListener('click',event=>{const summaryRow=event.target.closest('.summary-week-link');if(!summaryRow)return;const registerBody=$('registroBody');if(registerBody.hidden)document.querySelector('.section-collapse[data-collapse-target="registroBody"]').click();const weekRows=[...$('entriesBody').querySelectorAll('tr[data-week]')].filter(row=>row.dataset.week===summaryRow.dataset.week),target=weekRows.find(row=>row.classList.contains('previous-month-row'))||weekRows.find(row=>new Date(row.dataset.date+'T12:00:00').getDay()===1)||weekRows[0];if(target){target.classList.add('week-scroll-target');target.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>target.classList.remove('week-scroll-target'),1800)}});
 $('entriesBody').addEventListener('click',event=>{const weekRow=event.target.closest('.registry-week-link');if(!weekRow)return;const consultivoBody=$('consultivoBody');if(consultivoBody.hidden)document.querySelector('.section-collapse[data-collapse-target="consultivoBody"]').click();$('consultivo').scrollIntoView({behavior:'smooth',block:'start'})});
 $('syncShifts').addEventListener('click',()=>syncCurrentAgent(true));
+$('monthlySync')?.addEventListener('click',syncDiariaNow);
+$('monthlySave')?.addEventListener('click',async()=>{try{await saveEntriesToCloud();notify('Modifiche salvate su Firebase')}catch(error){notify('Salvataggio non riuscito')}});
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginSubmit'),agent=selectedLoginAgent();if(!agent){showLoginMessage('Scegli il tuo nominativo tra i suggerimenti');return}button.disabled=true;showLoginMessage('Verifica in corso…');try{await loginAgent(agent.id,$('loginPin').value)}catch(error){showLoginMessage(error.message);button.disabled=false}});
 $('loginAgentSearch').addEventListener('input',()=>{if(agentsDirectory.length)renderAgentChoices()});
 $('pinSettingsButton').addEventListener('click',()=>{$('pinForm').reset();$('pinMessage').textContent='';$('pinOverlay').hidden=false;document.body.classList.add('login-open')});
@@ -260,6 +303,6 @@ const sidebar=document.querySelector('.sidebar'),menuButton=document.querySelect
 document.querySelectorAll('.section-collapse').forEach(button=>button.addEventListener('click',()=>{const target=$(button.dataset.collapseTarget),opening=target.hidden;target.hidden=!opening;button.textContent=opening?'⌃':'⌄';button.setAttribute('aria-expanded',String(opening))}));
 document.querySelectorAll('.section-title-toggle').forEach(title=>{const toggle=()=>document.querySelector(`.section-collapse[data-collapse-target="${title.dataset.collapseTarget}"]`).click();title.addEventListener('click',toggle);title.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle()}})});
 document.querySelectorAll('.sidebar a.nav-link').forEach(link=>link.addEventListener('click',event=>{const href=link.getAttribute('href')||'';if(!href.startsWith('#'))return;event.preventDefault();const section=document.querySelector(href);if(!section)return;const alreadySelected=link.classList.contains('active');if(section.id!=='oggi'){if(section.id==='competenze'){const body=$('competencyBody');if(alreadySelected||body.hidden)$('toggleCompetencies').click()}else{const collapseButton=section.querySelector('.section-collapse'),body=collapseButton&&$(collapseButton.dataset.collapseTarget);if(collapseButton&&(alreadySelected||body.hidden))collapseButton.click()}}document.querySelectorAll('.sidebar a.nav-link').forEach(item=>item.classList.toggle('active',item===link));section.scrollIntoView({behavior:'smooth',block:'start'});history.replaceState(null,'',href)}));
-window.NaviDiariaRuntime={version:'92',ready:true};
+window.NaviDiariaRuntime={version:'95',ready:true};
 render();
 initializeAccess().then(()=>{if(new URLSearchParams(location.search).get('pin')==='1'&&activeAgent)$('pinSettingsButton').click()});
