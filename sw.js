@@ -7,7 +7,7 @@
  * - provare sempre prima la rete e usare la cache solo come fallback.
  */
 
-const CACHE_VERSION = 'navisuite-v105';
+const CACHE_VERSION = 'navisuite-v107';
 const CACHE_NAME = CACHE_VERSION;
 
 // File statici da pre-caricare durante l'installazione.
@@ -51,6 +51,7 @@ const STATIC_ASSETS = [
   'aggiornamenti-data.js',
   'vendor/pdfjs/pdf.min.js',
   'vendor/pdfjs/pdf.worker.min.js',
+  'vendor/xlsx/xlsx.full.min.js',
   'cloud-data.js',
   'portal.js',
   'app.js',

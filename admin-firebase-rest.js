@@ -348,6 +348,38 @@
     return [...latest.values()].sort((a,b)=>String(b.lastSeen||"").localeCompare(String(a.lastSeen||"")));
   }
 
+  async function getQuizCorrections() {
+    const result = await databaseRequest("private/adminUpdates/quizCorrections");
+    const payload = result.data || {};
+    return {
+      answers: payload.answers && typeof payload.answers === "object" ? payload.answers : {},
+      updatedAt: payload.updatedAt || "",
+      updatedBy: payload.updatedBy || ""
+    };
+  }
+
+  async function saveQuizCorrections(answers = {}, updatedBy = "") {
+    const auth = await ensureAuth();
+    const cleanAnswers = {};
+    Object.entries(answers || {}).forEach(([key, value]) => {
+      const answer = Number(value);
+      if (/^\d+_\d+$/.test(String(key)) && Number.isInteger(answer) && answer >= 0 && answer <= 9) {
+        cleanAnswers[String(key)] = answer;
+      }
+    });
+    const item = {
+      answers: cleanAnswers,
+      updatedAt: new Date().toISOString(),
+      updatedBy: String(updatedBy || "").trim(),
+      ownerUid: auth.uid
+    };
+    await databaseRequest("private/adminUpdates/quizCorrections", {
+      method:"PUT",
+      body:JSON.stringify(item)
+    });
+    return item;
+  }
+
   window.NaviAdminFirebase = {
     ready,
     listChangeRequests,
@@ -369,6 +401,8 @@
     saveAgentProfile,
     touchUserPresence,
     listUserPresence,
+    getQuizCorrections,
+    saveQuizCorrections,
     provider:"Firebase REST"
   };
 })();

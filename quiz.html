@@ -48,6 +48,11 @@
     .test-btn:hover{border-color:#5d7fa5;color:var(--text)}.test-btn.active{background:#1b4e78;border-color:var(--blue);color:#fff}
     .test-btn.done{border-color:#2c8c5b}.done-badge{display:block;color:var(--ok);font-size:.72rem;margin-top:4px}
     .overall-actions{display:flex;justify-content:flex-end;margin-top:10px}.overall-btn{background:#182c43;border:1px solid #47729d;color:#cde7ff;border-radius:11px;padding:10px 14px;font-weight:900;cursor:pointer}
+    .admin-btn{display:none;background:#5a3d07;border:1px solid var(--amber);color:#fff2c7;border-radius:11px;padding:10px 14px;font-weight:900;cursor:pointer}.admin-btn.show{display:inline-block}
+    .correction-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(1,8,17,.84);backdrop-filter:blur(8px)}.correction-modal.show{display:flex}
+    .correction-dialog{width:min(900px,100%);max-height:min(90vh,900px);display:flex;flex-direction:column;background:#0c1b2c;border:1px solid #4b6888;border-radius:18px;box-shadow:0 28px 80px rgba(0,0,0,.5);overflow:hidden}
+    .correction-head,.correction-actions{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 18px;background:#12263b;border-bottom:1px solid var(--line)}.correction-head h2{margin:0;font-size:1.25rem}.correction-actions{border-top:1px solid var(--line);border-bottom:0;justify-content:flex-end}.correction-list{overflow:auto;padding:14px;display:grid;gap:12px}
+    .correction-row{background:#091725;border:1px solid var(--line);border-radius:13px;padding:14px}.correction-row h3{margin:0 0 9px;font-size:.95rem}.correction-options{display:grid;gap:7px}.correction-option{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid #30465f;border-radius:9px;background:#0e2033;cursor:pointer}.correction-option:has(input:checked){border-color:var(--amber);background:rgba(255,200,92,.1)}.correction-status{min-height:1.3rem;color:var(--muted);margin-right:auto;font-size:.88rem}.correction-status.ok{color:var(--ok)}.correction-status.bad{color:var(--bad)}
     .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:15px 0}.stat{background:#0b1929;border:1px solid var(--line);border-radius:12px;padding:14px}.stat strong{display:block;font-size:1.5rem}.stat span{color:var(--muted);font-size:.78rem}
     .test-history{display:grid;gap:9px;margin:16px 0}.history-row{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px}.history-row strong.pass{color:var(--ok)}.history-row strong.fail{color:var(--bad)}
     .official-tag{display:inline-block;background:rgba(255,200,92,.14);border:1px solid #80692f;color:var(--amber);border-radius:99px;padding:3px 9px;font-size:.74rem;font-weight:900;margin-left:7px}
@@ -72,7 +77,7 @@
     <p class="intro">Due prove ufficiali e otto simulazioni originali da 30 domande: 300 quesiti complessivi. Al termine trovi il riepilogo completo e i consigli di ripasso sugli errori.</p>
     <div class="legend"><span><i class="dot" style="background:var(--ok)"></i>corretta</span><span><i class="dot" style="background:var(--bad)"></i>sbagliata</span><span>Soglia indicativa: 18/30</span></div>
     <nav class="test-picker" id="testPicker" aria-label="Seleziona la prova"></nav>
-    <div class="overall-actions"><button type="button" class="overall-btn" id="overallBtn">Riepilogo generale</button></div>
+    <div class="overall-actions"><button type="button" class="admin-btn" id="correctAnswersBtn">Correggi risposte</button><button type="button" class="overall-btn" id="overallBtn">Riepilogo generale</button></div>
   </header>
   <div class="dashboard">
     <div class="wrap dash-inner">
@@ -91,6 +96,14 @@
       <div id="summaryContent"></div>
     </section>
   </main>
+  <div class="correction-modal" id="correctionModal" aria-hidden="true">
+    <section class="correction-dialog" role="dialog" aria-modal="true" aria-labelledby="correctionTitle">
+      <div class="correction-head"><div><div class="eyebrow">Amministrazione quiz</div><h2 id="correctionTitle">Correggi risposte</h2></div><button type="button" class="reset" id="closeCorrections">Chiudi</button></div>
+      <div class="correction-list" id="correctionList"></div>
+      <div class="correction-actions"><span class="correction-status" id="correctionStatus"></span><button type="button" class="primary" id="saveCorrections">Salva su Firebase</button></div>
+    </section>
+  </div>
+<script src="admin-firebase-rest.js"></script>
 <script>
 const sources={
   rd148:["R.D. 8 gennaio 1931, n. 148, Allegato A","https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1931-01-08;148="],
@@ -549,6 +562,16 @@ let q=tests[0].q;
 let evidence=tests[0].evidence;
 let state=Array(q.length).fill(null);
 const quiz=document.querySelector("#quiz");
+let quizCorrections={};
+const correctionKey=(testIndex,questionIndex)=>`${testIndex}_${questionIndex}`;
+const correctIndex=(questionIndex,testIndex=activeTest)=>{
+  const value=quizCorrections[correctionKey(testIndex,questionIndex)];
+  return Number.isInteger(Number(value)) ? Number(value) : tests[testIndex].q[questionIndex][2];
+};
+function readQuizProfile(){
+  try{return JSON.parse(localStorage.getItem("naviturni_logged_agent")||localStorage.getItem("navidiaria.activeAgent")||"null")}catch(_){return null}
+}
+function isQuizAdmin(profile){return ["91","92","MOVIMENTO"].includes(String(profile?.id||""))||String(profile?.role||"").toLowerCase()==="admin"}
 const topicInfo={
  rd148:["R.D. 148/1931","Ripassa gerarchia, periodo di prova, dimissioni e sistema disciplinare."],
  dpr631:["Regolamento navigazione interna","Ripassa libretto, titoli professionali e manovre periodiche di sicurezza."],
@@ -573,7 +596,7 @@ try{progressHistory=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")||{}}catc
 function persistHistory(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(progressHistory))}catch(e){}}
 function recordCompletion(points){
   const errorsBySource={};
-  q.forEach((x,i)=>{if(state[i]!==x[2])errorsBySource[x[4]]=(errorsBySource[x[4]]||0)+1});
+  q.forEach((x,i)=>{if(state[i]!==correctIndex(i))errorsBySource[x[4]]=(errorsBySource[x[4]]||0)+1});
   const old=progressHistory[activeTest]||{};
   progressHistory[activeTest]={
     score:points,
@@ -623,16 +646,16 @@ function showOverallSummary(){
 }
 function showSummary(){
   if(state.some(v=>v===null))return;
-  const points=state.reduce((n,v,i)=>n+(v===q[i][2]),0);
-  const errors=q.map((x,i)=>state[i]===x[2]?null:i).filter(v=>v!==null);
+  const points=state.reduce((n,v,i)=>n+(v===correctIndex(i)),0);
+  const errors=q.map((x,i)=>state[i]===correctIndex(i)?null:i).filter(v=>v!==null);
   const groups={};
   errors.forEach(i=>{const key=q[i][4];groups[key]=(groups[key]||0)+1});
   const advice=errors.length
     ? `<div class="recommend"><h3>Ripasso consigliato</h3><p>Hai commesso ${errors.length} ${errors.length===1?"errore":"errori"}. Prima della prossima prova ti consiglio di ripassare:</p><ul>${Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([key,count])=>`<li><strong>${topicInfo[key]?.[0]||key}</strong> (${count} ${count===1?"errore":"errori"}): ${topicInfo[key]?.[1]||"Rivedi il riferimento indicato."}</li>`).join("")}</ul></div>`
     : `<div class="recommend" style="border-color:var(--ok);background:rgba(49,208,127,.08)"><h3 style="color:var(--ok)">Nessun errore</h3><p>Ottimo risultato: puoi passare a un'altra simulazione.</p></div>`;
   const rows=q.map((x,i)=>{
-    const good=state[i]===x[2],ev=evidence[i],chosen=x[1][state[i]],correct=x[1][x[2]];
-    return `<article class="summary-row ${good?"good":"bad"}"><span class="num">${i+1}</span><div><h3>${good?"✓":"✗"} ${x[0]}</h3><div class="answer-line">Hai risposto: <strong>${"ABC"[state[i]]}) ${chosen}</strong></div>${good?"":`<div class="answer-line">Risposta corretta: <strong>${"ABC"[x[2]]}) ${correct}</strong></div>`}<p class="explain">${x[3]}</p><a class="review-link" href="${preciseUrl(ev.url,ev.where)}" target="_blank" rel="noopener">Ripassa: ${ev.where} ↗</a></div></article>`;
+    const answerIndex=correctIndex(i),good=state[i]===answerIndex,ev=evidence[i],chosen=x[1][state[i]],correct=x[1][answerIndex];
+    return `<article class="summary-row ${good?"good":"bad"}"><span class="num">${i+1}</span><div><h3>${good?"✓":"✗"} ${x[0]}</h3><div class="answer-line">Hai risposto: <strong>${"ABC"[state[i]]}) ${chosen}</strong></div>${good?"":`<div class="answer-line">Risposta corretta: <strong>${"ABC"[answerIndex]}) ${correct}</strong></div>`}<p class="explain">${x[3]}</p><a class="review-link" href="${preciseUrl(ev.url,ev.where)}" target="_blank" rel="noopener">Ripassa: ${ev.where} ↗</a></div></article>`;
   }).join("");
   document.querySelector("#summaryName").textContent=tests[activeTest].name;
   document.querySelector("#summaryContent").innerHTML=`<div class="summary-hero ${points>=18?"pass":"fail"}"><h2>${points>=18?"Prova superata":"Prova non superata"}: ${points}/30</h2><p>${points>=18?"Hai raggiunto la soglia minima di 18/30.":"Non hai raggiunto la soglia minima di 18/30."}</p></div>${advice}<div class="summary-list">${rows}</div>`;
@@ -643,7 +666,7 @@ function render(){
   document.querySelectorAll(".answer").forEach(el=>el.addEventListener("click",answer));
 }
 function answer(e){
-  const label=e.currentTarget,i=+label.dataset.i,j=+label.dataset.j,x=q[i],correct=x[2];
+  const label=e.currentTarget,i=+label.dataset.i,j=+label.dataset.j,x=q[i],correct=correctIndex(i);
   state[i]=j;
   const card=label.closest(".card");
   card.querySelectorAll(".answer").forEach((a,k)=>{a.classList.toggle("correct",k===correct);a.classList.toggle("wrong",k===j&&j!==correct)});
@@ -656,7 +679,7 @@ function answer(e){
 }
 function update(){
   const done=state.filter(v=>v!==null).length;
-  const points=state.reduce((n,v,i)=>n+(v===q[i][2]),0);
+  const points=state.reduce((n,v,i)=>n+(v===correctIndex(i)),0);
   document.querySelector("#points").textContent=points;
   document.querySelector("#progressText").textContent=`${done} di ${q.length} completate`;
   document.querySelector("#progressBar").style.width=`${done/q.length*100}%`;
@@ -673,7 +696,41 @@ document.querySelector("#reset").addEventListener("click",()=>{state=Array(q.len
 document.querySelector("#summaryBtn").addEventListener("click",showSummary);
 document.querySelector("#overallBtn").addEventListener("click",showOverallSummary);
 document.querySelector("#backToQuiz").addEventListener("click",()=>{setView(false);window.scrollTo({top:0,behavior:"smooth"})});
-renderPicker();render();update();
+const correctionModal=document.querySelector("#correctionModal");
+const correctionList=document.querySelector("#correctionList");
+const correctionStatus=document.querySelector("#correctionStatus");
+function openCorrections(){
+  correctionList.innerHTML=q.map((x,i)=>`<article class="correction-row"><h3>${i+1}. ${x[0]}</h3><div class="correction-options">${x[1].map((answer,j)=>`<label class="correction-option"><input type="radio" name="correct-${i}" value="${j}" ${j===correctIndex(i)?"checked":""}><span><b>${"ABC"[j]})</b> ${answer}</span></label>`).join("")}</div></article>`).join("");
+  document.querySelector("#correctionTitle").textContent=`Correggi risposte · ${tests[activeTest].name}`;
+  correctionStatus.textContent="";
+  correctionModal.classList.add("show");
+  correctionModal.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+}
+function closeCorrections(){correctionModal.classList.remove("show");correctionModal.setAttribute("aria-hidden","true");document.body.style.overflow=""}
+async function saveCorrections(){
+  const button=document.querySelector("#saveCorrections");button.disabled=true;correctionStatus.className="correction-status";correctionStatus.textContent="Salvataggio…";
+  q.forEach((x,i)=>{const selected=correctionList.querySelector(`input[name="correct-${i}"]:checked`);if(!selected)return;const value=Number(selected.value),key=correctionKey(activeTest,i);if(value===x[2])delete quizCorrections[key];else quizCorrections[key]=value});
+  try{
+    if(!window.NaviAdminFirebase?.saveQuizCorrections)throw new Error("Firebase non disponibile");
+    const profile=readQuizProfile();
+    const saved=await window.NaviAdminFirebase.saveQuizCorrections(quizCorrections,profile?.name||profile?.agente||profile?.id||"");
+    quizCorrections=saved.answers||{};correctionStatus.className="correction-status ok";correctionStatus.textContent="Risposte corrette e salvate su Firebase.";state=Array(q.length).fill(null);completionRecorded=false;render();update();
+  }catch(error){correctionStatus.className="correction-status bad";correctionStatus.textContent=`Errore: ${error.message||error}`}
+  finally{button.disabled=false}
+}
+document.querySelector("#correctAnswersBtn").addEventListener("click",openCorrections);
+document.querySelector("#closeCorrections").addEventListener("click",closeCorrections);
+document.querySelector("#saveCorrections").addEventListener("click",saveCorrections);
+correctionModal.addEventListener("click",event=>{if(event.target===correctionModal)closeCorrections()});
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&correctionModal.classList.contains("show"))closeCorrections()});
+async function initializeQuizCorrections(){
+  const profile=readQuizProfile();
+  document.querySelector("#correctAnswersBtn").classList.toggle("show",isQuizAdmin(profile));
+  try{const saved=await window.NaviAdminFirebase?.getQuizCorrections?.();quizCorrections=saved?.answers||{}}catch(error){console.warn("Correzioni quiz non disponibili",error)}
+  renderPicker();render();update();
+}
+initializeQuizCorrections();
 </script>
 </body>
 </html>
