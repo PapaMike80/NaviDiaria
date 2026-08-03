@@ -125,36 +125,30 @@ function persist(){localStorage.setItem(STORAGE,JSON.stringify(entries));markClo
 function notify(message){$('toast').textContent=message;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1800)}
 let cloudAuthenticated=false;
 let cloudUiResetTimer=null;
+let undoSnapshot=null,lastKnownEntriesSnapshot=JSON.stringify(entries);
+function setUndoUi(enabled){[$('monthlyUndo'),$('weeklyUndo')].filter(Boolean).forEach(button=>{button.disabled=!enabled;button.classList.toggle('is-ready',enabled);button.setAttribute('aria-label',enabled?'Annulla l’ultima modifica':'Nessuna modifica da annullare')})}
 function setCloudUi(label,state=''){
-  const sidebar=$('syncStatus'),button=$('monthlySync');
+  const sidebar=$('syncStatus'),buttons=[$('monthlySync'),$('weeklySync')].filter(Boolean);
   if(sidebar)sidebar.textContent=label;
-  if(!button)return;
+  if(!buttons.length)return;
   clearTimeout(cloudUiResetTimer);
-  button.classList.remove('is-syncing','is-saved','is-error');
-  if(state)button.classList.add(`is-${state}`);
-  button.disabled=state==='syncing';
-  const text=button.querySelector('b');
-  if(text)text.textContent=state==='syncing'?'Sincronizzo…':state==='saved'?'Sincronizzato':state==='error'?'Riprova':'Sincronizza';
-  button.setAttribute('aria-label',label);
+  buttons.forEach(button=>{button.classList.remove('is-syncing','is-saved','is-error');if(state)button.classList.add(`is-${state}`);button.disabled=state==='syncing';const text=button.querySelector('b');if(text)text.textContent=state==='syncing'?'Sincronizzo…':state==='saved'?'Sincronizzato':state==='error'?'Riprova':'Sincronizza dati';button.setAttribute('aria-label',label)});
   if(state==='saved')cloudUiResetTimer=setTimeout(()=>setCloudUi('Online'),2200);
 }
 function setSaveUi(state='idle'){
-  const button=$('monthlySave');if(!button)return;
-  button.classList.remove('is-dirty','is-saving','is-saved','is-error');
-  if(state!=='idle')button.classList.add(`is-${state}`);
+  const buttons=[$('monthlySave'),$('weeklySave')].filter(Boolean);if(!buttons.length)return;
   const dirty=state==='dirty'||state==='error';
-  button.disabled=state==='saving'||state==='saved'||!dirty;
   const labels={idle:'Nessuna modifica da salvare',dirty:'Salva le modifiche su Firebase',saving:'Salvataggio su Firebase…',saved:'Modifiche salvate su Firebase',error:'Salvataggio non riuscito. Riprova'};
-  const buttonLabels={idle:'Salva',dirty:'Salva',saving:'Salvataggio…',saved:'Salvato',error:'Riprova'};
-  const text=button.querySelector('b');if(text)text.textContent=buttonLabels[state]||buttonLabels.idle;
-  button.setAttribute('aria-label',labels[state]||labels.idle);
+  const buttonLabels={idle:'Salva modifiche',dirty:'Salva modifiche',saving:'Salvataggio…',saved:'Salvato',error:'Riprova'};
+  buttons.forEach(button=>{button.classList.remove('is-dirty','is-saving','is-saved','is-error');if(state!=='idle')button.classList.add(`is-${state}`);button.disabled=state==='saving'||state==='saved'||!dirty;const text=button.querySelector('b');if(text)text.textContent=buttonLabels[state]||buttonLabels.idle;button.setAttribute('aria-label',labels[state]||labels.idle)});
 }
-function markCloudDirty(){localStorage.setItem(CLOUD_DIRTY_KEY,'1');setSaveUi('dirty')}
+function markCloudDirty(){const current=JSON.stringify(entries);if(current!==lastKnownEntriesSnapshot){undoSnapshot=lastKnownEntriesSnapshot;lastKnownEntriesSnapshot=current;setUndoUi(true)}localStorage.setItem(CLOUD_DIRTY_KEY,'1');setSaveUi('dirty')}
+function undoLastDiariaChange(){if(!undoSnapshot)return;entries=JSON.parse(undoSnapshot);lastKnownEntriesSnapshot=JSON.stringify(entries);undoSnapshot=null;localStorage.setItem(STORAGE,lastKnownEntriesSnapshot);localStorage.setItem(CLOUD_DIRTY_KEY,'1');setUndoUi(false);setSaveUi('dirty');render();notify('Ultima modifica annullata')}
 function cloudCredentials(){return {agentId:String(activeAgent?.id||''),pinHash:localStorage.getItem(`navidiaria.pin.${activeAgent?.id}`)||''}}
 async function authenticateCloud(){const credentials=cloudCredentials();if(!credentials.agentId||!credentials.pinHash)throw new Error('Accedi nuovamente per attivare il salvataggio online');await NaviCloud.request('auth',credentials);cloudAuthenticated=true;return credentials}
 function mergeCloudEntries(localEntries,remoteEntries,preferLocal){const merged=new Map();(remoteEntries||[]).forEach(entry=>merged.set(entry.date||entry.id,entry));(localEntries||[]).forEach(entry=>{const key=entry.date||entry.id;if(preferLocal||!merged.has(key))merged.set(key,entry)});return [...merged.values()].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))}
-async function saveEntriesToCloud(){if(!activeAgent)return;const snapshot=JSON.stringify(entries);try{if(!window.NaviAdminFirebase?.saveDiaria)throw new Error('Modulo Firebase non disponibile');setSaveUi('saving');$('syncStatus').textContent='Salvataggio su Firebase…';await NaviAdminFirebase.saveDiaria(String(activeAgent.id),JSON.parse(snapshot));if(JSON.stringify(entries)===snapshot){localStorage.removeItem(CLOUD_DIRTY_KEY);setSaveUi('saved');setTimeout(()=>setSaveUi(localStorage.getItem(CLOUD_DIRTY_KEY)==='1'?'dirty':'idle'),1800)}else markCloudDirty();$('syncStatus').textContent='Salvato su Firebase'}catch(error){console.warn(error);setSaveUi('error');$('syncStatus').textContent='Modifiche locali · salvataggio non riuscito';throw error}}
-async function syncEntriesWithCloud(){if(!window.NaviAdminFirebase?.loadDiaria)throw new Error('Modulo Firebase non disponibile');const remote=await NaviAdminFirebase.loadDiaria(String(activeAgent.id)),dirty=localStorage.getItem(CLOUD_DIRTY_KEY)==='1';if(dirty){setSaveUi('dirty');$('syncStatus').textContent='Modifiche locali da salvare';return false}if(remote.entries.length||remote.updatedAt){entries=remote.entries.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));localStorage.setItem(STORAGE,JSON.stringify(entries));render();$('syncStatus').textContent='Caricato da Firebase'}else if(entries.length){markCloudDirty();$('syncStatus').textContent='Dati locali pronti per Firebase'}else{$('syncStatus').textContent='Firebase aggiornato'}return true}
+async function saveEntriesToCloud(){if(!activeAgent)return;const snapshot=JSON.stringify(entries);try{if(!window.NaviAdminFirebase?.saveDiaria)throw new Error('Modulo Firebase non disponibile');setSaveUi('saving');$('syncStatus').textContent='Salvataggio su Firebase…';await NaviAdminFirebase.saveDiaria(String(activeAgent.id),JSON.parse(snapshot));if(JSON.stringify(entries)===snapshot){localStorage.removeItem(CLOUD_DIRTY_KEY);lastKnownEntriesSnapshot=snapshot;undoSnapshot=null;setUndoUi(false);setSaveUi('saved');setTimeout(()=>setSaveUi(localStorage.getItem(CLOUD_DIRTY_KEY)==='1'?'dirty':'idle'),1800)}else markCloudDirty();$('syncStatus').textContent='Salvato su Firebase'}catch(error){console.warn(error);setSaveUi('error');$('syncStatus').textContent='Modifiche locali · salvataggio non riuscito';throw error}}
+async function syncEntriesWithCloud(){if(!window.NaviAdminFirebase?.loadDiaria)throw new Error('Modulo Firebase non disponibile');const remote=await NaviAdminFirebase.loadDiaria(String(activeAgent.id)),dirty=localStorage.getItem(CLOUD_DIRTY_KEY)==='1';if(dirty){setSaveUi('dirty');$('syncStatus').textContent='Modifiche locali da salvare';return false}if(remote.entries.length||remote.updatedAt){entries=remote.entries.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));lastKnownEntriesSnapshot=JSON.stringify(entries);undoSnapshot=null;setUndoUi(false);localStorage.setItem(STORAGE,lastKnownEntriesSnapshot);render();$('syncStatus').textContent='Caricato da Firebase'}else if(entries.length){markCloudDirty();$('syncStatus').textContent='Dati locali pronti per Firebase'}else{$('syncStatus').textContent='Firebase aggiornato'}return true}
 async function syncDiariaNow(){
   const button=$('monthlySync');if(!activeAgent||button?.disabled)return;
   if(localStorage.getItem(CLOUD_DIRTY_KEY)==='1'){
@@ -286,6 +280,10 @@ $('entriesBody').addEventListener('click',event=>{const weekRow=event.target.clo
 $('syncShifts').addEventListener('click',()=>syncCurrentAgent(true));
 $('monthlySync')?.addEventListener('click',syncDiariaNow);
 $('monthlySave')?.addEventListener('click',async()=>{try{await saveEntriesToCloud();notify('Modifiche salvate su Firebase')}catch(error){notify('Salvataggio non riuscito')}});
+$('weeklySync')?.addEventListener('click',syncDiariaNow);
+$('weeklySave')?.addEventListener('click',async()=>{try{await saveEntriesToCloud();notify('Modifiche salvate su Firebase')}catch(error){notify('Salvataggio non riuscito')}});
+$('monthlyUndo')?.addEventListener('click',undoLastDiariaChange);
+$('weeklyUndo')?.addEventListener('click',undoLastDiariaChange);
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const button=$('loginSubmit'),agent=selectedLoginAgent();if(!agent){showLoginMessage('Scegli il tuo nominativo tra i suggerimenti');return}button.disabled=true;showLoginMessage('Verifica in corso…');try{await loginAgent(agent.id,$('loginPin').value)}catch(error){showLoginMessage(error.message);button.disabled=false}});
 $('loginAgentSearch').addEventListener('input',()=>{if(agentsDirectory.length)renderAgentChoices()});
 $('pinSettingsButton').addEventListener('click',()=>{$('pinForm').reset();$('pinMessage').textContent='';$('pinOverlay').hidden=false;document.body.classList.add('login-open')});
