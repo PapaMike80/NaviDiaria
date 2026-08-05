@@ -1695,9 +1695,9 @@
   </footer>
 
   <script src="turni-shared.js"></script>
-  <script src="admin-firebase-rest.js?v=35"></script>
+  <script src="admin-firebase-rest.js?v=113"></script>
   <script src="draft-period.js?v=1"></script>
-  <script src="shared-data.js?v=2"></script>
+  <script src="shared-data.js?v=113"></script>
   <script src="cloud-data.js"></script>
   <script src="shared-menu.js"></script>
   <script type="module" src="firebase-data.js?v=2"></script>
@@ -2611,14 +2611,13 @@
 
       const loggedIndex = findLoggedAgentIndex();
       const loggedLocation = getLoggedAgentLocation();
+      // L'agente collegato resta sempre in alto. Tutti gli altri mantengono
+      // rigorosamente l'ordine del prospetto PDF, cioè quello di anzianità.
       const orderedIndexes = [];
-      const alreadyOrdered = new Set();
-      if (loggedIndex >= 0) { orderedIndexes.push(loggedIndex); alreadyOrdered.add(loggedIndex); }
-      if (pinnedAgentIdx !== null && pinnedAgentIdx !== loggedIndex && currentAgentsList[pinnedAgentIdx]) {
-        orderedIndexes.push(pinnedAgentIdx);
-        alreadyOrdered.add(pinnedAgentIdx);
-      }
-      currentAgentsList.forEach((agent, index) => { if (!alreadyOrdered.has(index)) orderedIndexes.push(index); });
+      if (loggedIndex >= 0) orderedIndexes.push(loggedIndex);
+      currentAgentsList.forEach((agent, index) => {
+        if (index !== loggedIndex) orderedIndexes.push(index);
+      });
 
       if (loggedLocation && loggedLocation.residence !== currentResidence) {
         const loggedRow = createRowDOM(
@@ -3172,41 +3171,9 @@
     }
 
     function moveSelectedCrewToTop() {
-      const tbody = document.getElementById("tbody");
-      if (!tbody) return;
-      const selectedCal = dateCalendario.find(item => item.col === selectedCol);
-      const selectedCrewKey = getCrewShiftKey(selectedShiftValue);
-      const selectedIsGroundCrew = isGroundCrewShiftKey(selectedCrewKey);
-
-      trElements.sort((a, b) => {
-        const loggedA = a.classList.contains("logged-agent-row") ? 0 : 1;
-        const loggedB = b.classList.contains("logged-agent-row") ? 0 : 1;
-        if (loggedA !== loggedB) return loggedA - loggedB;
-        const pinnedA = a.classList.contains("pinned-row") ? 0 : 1;
-        const pinnedB = b.classList.contains("pinned-row") ? 0 : 1;
-        if (pinnedA !== pinnedB) return pinnedA - pinnedB;
-
-        const shiftA = getTableRowShift(a, selectedCal);
-        const shiftB = getTableRowShift(b, selectedCal);
-        const matchA = isSameCrewShift(shiftA, selectedCrewKey) ? 0 : 1;
-        const matchB = isSameCrewShift(shiftB, selectedCrewKey) ? 0 : 1;
-        if (matchA !== matchB) return matchA - matchB;
-
-        if (matchA === 0 && selectedIsGroundCrew) {
-          const serviceDifference = (ordineServiziTerra[shiftA] || 99) -
-            (ordineServiziTerra[shiftB] || 99);
-          if (serviceDifference !== 0) return serviceDifference;
-        }
-
-        const gradeDifference = getTableGradeRank(a) - getTableGradeRank(b);
-        if (gradeDifference !== 0) return gradeDifference;
-
-        const agentA = getAgentForTableRow(a);
-        const agentB = getAgentForTableRow(b);
-        return String(agentA?.agente || "").localeCompare(String(agentB?.agente || ""), "it");
-      });
-
-      trElements.forEach(tr => tbody.appendChild(tr));
+      // I risultati vengono evidenziati sul posto: l'ordine PDF/anzianità
+      // deve restare invariato anche durante la ricerca di un cambio.
+      return;
     }
 
     function restoreDefaultTableOrder() {
@@ -3218,11 +3185,7 @@
       trElements.sort((a, b) => {
         const loggedA = a.classList.contains("logged-agent-row") ? 0 : 1;
         const loggedB = b.classList.contains("logged-agent-row") ? 0 : 1;
-        if (loggedA !== loggedB) return loggedA - loggedB;
-        const pinnedA = a.classList.contains("pinned-row") ? 0 : 1;
-        const pinnedB = b.classList.contains("pinned-row") ? 0 : 1;
-        if (pinnedA !== pinnedB) return pinnedA - pinnedB;
-        return parseInt(a.dataset.rowIndex) - parseInt(b.dataset.rowIndex);
+        return loggedA - loggedB || parseInt(a.dataset.rowIndex) - parseInt(b.dataset.rowIndex);
       });
 
       trElements.forEach(tr => tbody.appendChild(tr));
