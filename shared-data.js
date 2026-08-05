@@ -7,6 +7,13 @@
   let pending = null;
   let lastSource = 'local';
 
+  function requestUrl(url) {
+    const local = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+    return local && /^https:\/\//i.test(url)
+      ? `/__navi_proxy?url=${encodeURIComponent(url)}`
+      : url;
+  }
+
   function normalizeAgentName(value) {
     return String(value || '').trim().toLocaleUpperCase('it').normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, ' ').trim();
@@ -15,6 +22,19 @@
   function stableAgentUid(value) {
     const normalized = normalizeAgentName(value).replace(/\s+/g, '_');
     return normalized ? `AG_${normalized}` : '';
+  }
+
+  // Sequenza letta dal turno ufficiale 27/07-09/08. Il numero stampato nel
+  // PDF è stato usato soltanto per trascrivere questa lista: a runtime
+  // l'abbinamento avviene esclusivamente tramite il nominativo normalizzato,
+  // così un futuro cambio di numero non modifica l'anzianità.
+  const PDF_SENIORITY_NAMES = `CANDOLFO N.|RONCAGALLI M.|CASTELLARI M.|RASPOLINI F.|GARIANO A.|CINGARLINI N.|MESSINA G.|STEFANI D.|BERNARDELLI M.|VALENTI M.|GAVIOLI D.|LORENZINI F.|DAL BOSCO G.|MAROGNA S.|BARZOI A.|FERRARI M.|KARPATI L.|SERVINO S.|COLO' J.|PINCELLI A.|OMEZZOLLI O.|GAROFALO A.|GUADAGNOLO O.|PERINI N.|TAMBURINI A.|MAFFEI K.|POLETTINI T.|AMATO M.|MIORELLI A.|GUARISE R.|MESSINA GNI.|BERNARDELLI S.|FACCOLI A.|DEFANT M.|RIGOBELLO M.|BOCCOLA G.|CARLETTI A.|SCARMIGLIATI M.|TONONI R.|FERTONANI GL.|SISTO S.|GENOCCHIO PC.|MEMINI I.|FERRARO V.|ALGERI A.|TONELLI D.|RAMBALDINI M.|ZANINI GL.|VINCIATI C.|GONZALEZ E.|FORESTI A.|TOSINI GL.|DA FORNO F.|BOTTURI D.|CENTONZA P.F.|FERRARI P.|BUCCHIERI N.|MORETTO A.C.|STRINGHINI G.|MODENA L.|LUGOBONI A.|VERTUA F.|AMADORI D.|CIVETTINI G.|TIBILETTI F.|BITTURINI D.|GASPARINI F.|BURDO A.|GRUMELLI M.|BETTINI M.|GIACCI GL.|AVANZINI A.|GHIZZI E.|ZENEGAGLIA D.|COSTAMAGNA S.|PROSPERO L.|SCANNAPIECO A.|CEFARIELLO G.|SQUARZONI P.|LA BELLA V.|CAMPOSTRINI E.|CHIMINELLI M.|BARBIERI G.|TANZI E.|VALOTTI G.|MONACO S.|PEROTTI F.|CAMPAGNARO R.|FRANZONI F.|DOLCERA L.|PEDRONI M.|STUMPO D.|BARTOLI F.|LONARDI N.|SCALA L.|BUTTURINI C.|GARDANI R.|BERSANELLI S.|SCARMIGLIATI A.|CACEFFO M.|SPILLER M.|BERGAMINI D.|PAIOLA D.|VERITA' M.|PITTIGLIANI F.|VALLE M.|PUSINELLI L.|CASTELLINI F.|LAVELLI D.|LUGO G.|PEGORARI C.|MOSCATELLI A.|CENZON A.|PEROTTI D.|SAMBERO A.|BERTAJOLA D.|BERTUZZO F.|CHIGNOLA M.|TAMIOZZO M.|GOLA M.|FONTANA A.|FORTE D.|SCHIPPERS E.|CALANCHI N.|HARRABI S.|RIGHETTI M.|POLLONI G.|REGA F.|TURRINI M.|BITTURINI N.|VULTAGGIO F.|NIZI M.|MARCOLINI A.|PEGORARI L.|CHIMINI M.|BUTTITTA A.|MOSELE M.|MENEGHETTI G.|PERINELLI A.|GHIDINELLI F.|MEDA M.|DALLA BONA M.|MALVONE S.|PRADELLA P.|MOSELE S.|BIGNOTTI F.|CUPOLILLO M.`.split('|');
+  const PDF_SENIORITY_RANK = new Map(
+    PDF_SENIORITY_NAMES.map((name, index) => [normalizeAgentName(name), index])
+  );
+
+  function pdfSeniorityRank(agent) {
+    return PDF_SENIORITY_RANK.get(normalizeAgentName(agent?.agente)) ?? Number.POSITIVE_INFINITY;
   }
 
   function normalizeScheduleAgents(data) {
@@ -36,7 +56,12 @@
         seen.set(uid, agent);
         unique.push(agent);
       });
-      data.residenze[residence] = unique;
+      // Ordine ufficiale del PDF legato al nominativo, mai al numero agente.
+      // sort() è stabile: i nuovi nominativi non ancora presenti nel PDF
+      // conservano il loro ordine originale in fondo alla residenza.
+      data.residenze[residence] = unique.sort((a, b) =>
+        pdfSeniorityRank(a) - pdfSeniorityRank(b)
+      );
     });
     return data;
   }
@@ -218,7 +243,8 @@
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`, {
+      const target = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+      const response = await fetch(requestUrl(target), {
         cache:'no-store',
         signal:controller.signal
       });
