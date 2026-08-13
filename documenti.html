@@ -88,6 +88,23 @@
       color: #86efac;
     }
 
+    .document-action.delete {
+      border-color: #7f1d1d;
+      background: #3f1313;
+      color: #fecaca;
+    }
+
+    .document-action.delete:hover {
+      border-color: #ef4444;
+      background: #5b1515;
+      color: #fee2e2;
+    }
+
+    .document-action:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+
     .document-viewer[hidden] {
       display: none;
     }
@@ -350,7 +367,7 @@
   <script src="shared-menu.js"></script>
   <script src="admin-firebase-rest.js?v=33"></script>
   <script src="vendor/pdfjs/pdf.min.js"></script>
-  <script src="documenti.js?v=1.07"></script>
+  <script src="documenti.js?v=1.08"></script>
 
   <!-- Navigazione Mobile Liquid Glass -->
   <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
