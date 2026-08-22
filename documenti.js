@@ -6,12 +6,14 @@ const CONFIG = {
   branch: 'main',
   folders: ['turni', 'ods'],
   metadataFile: 'documenti.json',
-  version: 'v1.07'
+  version: 'v1.08'
 };
 
 const state = {
   documents: [],
-  metadata: []
+  metadata: [],
+  deletingIds: new Set(),
+  isAdmin: false
 };
 
 const elements = {
@@ -32,10 +34,25 @@ const elements = {
 
 let viewerRenderToken = 0;
 const documentContentCache = new Map();
+const GITHUB_TOKEN_STORAGE_KEYS = [
+  'navidiaria.githubToken',
+  'githubToken',
+  'GITHUB_TOKEN'
+];
 
 function setText(id, text) {
   const element = document.getElementById(id);
   if (element) element.textContent = text;
+}
+
+function showNotice(message) {
+  if (!elements.notice) return;
+  elements.notice.hidden = false;
+  elements.notice.textContent = message;
+}
+
+function hideNotice() {
+  if (elements.notice) elements.notice.hidden = true;
 }
 
 function addVersionToMenu() {
@@ -74,6 +91,10 @@ function addVersionToMenu() {
 
 function githubApiUrl(folder) {
   return `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${folder}?ref=${CONFIG.branch}`;
+}
+
+function githubDeleteApiUrl(path) {
+  return `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${encodeURIComponent(path).replace(/%2F/g, '/')}`;
 }
 
 async function fetchJson(url) {
@@ -210,8 +231,84 @@ function fileToDocument(file, folder) {
     inizio: metadata.inizio || range.inizio || null,
     fine: metadata.fine || range.fine || null,
     filename,
+    sha: file.sha || '',
     source:'github'
   };
+}
+
+function currentAgent() {
+  try {
+    return JSON.parse(localStorage.getItem('navidiaria.activeAgent') || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function isAdminAgent(agent) {
+  return ['91', '92', 'MOVIMENTO'].includes(String(agent?.id || '')) ||
+    String(agent?.role || '').toLowerCase() === 'admin';
+}
+
+function isGitHubFolderDocument(documentItem) {
+  const path = String(documentItem?.path || '');
+  return CONFIG.folders.some(folder => path.startsWith(`${folder}/`));
+}
+
+function canDeleteDocument(documentItem) {
+  return state.isAdmin &&
+    documentItem?.source === 'github' &&
+    !!documentItem?.sha &&
+    isGitHubFolderDocument(documentItem);
+}
+
+function githubTokenEntry() {
+  for (const key of GITHUB_TOKEN_STORAGE_KEYS) {
+    const value = String(localStorage.getItem(key) || '').trim();
+    if (value) return { key, token: value };
+  }
+
+  return { key: GITHUB_TOKEN_STORAGE_KEYS[0], token: '' };
+}
+
+function githubToken() {
+  const stored = githubTokenEntry();
+  if (stored.token) return stored.token;
+
+  const typed = window.prompt(
+    'Inserisci un token GitHub con permessi di scrittura sul repository per eliminare il PDF.'
+  );
+  const token = String(typed || '').trim();
+  if (!token) {
+    throw new Error('Token GitHub necessario per eliminare il file.');
+  }
+  localStorage.setItem(stored.key, token);
+  return token;
+}
+
+async function githubDeleteError(response) {
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {}
+
+  if (response.status === 401) {
+    return 'Token GitHub non valido o scaduto.';
+  }
+
+  if (response.status === 403) {
+    if (response.headers.get('x-ratelimit-remaining') === '0') {
+      return 'Limite GitHub raggiunto: riprova tra qualche minuto.';
+    }
+    return 'Permessi insufficienti: il token GitHub non può eliminare questo file.';
+  }
+
+  if (response.status === 404) {
+    return 'File non trovato oppure già eliminato su GitHub.';
+  }
+
+  return payload?.message
+    ? `GitHub: ${payload.message}`
+    : `${response.status} ${response.statusText}`;
 }
 
 async function scanGitHub() {
@@ -349,10 +446,16 @@ function odsCard(documentItem) {
 }
 
 function documentActions(documentItem) {
+  const documentId = escapeHtml(documentItem.id);
+  const isDeleting = state.deletingIds.has(String(documentItem.id));
+
   return `
     <div class="document-actions">
-      <button class="document-action" type="button" data-open-document="${escapeHtml(documentItem.id)}">Apri</button>
-      <button class="document-action download" type="button" data-download-document="${escapeHtml(documentItem.id)}">↓ Scarica</button>
+      <button class="document-action" type="button" data-open-document="${documentId}">Apri</button>
+      <button class="document-action download" type="button" data-download-document="${documentId}">↓ Scarica</button>
+      ${canDeleteDocument(documentItem)
+        ? `<button class="document-action danger" type="button" data-delete-document="${documentId}" ${isDeleting ? 'disabled' : ''}>${isDeleting ? 'Eliminazione…' : 'Elimina'}</button>`
+        : ''}
     </div>
   `;
 }
@@ -489,6 +592,50 @@ async function downloadDocument(documentId) {
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
 }
 
+async function deleteDocument(documentId) {
+  const documentItem = state.documents.find(item => String(item.id) === String(documentId));
+  if (!documentItem) throw new Error('Documento non trovato.');
+  if (!canDeleteDocument(documentItem)) {
+    throw new Error('Eliminazione consentita solo agli admin per i PDF GitHub di turni e ods.');
+  }
+  if (!window.confirm(`Vuoi eliminare definitivamente "${documentItem.filename || documentItem.titolo}"?`)) {
+    return;
+  }
+
+  const token = githubToken();
+  const deletingId = String(documentItem.id);
+  state.deletingIds.add(deletingId);
+  renderDocuments();
+  showNotice(`Eliminazione in corso: ${documentItem.filename || documentItem.titolo}…`);
+
+  try {
+    const response = await fetch(githubDeleteApiUrl(documentItem.path), {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `token ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `Eliminazione file: ${documentItem.filename || documentItem.titolo || documentItem.path}`,
+        sha: documentItem.sha,
+        branch: CONFIG.branch
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(await githubDeleteError(response));
+    }
+
+    documentContentCache.delete(deletingId);
+    await loadDocuments();
+    showNotice(`Documento eliminato: ${documentItem.filename || documentItem.titolo}.`);
+  } finally {
+    state.deletingIds.delete(deletingId);
+    renderDocuments();
+  }
+}
+
 function closeDocument() {
   if (!elements.viewer) return;
   viewerRenderToken += 1;
@@ -554,14 +701,22 @@ function renderDocuments() {
 
   document.querySelectorAll('[data-open-document]').forEach(button => {
     button.addEventListener('click', () => openDocument(button.dataset.openDocument).catch(error => {
-      if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco ad aprire il documento: ${error.message}`}
+      showNotice(`Non riesco ad aprire il documento: ${error.message}`);
     }));
   });
   document.querySelectorAll('[data-download-document]').forEach(button => {
     button.addEventListener('click', event => {
       event.stopPropagation();
       downloadDocument(button.dataset.downloadDocument).catch(error => {
-      if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco a scaricare il documento: ${error.message}`}
+        showNotice(`Non riesco a scaricare il documento: ${error.message}`);
+      });
+    });
+  });
+  document.querySelectorAll('[data-delete-document]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      deleteDocument(button.dataset.deleteDocument).catch(error => {
+        showNotice(`Non riesco a eliminare il documento: ${error.message}`);
       });
     });
   });
@@ -569,17 +724,18 @@ function renderDocuments() {
     card.addEventListener('click', event => {
       if (event.target.closest('.document-actions')) return;
       openDocument(card.dataset.documentId).catch(error => {
-        if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco ad aprire il documento: ${error.message}`}
+        showNotice(`Non riesco ad aprire il documento: ${error.message}`);
       });
     });
   });
 }
 
 async function loadDocuments() {
+  state.isAdmin = isAdminAgent(currentAgent());
   if (elements.refreshButton) elements.refreshButton.disabled = true;
   setText('lastUpdate', 'Aggiornamento…');
 
-  if (elements.notice) elements.notice.hidden = true;
+  hideNotice();
 
   state.metadata = await loadMetadata();
 
@@ -599,10 +755,10 @@ async function loadDocuments() {
     setText('lastUpdate', 'GitHub non raggiungibile');
 
     if (elements.notice) {
-      elements.notice.hidden = false;
-      elements.notice.textContent =
+      showNotice(
         `Non riesco a leggere ora le cartelle GitHub (${error.message}). ` +
-        'Mostro i documenti registrati in documenti.json.';
+        'Mostro i documenti registrati in documenti.json.'
+      );
     }
   }
 
@@ -636,7 +792,7 @@ elements.viewerDownload?.addEventListener('click', async () => {
   try {
     await downloadDocument(documentId);
   } catch (error) {
-    if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco a scaricare il documento: ${error.message}`}
+    showNotice(`Non riesco a scaricare il documento: ${error.message}`);
   } finally {
     elements.viewerDownload.disabled = false;
     elements.viewerDownload.textContent = oldLabel;

@@ -61,9 +61,10 @@
 
     .document-actions {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
       gap: 8px;
       align-items: stretch;
+      justify-content: flex-end;
     }
 
     .document-action {
@@ -86,6 +87,22 @@
 
     .document-action.download {
       color: #86efac;
+    }
+
+    .document-action.danger {
+      border-color: #7e2a3a;
+      background: #2c141c;
+      color: #ffb7c4;
+    }
+
+    .document-action.danger:hover {
+      border-color: #f06c86;
+      background: #3a1822;
+    }
+
+    .document-action:disabled {
+      opacity: .72;
+      cursor: wait;
     }
 
     .document-viewer[hidden] {
@@ -296,7 +313,7 @@
     <div class="archive-status">
       <strong id="sourceLabel">Archivio GitHub</strong>
       <span id="lastUpdate">Caricamento…</span>
-      <span class="version">Versione v1.02</span>
+      <span class="version">Versione v1.08</span>
     </div>
   </aside>
 
@@ -350,7 +367,7 @@
   <script src="shared-menu.js"></script>
   <script src="admin-firebase-rest.js?v=33"></script>
   <script src="vendor/pdfjs/pdf.min.js"></script>
-  <script src="documenti.js?v=1.07"></script>
+  <script src="documenti.js?v=1.08"></script>
 
   <!-- Navigazione Mobile Liquid Glass -->
   <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
