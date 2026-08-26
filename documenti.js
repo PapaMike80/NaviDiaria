@@ -6,12 +6,13 @@ const CONFIG = {
   branch: 'main',
   folders: ['turni', 'ods'],
   metadataFile: 'documenti.json',
-  version: 'v1.07'
+  version: 'v1.08'
 };
 
 const state = {
   documents: [],
-  metadata: []
+  metadata: [],
+  deletingDocumentIds: new Set()
 };
 
 const elements = {
@@ -76,10 +77,54 @@ function githubApiUrl(folder) {
   return `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${folder}?ref=${CONFIG.branch}`;
 }
 
+function githubContentApiUrl(path) {
+  const encodedPath = String(path || '')
+    .split('/')
+    .map(part => encodeURIComponent(part))
+    .join('/');
+  return `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${encodedPath}`;
+}
+
+function githubToken() {
+  const fromWindow = typeof window.NAVI_GITHUB_TOKEN === 'string'
+    ? window.NAVI_GITHUB_TOKEN.trim()
+    : '';
+  if (fromWindow) return fromWindow;
+
+  const fromStorage = [
+    'navisuite.githubToken',
+    'navisuite.github.token',
+    'githubToken',
+    'GITHUB_TOKEN'
+  ]
+    .map(key => {
+      try {
+        return localStorage.getItem(key) || sessionStorage.getItem(key) || '';
+      } catch {
+        return '';
+      }
+    })
+    .map(value => String(value || '').trim())
+    .find(Boolean);
+
+  return fromStorage || '';
+}
+
+function githubHeaders(withAuth = false) {
+  const headers = { Accept: 'application/vnd.github+json' };
+  if (!withAuth) return headers;
+  const token = githubToken();
+  if (token) {
+    headers.Authorization = 'Bearer ' + token;
+    headers['X-GitHub-Api-Version'] = '2022-11-28';
+  }
+  return headers;
+}
+
 async function fetchJson(url) {
   const response = await fetch(url, {
     cache: 'no-store',
-    headers: { Accept: 'application/vnd.github+json' }
+    headers: githubHeaders(false)
   });
 
   if (!response.ok) {
@@ -197,6 +242,7 @@ function fileToDocument(file, folder) {
 
   return {
     id: metadata.id || file.sha || path,
+    sha: file.sha || null,
     tipo: metadata.tipo || (isOds ? 'ods' : isDraft ? 'bozza' : 'turno'),
     numero: number,
     titolo: metadata.titolo || titleFromFilename(
@@ -349,12 +395,87 @@ function odsCard(documentItem) {
 }
 
 function documentActions(documentItem) {
+  const canDelete = canDeleteDocument(documentItem);
+  const deleting = state.deletingDocumentIds.has(String(documentItem.id));
   return `
     <div class="document-actions">
       <button class="document-action" type="button" data-open-document="${escapeHtml(documentItem.id)}">Apri</button>
       <button class="document-action download" type="button" data-download-document="${escapeHtml(documentItem.id)}">↓ Scarica</button>
+      ${canDelete
+    ? `<button class="document-action delete" type="button" data-delete-document="${escapeHtml(documentItem.id)}"${deleting ? ' disabled' : ''}>${deleting ? 'Elimino…' : 'Elimina'}</button>`
+    : ''}
     </div>
   `;
+}
+
+function isManagedGithubFolder(path) {
+  const folder = String(path || '').split('/')[0].toLowerCase();
+  return CONFIG.folders.includes(folder);
+}
+
+function canDeleteDocument(documentItem) {
+  return Boolean(
+    documentItem &&
+    documentItem.source !== 'firebase' &&
+    isManagedGithubFolder(documentItem.path) &&
+    /\.pdf$/i.test(String(documentItem.path || ''))
+  );
+}
+
+async function githubErrorMessage(response) {
+  try {
+    const payload = await response.json();
+    if (payload?.message) return payload.message;
+  } catch {}
+  return `${response.status} ${response.statusText}`;
+}
+
+async function deleteDocument(documentId) {
+  const documentItem = state.documents.find(item => String(item.id) === String(documentId));
+  if (!documentItem || !canDeleteDocument(documentItem)) {
+    throw new Error('Documento non eliminabile da questa pagina');
+  }
+
+  if (!githubToken()) {
+    throw new Error('Token GitHub non disponibile. Imposta NAVI_GITHUB_TOKEN o localStorage["navisuite.githubToken"]');
+  }
+
+  const confirmMessage = `Eliminare definitivamente "${documentItem.filename || documentItem.titolo}" dalla cartella ${documentItem.path.split('/')[0]}?`;
+  if (!window.confirm(confirmMessage)) return false;
+
+  const contentUrl = `${githubContentApiUrl(documentItem.path)}?ref=${encodeURIComponent(CONFIG.branch)}`;
+  const metadataResponse = await fetch(contentUrl, {
+    cache: 'no-store',
+    headers: githubHeaders(true)
+  });
+
+  if (!metadataResponse.ok) {
+    throw new Error(`Impossibile leggere il file da eliminare: ${await githubErrorMessage(metadataResponse)}`);
+  }
+
+  const metadata = await metadataResponse.json();
+  const sha = metadata?.sha || documentItem.sha;
+  if (!sha) throw new Error('SHA file non disponibile per la cancellazione');
+
+  const deleteResponse = await fetch(githubContentApiUrl(documentItem.path), {
+    method: 'DELETE',
+    headers: {
+      ...githubHeaders(true),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: `Elimina ${documentItem.path} da documenti.html`,
+      sha,
+      branch: CONFIG.branch
+    })
+  });
+
+  if (!deleteResponse.ok) {
+    throw new Error(`Eliminazione non riuscita: ${await githubErrorMessage(deleteResponse)}`);
+  }
+
+  documentContentCache.delete(String(documentItem.id));
+  return true;
 }
 
 async function documentUrl(documentItem) {
@@ -561,8 +682,44 @@ function renderDocuments() {
     button.addEventListener('click', event => {
       event.stopPropagation();
       downloadDocument(button.dataset.downloadDocument).catch(error => {
-      if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco a scaricare il documento: ${error.message}`}
+        if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco a scaricare il documento: ${error.message}`}
       });
+    });
+  });
+  document.querySelectorAll('[data-delete-document]').forEach(button => {
+    button.addEventListener('click', async event => {
+      event.stopPropagation();
+      const documentId = String(button.dataset.deleteDocument || '');
+      if (!documentId || state.deletingDocumentIds.has(documentId)) return;
+
+      const oldLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Elimino…';
+      state.deletingDocumentIds.add(documentId);
+
+      try {
+        const deleted = await deleteDocument(documentId);
+        if (!deleted) {
+          button.disabled = false;
+          button.textContent = oldLabel;
+          return;
+        }
+        if (elements.viewerDownload?.dataset.documentId === documentId) closeDocument();
+        await loadDocuments();
+        if (elements.notice) {
+          elements.notice.hidden = false;
+          elements.notice.textContent = 'Documento eliminato con successo.';
+        }
+      } catch (error) {
+        if (elements.notice) {
+          elements.notice.hidden = false;
+          elements.notice.textContent = `Non riesco a eliminare il documento: ${error.message}`;
+        }
+        button.disabled = false;
+        button.textContent = oldLabel;
+      } finally {
+        state.deletingDocumentIds.delete(documentId);
+      }
     });
   });
   document.querySelectorAll('[data-document-id]').forEach(card => {
